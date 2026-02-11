@@ -11,22 +11,43 @@ generator client {
 
 datasource db {
   provider = "mysql"
+  url      = env("DATBASE_URL")
 }
 
 //Models
 
 model User {
-  id         String  @id
-  firstName  String
-  lastName   String
-  middleName String?
-  suffix     String?
+  //Basic Personal Info
+  id            String   @id @default(cuid())
+  firstName     String
+  lastName      String
+  middleName    String?
+  suffix        String?
+  birthDate     DateTime
+  contactNumber String
+  email         String   @unique
 
-  email     String   @unique
-  image     String?
-  role      String
+  //Hospital Data
+  employeeID String  @unique
+  image      String?
+  role       String
+  isApproved Boolean @default(false)
+
+  //Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  //BetterAuth
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
   createdAt DateTime
   updatedAt DateTime
-
-  @@unique([firstName, lastName])
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user  User @relation(fields: [userId], references: [id]onDelete: Cascade)
 }

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+
 import {
   Card,
   CardContent,
@@ -18,9 +19,9 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   return (
     <Card {...props}>
       <CardHeader>
-        <CardTitle>Create an account</CardTitle>
+        <CardTitle>Registration Form</CardTitle>
         <CardDescription>
-          Enter your information below to create your account
+          Fill out the form below and wait for Admin Approval
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -38,10 +39,6 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 placeholder="m@example.com"
                 required
               />
-              <FieldDescription>
-                We&apos;ll use this to contact you. We will not share your email
-                with anyone else.
-              </FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="password">Password</FieldLabel>
@@ -60,9 +57,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             <FieldGroup>
               <Field>
                 <Button type="submit">Create Account</Button>
-                <Button variant="outline" type="button">
-                  Sign up with Google
-                </Button>
+
                 <FieldDescription className="px-6 text-center">
                   Already have an account? <a href="#">Sign in</a>
                 </FieldDescription>

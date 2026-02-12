@@ -1,25 +1,53 @@
 "use client";
 
+<<<<<<< HEAD
 import { useState } from "react";
+=======
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { loginSchema, LoginSchemaType } from "@/src/lib/schemas/login-schema"
+>>>>>>> c86fe1e8e9c9a08e9b65be2daf3289119460b21d
 
-interface LoginFormData {
-    email: string;
-    password: string;
-}
+import { Button } from "@/src/components/ui/button"
+import { Input } from "@/src/components/ui/input"
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/src/components/ui/form"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/src/components/ui/card"
 
 export default function LoginForm() {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [isLoading, setIsloading] = useState(false);
-    const [error, setError] = useState("");
+    const form = useForm<LoginSchemaType>({
+        resolver: zodResolver(loginSchema as any),
+        defaultValues: {
+            name: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+        },
+    })
 
 
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-
-        setError("false");
-        setIsloading(true);
+    function onSubmit(values: z.infer<typeof loginSchema>) {
+        console.log(values)
     }
+
+
+    return (
+        <Card></Card>
+
+    );
 
 
 

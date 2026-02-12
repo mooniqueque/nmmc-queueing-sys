@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { SignupForm } from "@/components/forms/signup-form"
+=======
+import { SignupForm } from "@/src/components/forms/signup-form"
+>>>>>>> c86fe1e8e9c9a08e9b65be2daf3289119460b21d
 
 export default function SignupPage() {
   return (

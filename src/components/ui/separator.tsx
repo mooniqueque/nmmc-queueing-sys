@@ -1,17 +1,7 @@
 "use client"
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { Separator as SeparatorPrimitive } from "radix-ui"
-import * as React from "react"
-=======
 import * as React from "react"
 import { Separator as SeparatorPrimitive } from "radix-ui"
->>>>>>> c86fe1e8e9c9a08e9b65be2daf3289119460b21d
-=======
-import { Separator as SeparatorPrimitive } from "radix-ui"
-import * as React from "react"
->>>>>>> ami/initial-login-setup
 
 import { cn } from "@/lib/utils"
 

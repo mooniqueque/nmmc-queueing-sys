@@ -16,7 +16,8 @@ import {
     MdAccessTime,
     MdCheckCircle,
     MdCancel,
-    MdPendingActions
+    MdPendingActions,
+    MdOpenInNew,
 } from 'react-icons/md';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -37,43 +38,28 @@ import {
     SidebarTrigger,
     SidebarFooter,
 } from '@/components/ui/sidebar'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 
-const users = [
-    { id: 1, name: "Andreanna Gorres", date: "01/01/26", service: "Animal Bite", role: "Caller", status: "Active" },
-    { id: 2, name: "Aljo Nicolo Andina", date: "01/01/26", service: "X-RAY", role: "Releasing", status: "Inactive" },
-    { id: 3, name: "Karl Valmores", date: "01/01/26", service: "X-RAY", role: "Pending", status: "Pending" },
-    { id: 4, name: "Maria Clara", date: "01/02/26", service: "Triage", role: "Triage Nurse", status: "Active" },
-    { id: 5, name: "Juan Dela Cruz", date: "01/02/26", service: "Admin", role: "Admin", status: "Active" },
+const departments = [
+    'Animal Bite',
+    'Cardiology',
+    'Dental',
+    'EC',
+    'ENT',
+    'Eye Care',
+    'Fam Med',
+    'Geriatric Med',
+    'IM Nephrology',
+    'Internal Med',
+    'Laboratory',
+    'LC Adult',
 ]
 
-// START OF DASHBOARD DESIGN
-export default function AdminDashboard() {
+// START OF RELEASING DESIGN
+export default function ReleasingAdmin() {
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterRole, setFilterRole] = useState('All Users');
-
-
-    const filteredUsers = users.filter(user => {
-        const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-
-            user.service.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesFilter = filterRole === 'All Users' || user.role === filterRole;
-        return matchesSearch && matchesFilter;
-    });
+    const [selectedDepartment, setSelectedDepartment] = useState('');
+    const [ticketsToRelease, setTicketsToRelease] = useState('');
 
     return (
         <div className="flex min-h-screen w-full bg-slate-50/50">
@@ -104,7 +90,7 @@ export default function AdminDashboard() {
                                     {/*FOR ADMIN*/}
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
+                                            <a href='/dashboard'>
                                                 <MdDashboard size={20} className="text-emerald-700" />
                                                 <span>Admin Dashboard</span>
                                             </a>
@@ -238,7 +224,7 @@ export default function AdminDashboard() {
                     <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
                         <div className="flex items-center gap-3">
                             <SidebarTrigger />
-                            <h1 className="text-xl font-bold text-emerald-900">Admin Dashboard</h1>
+                            <h1 className="text-xl font-bold text-emerald-900">Ticket Releasing</h1>
                         </div>
                         <div className='flex items-center gap-3'>
                             <div className="flex flex-col items-end mr-1 hidden sm:flex">
@@ -254,167 +240,144 @@ export default function AdminDashboard() {
                         </div>
                     </header>
 
-                    <main className='flex- p-6 space-y-6 bg-slate-50/50 px-10'>
+                    <main className='flex-1 p-6 space-y-6 bg-slate-50/50 px-10'>
 
-                        {/*STATISTICS*/}
-                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
-                            <StatsCard label="Total System User" value="58" icon={<MdPeople size={28} className="text-white" />} color="bg-emerald-600" />
-                            <StatsCard label="Pending Requests" value="06" icon={<MdPendingActions size={28} className="text-white" />} color="bg-yellow-500" />
-                            <StatsCard label="Active Users" value="01" icon={<MdCheckCircle size={28} className="text-white" />} color="bg-emerald-500" />
-                            <StatsCard label="Inactive Users" value="01" icon={<MdCancel size={28} className="text-white" />} color="bg-red-500" />
-                        </div>
-
-                        {/*SEARCH, ALL USERS, SORT, PENDING USERS, ADD USERS*/}
-                        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <div className="relative w-full sm:w-72">
-                                    <div className="absolute left-3 top-2.5 text-slate-400">
-                                        <MdSearch size={20} />
-                                    </div>
-                                    <Input placeholder="Search.... " className="pl-10 bg-slate-50 border-slate-200"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)} />
-                                </div>
+                        {/* HEADER SECTION */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-semibold text-emerald-800">Ticket Releasing</h2>
+                                <p className="text-sm text-muted-foreground">Manage and release tickets by department</p>
                             </div>
-                            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
 
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="...">
-                                            {filterRole === 'All Users' ? <MdPeople size={18} className="mr-2" /> : getRoleIcon(filterRole)} {filterRole}
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => setFilterRole('All Users')}>All Users</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setFilterRole('Admin')}>Admin</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setFilterRole('Caller')}>Caller</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setFilterRole('Releasing')}>Releasing</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setFilterRole('Nurse Triage')}>Nurse Triage</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 w-[300px]">
+                                    <div className="relative w-full">
+                                        <div className="absolute left-3 top-2.5 text-slate-400">
+                                            <MdSearch size={20} />
+                                        </div>
+                                        <Input 
+                                            placeholder="Search departments....." 
+                                            className="pl-10 bg-white border-slate-200"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)} 
+                                        />
+                                    </div>
+                                </div>
 
                                 <Button variant="outline" className="text-slate-600 border-slate-200">
                                     <MdFilterList size={18} className="mr-2" /> Sort
                                 </Button>
 
-                                <Button className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow-md shadow-yellow-200">
-                                    <MdAccessTime size={18} className="mr-2" /> Pending Users
-                                </Button>
-
-                                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-200">
-                                    <MdPersonAdd size={18} className="mr-2" /> Add Users
+                                <Button variant="outline" className="text-slate-600 border-slate-200">
+                                    <MdFilterList size={18} className="mr-2" /> Filter
                                 </Button>
                             </div>
                         </div>
 
-                        {/*TABLE*/}
-                        <Card className="shadow-sm border-0 overflow-hidden ring-1 ring-slate-200 px-4" >
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-100">
-                                        <TableHead className="w-[300px] font-semibold text-slate-600"> User Details </TableHead>
-                                        <TableHead className="font-semibold text-slate-600">Service/Clinic</TableHead>
-                                        <TableHead className="font-semibold text-slate-600">Roles</TableHead>
-                                        <TableHead className="font-semibold text-slate-600">Account Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow className="hover:bg-slate-50/50">
-                                        <TableCell>
-                                            <div className="flex flex-col py-1">
-                                                <span className="font-bold text-emerald-950 text-base">Andreanna Gorres</span>
-                                                <span className="text-xs text-slate-400 font-medium">Registered: 01/01/26</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-bold text-emerald-800">Animal Bite</TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 px-3 py-1 font-medium">
-                                                Caller
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge className="bg-white text-emerald-600 border border-emerald-500 shadow-none hover:bg-emerald-50 px-3 py-1 font-medium flex w-fit items-center gap-1">
-                                                <MdCheckCircle size={14} /> Active
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow className="hover:bg-slate-50/50">
-                                        <TableCell>
-                                            <div className="flex flex-col py-1">
-                                                <span className="font-bold text-emerald-950 text-base">Aljo Nicolo Andina</span>
-                                                <span className="text-xs text-slate-400 font-medium">Registered: 01/01/26</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-bold text-emerald-800">X-RAY</TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1 font-medium">
-                                                Releasing
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="bg-white text-red-500 border-red-200 hover:bg-red-50 px-3 py-1 font-medium flex w-fit items-center gap-1">
-                                                <MdCancel size={14} /> Inactive
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow className="hover:bg-slate-50/50">
-                                        <TableCell>
-                                            <div className="flex flex-col py-1">
-                                                <span className="font-bold text-emerald-950 text-base">Karl Valmores</span>
-                                                <span className="text-xs text-slate-400 font-medium">Registered: 01/01/26</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-bold text-emerald-800">X-RAY</TableCell>
-                                        <TableCell>
-                                            {/* Empty role example */}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="bg-white text-emerald-500 border-emerald-300 hover:bg-emerald-50 px-3 py-1 font-medium flex w-fit items-center gap-1">
-                                                <MdAccessTime size={14} /> Pending
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
+                        {/* TWO COLUMN LAYOUT */}
+                        <div className="flex gap-6">
+                            {/* LEFT SIDE - DEPARTMENT CARDS */}
+                            <div className="flex-1 flex flex-col">
+                                <div className="mb-4">
+                                    <h3 className="font-medium text-sm text-emerald-700">All Departments</h3>
+                                </div>
 
-                        </Card>
+                                <div className="grid grid-cols-2 gap-3 flex-1 overflow-y-auto pr-2">
+                                    {Array.from({ length: 20 }).map((_, idx) => {
+                                        const name = departments[idx % departments.length]
+                                        return (
+                                            <Card 
+                                                key={idx} 
+                                                className={`w-[250px] overflow-hidden shadow-sm border cursor-pointer transition-all ${
+                                                    selectedDepartment === name 
+                                                        ? 'ring-2 ring-emerald-600 border-emerald-600' 
+                                                        : 'border-slate-200 hover:border-emerald-300'
+                                                }`}
+                                                onClick={() => setSelectedDepartment(name)}
+                                            >
+                                                <div className="flex items-center gap-3 p-1">
+                                                    <div className="w-1.5 h-10 rounded-full bg-emerald-600 flex-shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-semibold text-sm text-emerald-900 truncate">{name}</div>
+                                                        <div className="text-xs text-slate-500">Tickets Released: 01</div>
+                                                    </div>
 
+                                                    <div className="flex-shrink-0">
+                                                        <Button variant="ghost" size="icon" className="bg-emerald-50 hover:bg-emerald-100 h-8 w-8">
+                                                            <MdOpenInNew className="text-emerald-700" size={16} />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* RIGHT SIDE - INPUT CARD */}
+                            <div className="w-80 flex-shrink-0">
+                                <Card className="shadow-sm border-slate-200 sticky top-[120px]">
+                                    <CardHeader className="border-b border-slate-200">
+                                        <CardTitle className="text-lg text-emerald-900">Release Tickets</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="pt-6 space-y-6">
+                                        {/* SELECTED DEPARTMENT DISPLAY */}
+                                        <div>
+                                            <label className="text-sm font-semibold text-slate-700 block mb-2">Selected Department</label>
+                                            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md">
+                                                <p className="text-sm font-medium text-emerald-900">
+                                                    {selectedDepartment || 'No department selected'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* NUMBER INPUT */}
+                                        <div>
+                                            <label htmlFor="tickets" className="text-sm font-semibold text-slate-700 block mb-2">
+                                                Number of Tickets to Release
+                                            </label>
+                                            <Input
+                                                id="tickets"
+                                                type="number"
+                                                placeholder="Enter number..."
+                                                value={ticketsToRelease}
+                                                onChange={(e) => setTicketsToRelease(e.target.value)}
+                                                className="bg-white border-slate-200"
+                                                min="0"
+                                            />
+                                            <p className="text-xs text-slate-500 mt-1">Enter the number of tickets to release for this department</p>
+                                        </div>
+
+                                        {/* SUBMIT BUTTON */}
+                                        <Button 
+                                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md"
+                                            disabled={!selectedDepartment || !ticketsToRelease}
+                                        >
+                                            Release Tickets
+                                        </Button>
+
+                                        {/* RESET BUTTON */}
+                                        <Button 
+                                            variant="outline"
+                                            className="w-full border-slate-200"
+                                            onClick={() => {
+                                                setSelectedDepartment('')
+                                                setTicketsToRelease('')
+                                            }}
+                                        >
+                                            Clear
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
 
                     </main>
 
-
                 </div>
-
 
             </SidebarProvider >
 
         </div >
-    )
-}
-{/*ROLE ICONS*/ }
-function getRoleIcon(role: string) {
-    switch (role) {
-        case 'Caller': return <MdPhone size={14} className="mr-1" />;
-        case 'Releasing': return <MdDescription size={14} className="mr-1" />;
-        case 'Admin': return <MdSettings size={14} className="mr-1" />;
-        case 'Triage Nurse': return <MdSupportAgent size={14} className="mr-1" />;
-        default: return <MdPeople size={14} className="mr-1" />;
-    }
-}
-
-{/*FOR STATS CARD*/ }
-function StatsCard({ label, value, icon, color }: { label: string, value: string, icon: React.ReactNode, color: string }) {
-    return (
-        <Card className='shadow-sm border-0 ring-1 ring-slate-100 px-4'>
-            <div className="flex items-center p-3 gap-3">
-                <div className={`h-12 w-12 rounded-xl ${color} flex items-center justify-center shrink-0 shadow-md shadow-emerald-100/50`}>
-                    {icon}
-                </div>
-                <div className="flex flex-col gap-1">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">{label}</p>
-                    <h3 className="text-3xl font-extrabold text-slate-800 leading-none">{value}</h3>
-                </div>
-            </div>
-        </Card>
     )
 }

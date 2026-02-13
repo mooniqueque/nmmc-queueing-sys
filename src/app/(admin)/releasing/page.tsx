@@ -1,5 +1,5 @@
-import ReleasingClient from '../../../components/releasing/releasing-client'
+import ReleasingAdmin from '@/components/admin/releasing-admin'
 
 export default function ReleasingPage() {
-  return <ReleasingClient />
+  return <ReleasingAdmin />
 }

@@ -33,6 +33,8 @@ const userRole = 'admin' // 'admin' | 'user'
 
 export default function ReleasingClient() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedDepartment, setSelectedDepartment] = useState('')
+  const [ticketsToRelease, setTicketsToRelease] = useState('')
 
   const isAdmin = userRole === 'admin'
 
@@ -40,19 +42,21 @@ export default function ReleasingClient() {
     <>
       {/* Admin UI */}
       {isAdmin && (
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="p-6 flex flex-col gap-6">
+          {/* HEADER */}
+          <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-emerald-800">Ticket Releasing</h2>
               <p className="text-sm text-muted-foreground">Manage and release tickets by department</p>
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 w-[420px]">
+              <div className="flex items-center gap-2 w-[300px]">
                 <Input
-                  placeholder="Search departments, clinics or services....."
+                  placeholder="Search departments....."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-white border-slate-200"
                 />
                 <Button variant="outline" size="sm">
                   <MdSearch />
@@ -78,35 +82,105 @@ export default function ReleasingClient() {
             </div>
           </div>
 
-          <div className="mb-4">
-            <h3 className="font-medium text-sm text-emerald-700">All Departments</h3>
-          </div>
+          {/* TWO COLUMN LAYOUT */}
+          <div className="flex gap-6 flex-1 items-start min-h-0">
+            {/* LEFT SIDE - DEPARTMENT CARDS */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="mb-4">
+                <h3 className="font-medium text-sm text-emerald-700">All Departments</h3>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
-            {Array.from({ length: 20 }).map((_, idx) => {
-              const name = departments[idx % departments.length]
-              return (
-                <Card key={idx} className="overflow-hidden">
-                  <div className="flex items-center gap-3 p-3">
-                    <div className="w-2 h-12 rounded bg-emerald-600" />
-                    <div className="flex-1">
-                      <CardHeader className="p-0">
-                        <CardTitle className="font-semibold text-sm text-emerald-900">{name}</CardTitle>
-                        <div className="text-xs text-muted-foreground">Tickets Released: 01</div>
-                      </CardHeader>
-                    </div>
+              <div className="flex-1 overflow-y-auto pr-2 pb-24">
+                <div className="grid grid-cols-2 gap-3 items-stretch">
+                  {Array.from({ length: 20 }).map((_, idx) => {
+                    const name = departments[idx % departments.length]
+                    return (
+                      <div key={idx} className="w-full min-w-0">
+                        <Card 
+                          className={`w-full min-w-0 overflow-hidden shadow-sm border cursor-pointer transition-all ${
+                            selectedDepartment === name 
+                              ? 'ring-2 ring-emerald-600 border-emerald-600' 
+                              : 'border-slate-200 hover:border-emerald-300'
+                          }`}
+                          onClick={() => setSelectedDepartment(name)}
+                        >
+                          <div className="flex items-center gap-3 p-3">
+                            <div className="w-1.5 h-10 rounded-full bg-emerald-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-sm text-emerald-900 truncate">{name}</div>
+                              <div className="text-xs text-slate-500">Tickets Released: 01</div>
+                            </div>
 
-                    <div className="flex-shrink-0">
-                      <CardContent className="p-0">
-                        <Button variant="ghost" size="icon" className="bg-emerald-50 hover:bg-emerald-100">
-                          <MdOpenInNew className="text-emerald-700" />
-                        </Button>
-                      </CardContent>
+                            <div className="flex-shrink-0">
+                              <Button variant="ghost" size="icon" className="bg-emerald-50 hover:bg-emerald-100 h-8 w-8">
+                                <MdOpenInNew className="text-emerald-700" size={16} />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT SIDE - INPUT CARD */}
+            <div className="w-80 flex-shrink-0 self-start">
+              <Card className="shadow-sm border-slate-200 sticky top-6">
+                <CardHeader className="border-b border-slate-200">
+                  <CardTitle className="text-lg text-emerald-900">Release Tickets</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-6">
+                  {/* SELECTED DEPARTMENT DISPLAY */}
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700 block mb-2">Selected Department</label>
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md">
+                      <p className="text-sm font-medium text-emerald-900">
+                        {selectedDepartment || 'No department selected'}
+                      </p>
                     </div>
                   </div>
-                </Card>
-              )
-            })}
+
+                  {/* NUMBER INPUT */}
+                  <div>
+                    <label htmlFor="tickets" className="text-sm font-semibold text-slate-700 block mb-2">
+                      Number of Tickets to Release
+                    </label>
+                    <Input
+                      id="tickets"
+                      type="number"
+                      placeholder="Enter number..."
+                      value={ticketsToRelease}
+                      onChange={(e) => setTicketsToRelease(e.target.value)}
+                      className="bg-white border-slate-200"
+                      min="0"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Enter the number of tickets to release for this department</p>
+                  </div>
+
+                  {/* SUBMIT BUTTON */}
+                  <Button 
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md"
+                    disabled={!selectedDepartment || !ticketsToRelease}
+                  >
+                    Release Tickets
+                  </Button>
+
+                  {/* RESET BUTTON */}
+                  <Button 
+                    variant="outline"
+                    className="w-full border-slate-200"
+                    onClick={() => {
+                      setSelectedDepartment('')
+                      setTicketsToRelease('')
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       )}

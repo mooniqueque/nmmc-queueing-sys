@@ -17,6 +17,7 @@ datasource db {
 model User {
   //Basic Personal Info
   id            String   @id @default(cuid())
+  name          String
   firstName     String
   lastName      String
   middleName    String?
@@ -62,7 +63,7 @@ model Session {
 model Account {
   id                    String    @id @default(cuid())
   accountId             String
-  providerID            String
+  providerId            String
   userId                String
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?   @db.Text

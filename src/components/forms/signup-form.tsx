@@ -132,8 +132,6 @@ export function SignupForm({
                 </div>
               </FieldGroup>
 
-
-
               {/*Email Input */}
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>

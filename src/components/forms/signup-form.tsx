@@ -28,9 +28,12 @@ import { registrationSchema } from "@/lib/schemas/registration-schema"
 import { cn } from "@/lib/utils"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
 import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { z } from "zod"
+
 
 type RegistrationValues = z.infer<typeof registrationSchema>
 
@@ -93,6 +96,22 @@ export function SignupForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
+          <div>
+            <Link
+              href="/login"
+              className="flex flex-col items-center gap-2 self-center text-center group"
+            >
+              <Image
+                src="/nmmc-logo.png"
+                alt="NMMC LOGO"
+                width={85}
+                height={85}
+                className="rounded-full shadown-sm transition-transform group-hover:scale-102"
+              />
+              <h1 className="text-xl font-bold tracking-tight text-foreground"
+              >Northern Mindanao Medical Center</h1>
+            </Link>
+          </div>
           <CardTitle className="text-xl">Registration Form</CardTitle>
         </CardHeader>
         <CardContent>
@@ -251,7 +270,7 @@ export function SignupForm({
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center text-green-600">
-        After submitting, wait for admin approval, or directly contact him #09123456789
+        After submitting, wait for Admin approval, or Directly contact Admin #09123456789
       </FieldDescription>
     </div>
   )

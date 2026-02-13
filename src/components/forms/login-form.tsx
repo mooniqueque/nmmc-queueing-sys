@@ -24,7 +24,7 @@ import Image from 'next/image';
 
 export default function LoginForm() {
     const form = useForm<LoginSchemaType>({
-        resolver: zodResolver(loginSchema as any),
+        resolver: zodResolver(loginSchema),
         defaultValues: {
             name: "",
             email: "",
@@ -120,7 +120,7 @@ export default function LoginForm() {
                             className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale bg-linear-to-r from-cyan-500 to-blue-500"
                         />
                         <div className="relative z-20 h-full flex flex-col items-center justify-center px-10 text-white text-center">
-                            <div className="mb-3 transform hover:scale-110 transition-transform duration-500">
+                            <div className="mb-3 transform hover:scale-103 transition-transform duration-500">
                                 <Image
                                     src="/logo.png"
                                     alt="Hospital Logo"
@@ -140,10 +140,8 @@ export default function LoginForm() {
                 </CardContent>
             </Card>
 
-            {/* Footer Text */}
             <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-                By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-                and <a href="#">Privacy Policy</a>.
+                {/* Footer Text ???*/}
             </div>
         </div>
 

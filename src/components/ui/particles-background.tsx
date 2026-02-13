@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { type ISourceOptions } from "@tsparticles/engine"
 import Particles, { initParticlesEngine } from "@tsparticles/react"
 import { loadSlim } from "@tsparticles/slim"
-import { type ISourceOptions } from "@tsparticles/engine"
+import { useEffect, useMemo, useState } from "react"
 
 export default function ParticlesBackground() {
     const [init, setInit] = useState(false)
@@ -18,11 +18,7 @@ export default function ParticlesBackground() {
 
     const options: ISourceOptions = useMemo(
         () => ({
-            background: {
-                color: {
-                    value: "#ffffffff", // BG
-                },
-            },
+            fullScreen: { enable: false },
             fpsLimit: 120,
             interactivity: {
                 events: {

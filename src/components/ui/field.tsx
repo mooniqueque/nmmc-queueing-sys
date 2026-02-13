@@ -235,10 +235,14 @@ function FieldError({
 }
 
 export {
-  Field, FieldContent, FieldDescription,
+  Field,
+  FieldLabel,
+  FieldDescription,
   FieldError,
-  FieldGroup, FieldLabel, FieldLegend,
+  FieldGroup,
+  FieldLegend,
   FieldSeparator,
-  FieldSet, FieldTitle
+  FieldSet,
+  FieldContent,
+  FieldTitle,
 }
-

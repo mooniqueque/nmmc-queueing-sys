@@ -13,7 +13,15 @@
     "@prisma/adapter-mariadb": "^7.4.0",
     "@prisma/adapter-mssql": "^7.3.0",
     "@prisma/client": "^7.3.0",
+<<<<<<< HEAD
     "better-auth": "^1.4.18",
+=======
+    "@tanstack/react-table": "^8.21.3",
+    "@tsparticles/engine": "^3.9.1",
+    "@tsparticles/plugin-emitters": "^3.9.1",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.9.1",
+>>>>>>> master
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.4",
@@ -25,6 +33,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.1",
+    "react-icons": "^5.5.0",
+    "recharts": "2.15.4",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.3.6"
   },

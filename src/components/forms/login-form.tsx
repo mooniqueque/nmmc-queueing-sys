@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card"
 import Image from 'next/image'
 
+
 export default function LoginForm() {
     const form = useForm<LoginSchemaType>({
         resolver: zodResolver(loginSchema as any),
@@ -51,9 +52,9 @@ export default function LoginForm() {
                             <div className="flex flex-col gap-6">
 
                                 {/* Header Section */}
-                                <div className="flex flex-col items-center text-center">
-                                    <h1 className="text-2xl font-bold">Welcome back</h1>
-                                    <p className="text-muted-foreground text-balance">
+                                <div className="flex flex-col text-left mb-3">
+                                    <h1 className="text-3xl font-bold mb-2 text-primary">Welcome back!</h1>
+                                    <p className="text-muted-foreground text-balance mb-3">
                                         Login to your NMMC Queue Account
                                     </p>
                                 </div>
@@ -62,7 +63,7 @@ export default function LoginForm() {
                                     control={form.control}
                                     name="email"
                                     render={({ field }) => (
-                                        <FormItem>
+                                        <FormItem className="mb-4">
                                             <FormLabel>Email</FormLabel>
                                             <FormControl>
                                                 <Input
@@ -80,7 +81,7 @@ export default function LoginForm() {
                                     control={form.control}
                                     name="password"
                                     render={({ field }) => (
-                                        <FormItem>
+                                        <FormItem className="mb-2">
                                             <div className="flex items-center">
                                                 <FormLabel>Password</FormLabel>
                                                 <a
@@ -97,28 +98,47 @@ export default function LoginForm() {
                                         </FormItem>
                                     )}
                                 />
-                                {/* Submit Button */}
-                                <Button type="submit" className="w-full">
-                                    Login
-                                </Button>
-                                {/* Signup Link */}
-                                <div className="text-center text-sm">
-                                    Don&apos;t have an account?{" "}
+                                {/* Dont have an account */}
+                                <div className="text-left text-sm">
+                                    Don't have an account?{" "}
                                     <a href="/signup" className="underline underline-offset-4">
                                         Sign up
                                     </a>
                                 </div>
+
+                                {/* Submit Button */}
+                                <Button type="submit" className="w-full h-10">
+                                    Login
+                                </Button>
                             </div>
                         </form>
                     </Form>
                     {/* Right Side: The Image */}
-                    <div className="bg-muted relative hidden md:block">
+                    <div className="relative hidden lg:block flex-1 overflow-hidden min-h-[500px] ">
+                        <div className="absolute inset-0 z-10 bg-linear-to-b from-[#0B7035]/80 via-[#31965B]/12 via-[#059943]/41 via-[#059943]/59 to-[#0B7035]/80" />
                         <Image
-                            src="/placeholder.svg" // Replace with your actual image later
+                            src="/nmmcpics.png"
                             alt="NMMC Login Image"
                             fill
-                            className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                            className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale bg-linear-to-r from-cyan-500 to-blue-500"
                         />
+                        <div className="relative z-20 h-full flex flex-col items-center justify-center px-10 text-white text-center">
+                            <div className="mb-3 transform hover:scale-110 transition-transform duration-500">
+                                <Image
+                                    src="/logo.png"
+                                    alt="Hospital Logo"
+                                    width={100}
+                                    height={100}
+                                    className="drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                                />
+                            </div>
+                            <p className="text-[13px] sm:text-[14px] font-bold tracking-[0.2em] mb-2 text-shadow-lg uppercase opacity-90 font-sans!">
+                                Northern Mindanao Medical Center
+                            </p>
+                            <h2 className="text-[32px] xl:text-[44px] font-black tracking-tighter text-shadow-lg leading-[0.9] text-stroke-0! queueing-system-text font-sans!">
+                                QUEUEING SYSTEM
+                            </h2>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

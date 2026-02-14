@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import Image from 'next/image'
 import { SidebarProvider, SidebarTrigger } from '../ui/sidebar';
-import AdminSidebar from "@/components/admin/sidebar"
 import {
     MdDashboard,
     MdDescription,
@@ -66,8 +65,6 @@ export default function AdminDashboard() {
 
     return (
         <div className="flex min-h-screen w-full bg-slate-50/50">
-            <div className="flex min-h-screen w-full bg-slate-50/50" ></div>
-            <AdminSidebar />
             {/*MAIN CONTAINER*/}
             <div className='flex flex-1 flex-col'>
 

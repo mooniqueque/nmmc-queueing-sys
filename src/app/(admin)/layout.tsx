@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { SidebarProvider } from "@/components/ui/sidebar"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import AdminSidebar from "@/components/admin/sidebar"
 export const metadata: Metadata = {
     title: 'Admin Dashboard',
@@ -12,15 +12,13 @@ export default function AdminLayout({
 }) {
     return (
         <SidebarProvider>
-            <div className="flex min-h-screen w-full bg-slate-50/50">
-                {/* SIDEBAR */}
-                <AdminSidebar />
+            {/* SIDEBAR */}
+            <AdminSidebar />
 
-                {/* MAIN CONT*/}
-                <main className="flex-1 flex flex-col w-full">
-                    {children}
-                </main>
-            </div>
+            {/* MAIN CONT*/}
+            <SidebarInset className="bg-slate-50/50">
+                {children}
+            </SidebarInset >
         </SidebarProvider>
     )
 }

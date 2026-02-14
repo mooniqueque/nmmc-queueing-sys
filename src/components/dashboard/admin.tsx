@@ -237,7 +237,7 @@ function StatsCard({ label, value, icon, color }: { label: string, value: string
                 </div>
                 <div className="flex flex-col gap-1">
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">{label}</p>
-                    <h3 className="text-3xl font-extrabold text-slate-800 leading-none">{value}</h3>
+                    <h3 className="text-3xl font-bold text-slate-800 leading-none">{value}</h3>
                 </div>
             </div>
         </Card>

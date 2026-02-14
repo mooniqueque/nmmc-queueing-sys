@@ -1,5 +1,11 @@
 "use client";
 
+import { authClient } from "@/lib/database/auth-client";
+import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+
 import { loginSchema, LoginSchemaType } from "@/lib/schemas/login-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -23,18 +29,35 @@ import Image from 'next/image';
 
 
 export default function LoginForm() {
+
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
+
     const form = useForm<LoginSchemaType>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
-            name: "",
             email: "",
             password: "",
-            confirmPassword: "",
         },
     })
 
+    console.log("Validation Errors:", form.formState.errors);
 
-    function onSubmit(values: z.infer<typeof loginSchema>) {
+    async function onSubmit(values: z.infer<typeof loginSchema>) {
+        setIsLoading(true);
+        const { error } = await authClient.signIn.email({
+            email: values.email,
+            password: values.password,
+        });
+        if (error) {
+            alert(error.message || "Invalid email or Password");
+            setIsLoading(false);
+        }
+        else {
+            router.push("/dashboard")
+            router.refresh();
+        }
+
         console.log(values)
     }
 
@@ -104,7 +127,8 @@ export default function LoginForm() {
                                 </div>
 
                                 {/* Submit Button */}
-                                <Button type="submit" className="w-full h-10">
+                                <Button type="submit" className="w-full h-10" disabled={isLoading}>
+                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Login
                                 </Button>
                             </div>

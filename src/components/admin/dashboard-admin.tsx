@@ -1,32 +1,43 @@
 "use client";
+
+import { authClient } from "@/lib/database/auth-client";
+import { useRouter } from "next/navigation";
+
+import Image from 'next/image';
 import { useState } from 'react';
-import Image from 'next/image'
 import {
+    MdAccessTime,
+    MdCancel,
+    MdCheckCircle,
     MdDashboard,
     MdDescription,
-    MdPhone,
-    MdMonitor,
+    MdFilterList,
     MdLogout,
-    MdSupportAgent,
-    MdSettings,
+    MdMonitor,
+    MdPendingActions,
     MdPeople,
     MdPersonAdd,
+    MdPhone,
     MdSearch,
-    MdFilterList,
-    MdAccessTime,
-    MdCheckCircle,
-    MdCancel,
-    MdPendingActions
+    MdSettings,
+    MdSupportAgent
 } from 'react-icons/md';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from '@/components/ui/input';
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarGroupLabel,
@@ -35,8 +46,7 @@ import {
     SidebarMenuItem,
     SidebarProvider,
     SidebarTrigger,
-    SidebarFooter,
-} from '@/components/ui/sidebar'
+} from '@/components/ui/sidebar';
 import {
     Table,
     TableBody,
@@ -44,14 +54,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/table";
 
 const users = [
     { id: 1, name: "Andreanna Gorres", date: "01/01/26", service: "Animal Bite", role: "Caller", status: "Active" },
@@ -61,8 +64,23 @@ const users = [
     { id: 5, name: "Juan Dela Cruz", date: "01/02/26", service: "Admin", role: "Admin", status: "Active" },
 ]
 
+
 // START OF DASHBOARD DESIGN
 export default function AdminDashboard() {
+
+    const router = useRouter();
+    const handleLogout = async () => {
+        await authClient.signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    router.push("/login")
+                    router.refresh()
+                }
+
+            }
+        })
+    }
+
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRole, setFilterRole] = useState('All Users');
 
@@ -219,7 +237,9 @@ export default function AdminDashboard() {
 
                             {/*LOGOUT*/}
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start">
+                                <SidebarMenuButton asChild
+                                    onClick={handleLogout}
+                                    className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start">
                                     <a href="#" className="flex items-center gap-2">
                                         <MdLogout size={20} className="mr-2" />
                                         <span> Logout </span>

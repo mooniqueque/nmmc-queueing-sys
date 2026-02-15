@@ -1,7 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/database/auth-client";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -32,6 +32,7 @@ export default function LoginForm() {
 
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const form = useForm<LoginSchemaType>({
         resolver: zodResolver(loginSchema),
@@ -112,7 +113,16 @@ export default function LoginForm() {
                                                 </a>
                                             </div>
                                             <FormControl>
-                                                <Input type="password" {...field} />
+                                                <div className="relative">
+                                                    <Input type={showPassword ? "text" : "password"} {...field} />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                    >
+                                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                </div>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -136,7 +146,7 @@ export default function LoginForm() {
                     </Form>
                     {/* Right Side: The Image */}
                     <div className="relative hidden lg:block flex-1 overflow-hidden min-h-[500px] ">
-                        <div className="absolute inset-0 z-10 bg-linear-to-b from-[#0B7035]/80 via-[#31965B]/12 via-[#059943]/41 via-[#059943]/59 to-[#0B7035]/80" />
+                        <div className="absolute inset-0 z-10 bg-linear-to-b from-[#0B7035]/80 via-[#31965B]/40 to-[#0B7035]/80" />
                         <Image
                             src="/nmmcpics.png"
                             alt="NMMC Login Image"
@@ -170,9 +180,4 @@ export default function LoginForm() {
         </div>
 
     )
-
-
-
-
-
 }

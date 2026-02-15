@@ -4,17 +4,16 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle
+  CardHeader
 } from "@/components/ui/card"
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel
 } from "@/components/ui/field"
 
+import { AuthHeader } from "@/components/auth/auth-header"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -23,25 +22,31 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
+import { HOSPITAL_DEPARTMENTS, HOSPITAL_ROLES } from "@/lib/constants/hospital"
 import { authClient } from "@/lib/database/auth-client"
 import { registrationSchema } from "@/lib/schemas/registration-schema"
 import { cn } from "@/lib/utils"
+import { SignUpPayload } from "@/types/auth"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { z } from "zod"
 
-
 type RegistrationValues = z.infer<typeof registrationSchema>
 
+/**
+ * COMPONENT: SignupForm
+ * High-level coordinator for user registration.
+ * Delegates branding to AuthHeader and uses centralized hospital constants.
+ */
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
   const form = useForm<RegistrationValues>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
@@ -54,39 +59,48 @@ export function SignupForm({
       confirmPassword: "",
       employeeID: "",
       role: "",
+      department: "",
       birthDate: "",
       contactNumber: "",
     }
   })
+
   const { register, handleSubmit, formState: { errors } } = form;
 
+  /**
+   * HANDLER: Form Submission
+   * Processes the registration using BetterAuth client.
+   */
   async function onSubmit(values: RegistrationValues) {
     setIsLoading(true)
     try {
-      // for betterauth  
-      const { error } = await authClient.signUp.email({
+      const payload: SignUpPayload = {
         email: values.email,
         password: values.password,
-        name: `${values.firstName} ${values.lastName}`,
+        name: `${values.firstName} ${values.lastName}`.trim(),
         firstName: values.firstName,
         lastName: values.lastName,
-        middleName: values.middleName,
-        suffix: values.suffix,
+        middleName: values.middleName || "",
+        suffix: values.suffix || "",
         employeeID: values.employeeID,
         role: values.role,
+        department: values.department,
         contactNumber: values.contactNumber,
         birthDate: new Date(values.birthDate).toISOString(),
-      } as unknown as Parameters<typeof authClient.signUp.email>[0])
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await authClient.signUp.email(payload as any);
 
       if (error) {
         alert(error.message)
       } else {
-        alert("Success!!! Wait for admin approval")
+        alert("Registration successful! Please wait for administrative approval.")
         form.reset()
       }
     } catch (err) {
       console.error("Signup error:", err)
-      alert("An unexpected error occurred.")
+      alert("An unexpected error occurred. Please try again later.")
     } finally {
       setIsLoading(false)
     }
@@ -94,82 +108,46 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <div>
-            <Link
-              href="/login"
-              className="flex flex-col items-center gap-2 self-center text-center group"
-            >
-              <Image
-                src="/nmmc-logo.png"
-                alt="NMMC LOGO"
-                width={85}
-                height={85}
-                className="rounded-full shadown-sm transition-transform group-hover:scale-102"
-              />
-              <h1 className="text-xl font-bold tracking-tight text-foreground"
-              >Northern Mindanao Medical Center</h1>
-            </Link>
-          </div>
-          <CardTitle className="text-xl">Registration Form</CardTitle>
+      <Card className="border-slate-200/60 shadow-xl shadow-slate-200/50">
+        <CardHeader className="pb-0">
+          <AuthHeader title="Registration Form" />
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)}>
-            <FieldGroup>
-              {/* Name Inputs */}
+            <FieldGroup className="space-y-4">
+              {/* --- NAME SECTION --- */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field>
                   <FieldLabel htmlFor="firstName">First Name</FieldLabel>
-                  <Input
-                    {...register("firstName")}
-                    id="firstName"
-                    placeholder="Juan"
-                  />
+                  <Input {...register("firstName")} id="firstName" placeholder="Juan" />
                   <FieldError errors={[errors.firstName]} />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="lastName">Last Name</FieldLabel>
-                  <Input
-                    {...register("lastName")}
-                    id="lastName"
-                    placeholder="Dela Cruz"
-                  />
+                  <Input {...register("lastName")} id="lastName" placeholder="Dela Cruz" />
                   <FieldError errors={[errors.lastName]} />
                 </Field>
               </div>
 
-              {/* Optional Name Inputs, Middle and Suffix */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field>
-                  <FieldLabel htmlFor="middleName">Middle Name</FieldLabel>
-                  <Input
-                    {...register("middleName")}
-                    id="middleName"
-                    placeholder=""
-                  />
+                  <FieldLabel htmlFor="middleName">Middle Name (Optional)</FieldLabel>
+                  <Input {...register("middleName")} id="middleName" placeholder="M." />
                   <FieldError errors={[errors.middleName]} />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="suffix">Suffix</FieldLabel>
-                  <Input
-                    {...register("suffix")}
-                    id="suffix"
-                    placeholder="Jr, Sr, III"
-                  />
+                  <FieldLabel htmlFor="suffix">Suffix (Optional)</FieldLabel>
+                  <Input {...register("suffix")} id="suffix" placeholder="Jr, Sr, III" />
                   <FieldError errors={[errors.suffix]} />
                 </Field>
               </div>
 
-              {/* Employee Role / ID Input */}
+              {/* --- EMPLOYMENT SECTION --- */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field>
                   <FieldLabel htmlFor="employeeID">Employee ID</FieldLabel>
-                  <Input
-                    {...register("employeeID")}
-                    id="employeeID"
-                    placeholder="2022300556"
-                  />
+                  <Input {...register("employeeID")} id="employeeID" placeholder="Ex: 2022300556" />
                   <FieldError errors={[errors.employeeID]} />
                 </Field>
                 <Field>
@@ -178,15 +156,16 @@ export function SignupForm({
                     name="role"
                     control={form.control}
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <SelectTrigger id="role">
-                          <SelectValue placeholder="Select your role" />
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="role" className="bg-slate-50/50">
+                          <SelectValue placeholder="Choose a role" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="TRIAGE_NURSE">Triage Nurse</SelectItem>
-                          <SelectItem value="WINDOW_CLERK">Window Clerk</SelectItem>
-                          <SelectItem value="CLINIC_CALLER">Clinic Caller</SelectItem>
-                          <SelectItem value="ADMIN">Admin</SelectItem>
+                          {HOSPITAL_ROLES.map(role => (
+                            <SelectItem key={role.value} value={role.value}>
+                              {role.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     )}
@@ -195,83 +174,101 @@ export function SignupForm({
                 </Field>
               </div>
 
-              {/* Birth Date and Contact Number */}
+              <Field>
+                <FieldLabel htmlFor="department">Select Department / Service</FieldLabel>
+                <Controller
+                  name="department"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger id="department" className="bg-slate-50/50">
+                        <SelectValue placeholder="Choose your department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {HOSPITAL_DEPARTMENTS.map(dept => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FieldError errors={[errors.department]} />
+              </Field>
+
+              {/* --- PERSONAL INFO --- */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field>
                   <FieldLabel htmlFor="birthDate">Birth Date</FieldLabel>
-                  <Input
-                    {...register("birthDate")}
-                    id="birthDate"
-                    type="date"
-                  />
+                  <Input {...register("birthDate")} id="birthDate" type="date" className="bg-slate-50/50" />
                   <FieldError errors={[errors.birthDate]} />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="contactNumber">Contact Number</FieldLabel>
-                  <Input
-                    {...register("contactNumber")}
-                    id="contactNumber"
-                    placeholder="09123456789"
-                  />
+                  <Input {...register("contactNumber")} id="contactNumber" placeholder="09xxxxxxxxx" />
                   <FieldError errors={[errors.contactNumber]} />
                 </Field>
               </div>
 
-              {/* Email Input */}
+              {/* --- ACCOUNT INFO --- */}
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  {...register("email")}
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                />
+                <FieldLabel htmlFor="email">Email Address</FieldLabel>
+                <Input {...register("email")} id="email" type="email" placeholder="staff@nmmc.gov.ph" />
                 <FieldError errors={[errors.email]} />
               </Field>
 
-              {/* Password Input */}
-              <Field>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input
-                      {...register("password")}
-                      id="password"
-                      type="password"
-                    />
-                    <FieldError errors={[errors.password]} />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="confirmPassword">
-                      Confirm Password
-                    </FieldLabel>
-                    <Input
-                      {...register("confirmPassword")}
-                      id="confirmPassword"
-                      type="password"
-                    />
-                    <FieldError errors={[errors.confirmPassword]} />
-                  </Field>
-                </div>
-              </Field>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <div className="relative">
+                    <Input {...register("password")} id="password" type={showPassword ? "text" : "password"} className="bg-slate-50/50 focus:bg-white transition-colors" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-700 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <FieldError errors={[errors.password]} />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
+                  <div className="relative">
+                    <Input {...register("confirmPassword")} id="confirmPassword" type={showPassword ? "text" : "password"} className="bg-slate-50/50 focus:bg-white transition-colors" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-700 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <FieldError errors={[errors.confirmPassword]} />
+                </Field>
+              </div>
 
-              {/* Submit and Sign In */}
-              <Field>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Submit Form
+              {/* --- ACTIONS --- */}
+              <div className="pt-4 space-y-4">
+                <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 text-base font-bold shadow-lg shadow-emerald-200" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registration"}
                 </Button>
-                <FieldDescription className="text-center mt-4">
-                  Already have an account? <a href="/login" className="underline underline-offset-4">Sign in</a>
-                </FieldDescription>
-              </Field>
+
+                <p className="text-center text-sm text-slate-500">
+                  Already have an account?{" "}
+                  <a href="/login" className="text-emerald-700 font-bold hover:underline underline-offset-4">
+                    Sign in here
+                  </a>
+                </p>
+              </div>
             </FieldGroup>
           </form>
         </CardContent>
       </Card>
-      <FieldDescription className="px-6 text-center text-green-600">
-        After submitting, wait for Admin approval, or Directly contact Admin #09123456789
-      </FieldDescription>
+
+      <div className="px-6 text-center text-sm font-medium text-emerald-600/80 bg-emerald-50 py-3 rounded-lg border border-emerald-100">
+        Approval required. Contact Administration at <strong>#09123456789</strong> after signing up.
+      </div>
     </div>
   )
 }
+

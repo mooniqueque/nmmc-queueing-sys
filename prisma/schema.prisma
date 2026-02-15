@@ -31,6 +31,7 @@ model User {
   employeeID String  @unique
   image      String?
   role       String
+  department String  @default("General")
   isApproved Boolean @default(false)
 
   //Timestamps

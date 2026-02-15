@@ -11,6 +11,7 @@ export const registrationSchema = z.object({
     birthDate: z.string().min(1, "Birth date is required"),
     contactNumber: z.string().min(11, "Valid contact number is required"),
     role: z.string().min(1, "Role is required"),
+    department: z.string().min(2, "Department is required"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(8, "Confirm password is required"),

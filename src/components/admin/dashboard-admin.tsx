@@ -1,22 +1,20 @@
 "use client";
 
+import { approveUser, rejectUser } from "@/app/actions/user-actions";
 import { authClient } from "@/lib/database/auth-client";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-
-import Image from 'next/image';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     MdAccessTime,
     MdCancel,
+    MdCheck,
     MdCheckCircle,
-    MdDashboard,
+    MdDelete,
     MdDescription,
     MdFilterList,
-    MdLogout,
-    MdMonitor,
     MdPendingActions,
     MdPeople,
-    MdPersonAdd,
     MdPhone,
     MdSearch,
     MdSettings,
@@ -34,19 +32,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarProvider,
-    SidebarTrigger,
-} from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import {
     Table,
     TableBody,
@@ -55,386 +41,264 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { SessionUser, UserData } from "@/types/user";
+import { AddUserDialog } from "./add-user-dialog";
+import { DashboardSidebar } from "./sidebar";
+import { StatsCard } from "./stats-card";
 
-const users = [
-    { id: 1, name: "Andreanna Gorres", date: "01/01/26", service: "Animal Bite", role: "Caller", status: "Active" },
-    { id: 2, name: "Aljo Nicolo Andina", date: "01/01/26", service: "X-RAY", role: "Releasing", status: "Inactive" },
-    { id: 3, name: "Karl Valmores", date: "01/01/26", service: "X-RAY", role: "Pending", status: "Pending" },
-    { id: 4, name: "Maria Clara", date: "01/02/26", service: "Triage", role: "Triage Nurse", status: "Active" },
-    { id: 5, name: "Juan Dela Cruz", date: "01/02/26", service: "Admin", role: "Admin", status: "Active" },
-]
-
-
-// START OF DASHBOARD DESIGN
-export default function AdminDashboard() {
-
+/**
+ * COORDINATOR COMPONENT: AdminDashboard
+ * This is the high-level orchestration layer. 
+ * It manages global filters and search but 
+ * delegates specific UI logic to sub-components.
+ */
+export default function AdminDashboard({
+    loggedInUser,
+    initialUsers
+}: {
+    loggedInUser: SessionUser,
+    initialUsers: UserData[]
+}) {
     const router = useRouter();
+
+    // 1. STATE & FILTERS
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterRole, setFilterRole] = useState('All Users');
+    const [viewPendingOnly, setViewPendingOnly] = useState(false);
+
+    // 2. DATA CALCULATIONS (Derived State)
+    const analytics = {
+        total: initialUsers.length,
+        pending: initialUsers.filter(u => !u.isApproved).length,
+        active: initialUsers.filter(u => u.isApproved).length,
+        inactive: 0
+    };
+
+    // 3. OPTIMIZED FILTERING
+    const filteredUsers = useMemo(() => {
+        return initialUsers.filter(user => {
+            const matchesSearch =
+                user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                user.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                user.employeeID.toLowerCase().includes(searchQuery.toLowerCase());
+
+            const matchesFilter = filterRole === 'All Users' || user.role === filterRole;
+            const matchesPending = viewPendingOnly ? !user.isApproved : true;
+
+            return matchesSearch && matchesFilter && matchesPending;
+        });
+    }, [initialUsers, searchQuery, filterRole, viewPendingOnly]);
+
+    // 4. ACTION HANDLERS
     const handleLogout = async () => {
         await authClient.signOut({
             fetchOptions: {
                 onSuccess: () => {
-                    router.push("/login")
-                    router.refresh()
+                    router.push("/login");
+                    router.refresh();
                 }
-
             }
-        })
-    }
+        });
+    };
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterRole, setFilterRole] = useState('All Users');
+    const handleApprove = async (userId: string) => {
+        if (confirm("Are you sure you want to approve this user?")) {
+            const result = await approveUser(userId);
+            if (result.success) router.refresh();
+            else alert(result.error);
+        }
+    };
 
-
-    const filteredUsers = users.filter(user => {
-        const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-
-            user.service.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesFilter = filterRole === 'All Users' || user.role === filterRole;
-        return matchesSearch && matchesFilter;
-    });
+    const handleReject = async (userId: string) => {
+        if (confirm("Are you sure you want to delete this requisition?")) {
+            const result = await rejectUser(userId);
+            if (result.success) router.refresh();
+            else alert(result.error);
+        }
+    };
 
     return (
         <div className="flex min-h-screen w-full bg-slate-50/50">
             <SidebarProvider>
+                <DashboardSidebar onLogout={handleLogout} />
 
-                {/* sidebar */}
-                <Sidebar className="border-r bg-emerald-50/50">
-                    <SidebarContent>
-                        <div className="p-4 flex items-center gap-2 mb-4">
-                            <div className="h-10 w-10 flex items-center justify-center relative">
-                                <Image
-                                    src="/logo.png"
-                                    alt="NMMC Logo"
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full ring-2 ring-emerald-100 object-cover"
-                                />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="font-bold text-sm leading-tight text-emerald-950 ml-2"> Northern Mindanao Medical Center</span>
-                            </div>
-                        </div>
-
-                        {/*main nav*/}
-                        <SidebarGroup>
-                            <SidebarGroupContent>
-                                <SidebarMenu>
-                                    {/*FOR ADMIN*/}
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
-                                                <MdDashboard size={20} className="text-emerald-700" />
-                                                <span>Admin Dashboard</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-
-                                    {/*FOR RELEASING*/}
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
-                                                <MdDescription size={20} className="text-emerald-700" />
-                                                <span>Releasing</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-
-                                    {/*FOR CALL NUMBER*/}
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
-                                                <MdPhone size={20} className="text-emerald-700" />
-                                                <span>Call Number</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-
-                                    {/*FOR MONITOR*/}
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
-                                                <MdMonitor size={20} className="text-emerald-700" />
-                                                <span>Monitor</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-
-                                    {/*FOR REPORTS*/}
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
-                                                <MdDescription size={20} className="text-emerald-700" />
-                                                <span>Reports</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                </SidebarMenu>
-                            </SidebarGroupContent>
-                        </SidebarGroup>
-
-                        {/*Admin Settings*/}
-                        <SidebarGroup className="mt-4">
-                            <SidebarGroupLabel className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2 " >
-                                Admin Settings
-                            </SidebarGroupLabel>
-
-                            <SidebarGroupContent>
-                                <SidebarMenu>
-
-                                    {/*RESET SERVICES*/}
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
-                                                <span>Reset Services</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-
-                                    {/*WINDOW SETTINGS*/}
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
-                                                <span>Window Settings</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-
-                                    {/*MANAGE RELEASING*/}
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
-                                                <span>Manage Releasing</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-
-                                    {/*LANE SETTINGS*/}
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                            <a href='#'>
-                                                <span>Lane Settings</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                </SidebarMenu>
-                            </SidebarGroupContent>
-                        </SidebarGroup>
-                    </SidebarContent>
-
-                    {/*SIDEBAR FOOTER*/}
-                    <SidebarFooter className="border-t p-4 bg-emerald-50/30">
-                        <SidebarMenu className="gap-2">
-
-                            {/*CONTACT SUPP*/}
-                            <SidebarMenuItem className="mb-2">
-                                <SidebarMenuButton className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto">
-                                    <a href="#" className="flex items-left gap-2">
-                                        <MdSupportAgent size={20} className="mr-2" />
-                                        <span> Contact Support </span>
-                                    </a>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            {/*LOGOUT*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild
-                                    onClick={handleLogout}
-                                    className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start">
-                                    <a href="#" className="flex items-center gap-2">
-                                        <MdLogout size={20} className="mr-2" />
-                                        <span> Logout </span>
-                                    </a>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                        </SidebarMenu>
-                    </SidebarFooter>
-                </Sidebar>
-
-                {/*MAIN CONTAINER*/}
                 <div className='flex flex-1 flex-col'>
-
-                    {/*HEADER*/}
+                    {/* Header Section */}
                     <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
                         <div className="flex items-center gap-3">
                             <SidebarTrigger />
                             <h1 className="text-xl font-bold text-emerald-900">Admin Dashboard</h1>
                         </div>
                         <div className='flex items-center gap-3'>
-                            <div className="flex flex-col items-end mr-1 hidden sm:flex">
-                                <span className="text-sm font-bold text-emerald-300">Adreanne Sopogi
-                                </span>
-
-                                <span className="text-xs text-slate-500">Administrator</span>
+                            <div className="hidden sm:flex sm:flex-col items-end mr-1">
+                                <span className="text-sm font-bold text-emerald-900">{loggedInUser.name}</span>
+                                <span className="text-xs text-slate-500 font-medium uppercase tracking-tighter">{loggedInUser.role}</span>
                             </div>
-
-                            <Avatar className='size-10 border-2 border-emerald-100 bg emerald-50-text-emerald 700'>
-                                <AvatarFallback className="font-bold">AS</AvatarFallback>
+                            <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
+                                <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
+                                    {loggedInUser.name?.substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
                             </Avatar>
                         </div>
                     </header>
 
-                    <main className='flex- p-6 space-y-6 bg-slate-50/50 px-10'>
-
-                        {/*STATISTICS*/}
+                    <main className='p-6 space-y-6 bg-slate-50/50 px-10'>
+                        {/* 📊 Analytics Dashboard */}
                         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
-                            <StatsCard label="Total System User" value="58" icon={<MdPeople size={28} className="text-white" />} color="bg-emerald-600" />
-                            <StatsCard label="Pending Requests" value="06" icon={<MdPendingActions size={28} className="text-white" />} color="bg-yellow-500" />
-                            <StatsCard label="Active Users" value="01" icon={<MdCheckCircle size={28} className="text-white" />} color="bg-emerald-500" />
-                            <StatsCard label="Inactive Users" value="01" icon={<MdCancel size={28} className="text-white" />} color="bg-red-500" />
+                            <StatsCard
+                                label="Total System User"
+                                value={analytics.total.toString().padStart(2, '0')}
+                                icon={<MdPeople size={28} className="text-white" />}
+                                color="bg-emerald-600"
+                            />
+                            <StatsCard
+                                label="Pending Requests"
+                                value={analytics.pending.toString().padStart(2, '0')}
+                                icon={<MdPendingActions size={28} className="text-white" />}
+                                color="bg-yellow-500"
+                            />
+                            <StatsCard
+                                label="Active Users"
+                                value={analytics.active.toString().padStart(2, '0')}
+                                icon={<MdCheckCircle size={28} className="text-white" />}
+                                color="bg-emerald-500"
+                            />
+                            <StatsCard
+                                label="Inactive Users"
+                                value={analytics.inactive.toString().padStart(2, '0')}
+                                icon={<MdCancel size={28} className="text-white" />}
+                                color="bg-red-500"
+                            />
                         </div>
 
-                        {/*SEARCH, ALL USERS, SORT, PENDING USERS, ADD USERS*/}
+                        {/* 🔍 Controls Section */}
                         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
                             <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <div className="relative w-full sm:w-72">
-                                    <div className="absolute left-3 top-2.5 text-slate-400">
-                                        <MdSearch size={20} />
-                                    </div>
-                                    <Input placeholder="Search.... " className="pl-10 bg-slate-50 border-slate-200"
+                                    <MdSearch className="absolute left-3 top-2.5 text-slate-400" size={20} />
+                                    <Input
+                                        placeholder="Search by name, email, or dept..."
+                                        className="pl-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                                         value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)} />
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
 
+                            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="...">
-                                            {filterRole === 'All Users' ? <MdPeople size={18} className="mr-2" /> : getRoleIcon(filterRole)} {filterRole}
+                                        <Button variant="outline" className="text-slate-600 border-slate-200">
+                                            <MdFilterList size={18} className="mr-2" /> {filterRole}
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => setFilterRole('All Users')}>All Users</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setFilterRole('Admin')}>Admin</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setFilterRole('Caller')}>Caller</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setFilterRole('Releasing')}>Releasing</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setFilterRole('Nurse Triage')}>Nurse Triage</DropdownMenuItem>
+                                        {['All Users', 'ADMIN', 'CLINIC_CALLER', 'WINDOW_CLERK', 'TRIAGE_NURSE'].map(role => (
+                                            <DropdownMenuItem key={role} onClick={() => setFilterRole(role)}>
+                                                {role}
+                                            </DropdownMenuItem>
+                                        ))}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
 
-                                <Button variant="outline" className="text-slate-600 border-slate-200">
-                                    <MdFilterList size={18} className="mr-2" /> Sort
+                                <Button
+                                    onClick={() => setViewPendingOnly(!viewPendingOnly)}
+                                    className={cn(
+                                        "font-semibold shadow-md transition-all active:scale-95",
+                                        viewPendingOnly
+                                            ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
+                                            : "bg-yellow-500 hover:bg-yellow-600 text-white shadow-yellow-200"
+                                    )}
+                                >
+                                    {viewPendingOnly ? <MdPeople size={18} className="mr-2" /> : <MdAccessTime size={18} className="mr-2" />}
+                                    {viewPendingOnly ? "Show All Users" : "Pending Users"}
                                 </Button>
 
-                                <Button className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow-md shadow-yellow-200">
-                                    <MdAccessTime size={18} className="mr-2" /> Pending Users
-                                </Button>
-
-                                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-200">
-                                    <MdPersonAdd size={18} className="mr-2" /> Add Users
-                                </Button>
+                                <AddUserDialog />
                             </div>
                         </div>
 
-                        {/*TABLE*/}
-                        <Card className="shadow-sm border-0 overflow-hidden ring-1 ring-slate-200 px-4" >
+                        {/* 📋 User Table */}
+                        <Card className="shadow-sm border-0 overflow-hidden ring-1 ring-slate-200 px-4">
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-100">
-                                        <TableHead className="w-[300px] font-semibold text-slate-600"> User Details </TableHead>
-                                        <TableHead className="font-semibold text-slate-600">Service/Clinic</TableHead>
-                                        <TableHead className="font-semibold text-slate-600">Roles</TableHead>
-                                        <TableHead className="font-semibold text-slate-600">Account Status</TableHead>
+                                        <TableHead className="w-[300px] font-semibold text-slate-600">Staff Info</TableHead>
+                                        <TableHead className="font-semibold text-slate-600">Department</TableHead>
+                                        <TableHead className="font-semibold text-slate-600">System Role</TableHead>
+                                        <TableHead className="font-semibold text-slate-600">Status</TableHead>
+                                        <TableHead className="font-semibold text-slate-600 text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow className="hover:bg-slate-50/50">
-                                        <TableCell>
-                                            <div className="flex flex-col py-1">
-                                                <span className="font-bold text-emerald-950 text-base">Andreanna Gorres</span>
-                                                <span className="text-xs text-slate-400 font-medium">Registered: 01/01/26</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-bold text-emerald-800">Animal Bite</TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 px-3 py-1 font-medium">
-                                                Caller
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge className="bg-white text-emerald-600 border border-emerald-500 shadow-none hover:bg-emerald-50 px-3 py-1 font-medium flex w-fit items-center gap-1">
-                                                <MdCheckCircle size={14} /> Active
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow className="hover:bg-slate-50/50">
-                                        <TableCell>
-                                            <div className="flex flex-col py-1">
-                                                <span className="font-bold text-emerald-950 text-base">Aljo Nicolo Andina</span>
-                                                <span className="text-xs text-slate-400 font-medium">Registered: 01/01/26</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-bold text-emerald-800">X-RAY</TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-3 py-1 font-medium">
-                                                Releasing
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="bg-white text-red-500 border-red-200 hover:bg-red-50 px-3 py-1 font-medium flex w-fit items-center gap-1">
-                                                <MdCancel size={14} /> Inactive
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow className="hover:bg-slate-50/50">
-                                        <TableCell>
-                                            <div className="flex flex-col py-1">
-                                                <span className="font-bold text-emerald-950 text-base">Karl Valmores</span>
-                                                <span className="text-xs text-slate-400 font-medium">Registered: 01/01/26</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-bold text-emerald-800">X-RAY</TableCell>
-                                        <TableCell>
-                                            {/* Empty role example */}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="bg-white text-emerald-500 border-emerald-300 hover:bg-emerald-50 px-3 py-1 font-medium flex w-fit items-center gap-1">
-                                                <MdAccessTime size={14} /> Pending
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
+                                    {filteredUsers.map((user) => (
+                                        <TableRow key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <TableCell>
+                                                <div className="flex flex-col py-1">
+                                                    <span className="font-bold text-emerald-900 text-base">{user.name}</span>
+                                                    <span className="text-xs text-slate-500">{user.email}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="font-bold text-emerald-800">{user.department}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200 uppercase px-3 py-1 font-semibold text-[10px]">
+                                                    {getRoleIcon(user.role)} {user.role.replace('_', ' ')}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className={cn(
+                                                    "font-bold",
+                                                    user.isApproved
+                                                        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                                        : "bg-yellow-50 text-yellow-600 border-yellow-100"
+                                                )}>
+                                                    {user.isApproved ? "ACTIVE" : "PENDING"}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {!user.isApproved && (
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleApprove(user.id)}
+                                                            className="h-8 w-8 p-0 border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                                                        >
+                                                            <MdCheck size={18} />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleReject(user.id)}
+                                                            className="h-8 w-8 p-0 border-red-200 text-red-600 hover:bg-red-50"
+                                                        >
+                                                            <MdDelete size={18} />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
                                 </TableBody>
                             </Table>
-
                         </Card>
-
-
                     </main>
-
-
                 </div>
-
-
-            </SidebarProvider >
-
-        </div >
-    )
+            </SidebarProvider>
+        </div>
+    );
 }
-{/*ROLE ICONS*/ }
+
+/**
+ * HELPER: Role Icon Mapping
+ */
 function getRoleIcon(role: string) {
     switch (role) {
-        case 'Caller': return <MdPhone size={14} className="mr-1" />;
-        case 'Releasing': return <MdDescription size={14} className="mr-1" />;
-        case 'Admin': return <MdSettings size={14} className="mr-1" />;
-        case 'Triage Nurse': return <MdSupportAgent size={14} className="mr-1" />;
+        case 'CLINIC_CALLER': return <MdPhone size={14} className="mr-1" />;
+        case 'WINDOW_CLERK': return <MdDescription size={14} className="mr-1" />;
+        case 'ADMIN': return <MdSettings size={14} className="mr-1" />;
+        case 'TRIAGE_NURSE': return <MdSupportAgent size={14} className="mr-1" />;
         default: return <MdPeople size={14} className="mr-1" />;
     }
-}
-
-{/*FOR STATS CARD*/ }
-function StatsCard({ label, value, icon, color }: { label: string, value: string, icon: React.ReactNode, color: string }) {
-    return (
-        <Card className='shadow-sm border-0 ring-1 ring-slate-100 px-4'>
-            <div className="flex items-center p-3 gap-3">
-                <div className={`h-12 w-12 rounded-xl ${color} flex items-center justify-center shrink-0 shadow-md shadow-emerald-100/50`}>
-                    {icon}
-                </div>
-                <div className="flex flex-col gap-1">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">{label}</p>
-                    <h3 className="text-3xl font-extrabold text-slate-800 leading-none">{value}</h3>
-                </div>
-            </div>
-        </Card>
-    )
 }

@@ -1,5 +1,5 @@
 "use client"
-
+import Link from 'next/link';
 import {
     Sidebar,
     SidebarContent,
@@ -58,50 +58,50 @@ export default function AdminSidebar() {
                             {/*FOR ADMIN*/}
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <a href='#'>
+                                    <Link href="/admin">
                                         <MdDashboard size={20} className="text-emerald-700" />
                                         <span>Admin Dashboard</span>
-                                    </a>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
 
                             {/*FOR RELEASING*/}
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <a href='#'>
+                                    <Link href='/releasing'>
                                         <MdDescription size={20} className="text-emerald-700" />
                                         <span>Releasing</span>
-                                    </a>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
 
                             {/*FOR CALL NUMBER*/}
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <a href='#'>
+                                    <Link href='/caller'>
                                         <MdPhone size={20} className="text-emerald-700" />
                                         <span>Call Number</span>
-                                    </a>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
 
                             {/*FOR MONITOR*/}
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <a href='#'>
+                                    <Link href='/monitor'>
                                         <MdMonitor size={20} className="text-emerald-700" />
                                         <span>Monitor</span>
-                                    </a>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
 
                             {/*FOR REPORTS*/}
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <a href='#'>
+                                    <Link href='/reports'>
                                         <MdDescription size={20} className="text-emerald-700" />
                                         <span>Reports</span>
-                                    </a>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>

@@ -1,21 +1,9 @@
 'use client'
 import React, { useState } from 'react';
 
-import { SidebarProvider, SidebarTrigger } from '../ui/sidebar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-    MdPlayArrow,
-    MdSkipNext,
-    MdPause,
-    MdRefresh,
-    MdHistory,
-    MdCheckCircle,
-    MdCancel
-} from 'react-icons/md';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Switch } from '@/components/ui/switch';
+import { Card } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -23,9 +11,35 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
+import { Switch } from '@/components/ui/switch';
+import { SessionUser } from '@/types/user';
+import {
+    MdCancel,
+    MdRefresh,
+    MdSkipNext
+} from 'react-icons/md';
+import { SidebarTrigger } from '../ui/sidebar';
 
-const DEPARTMENT_DATA: Record<string, any> = {
+interface WaitlistItemData {
+    ticket: string;
+    category: string;
+    time: string;
+}
+
+interface DepartmentData {
+    currentTicket: string;
+    waitlist: WaitlistItemData[];
+    stats: {
+        regular: string;
+        pediatric: string;
+        fastTrack: string;
+        erRef: string;
+    };
+}
+
+const DEPARTMENT_DATA: Record<string, DepartmentData> = {
+    // ... existing department data ...
     "ANIMAL BITE DEPT": {
         currentTicket: "REG-124",
         waitlist: [
@@ -77,7 +91,11 @@ const DEPARTMENT_DATA: Record<string, any> = {
     }
 };
 
-export default function CallerDashboard() {
+export default function CallerDashboard({
+    loggedInUser
+}: {
+    loggedInUser: SessionUser
+}) {
     const [isAvailable, setIsAvailable] = useState(true);
     const [department, setDepartment] = useState("ANIMAL BITE DEPT");
 
@@ -95,13 +113,14 @@ export default function CallerDashboard() {
                     </div>
                     <div className='flex items-center gap-3'>
                         <div className="flex flex-col items-end mr-1 hidden sm:flex">
-                            <span className="text-sm font-bold text-emerald-300">Ami so pogi
-                            </span>
-                            <span className="text-xs text-slate-500">Administrator</span>
+                            <span className="text-sm font-bold text-emerald-900">{loggedInUser.name}</span>
+                            <span className="text-xs text-slate-500 uppercase tracking-tighter">{loggedInUser.role}</span>
                         </div>
 
-                        <Avatar className='size-10 border-2 border-emerald-100 bg emerald-50-text-emerald 700'>
-                            <AvatarFallback className="font-bold">AS</AvatarFallback>
+                        <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
+                            <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
+                                {loggedInUser.name?.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
                         </Avatar>
                     </div>
                 </header>
@@ -178,7 +197,7 @@ export default function CallerDashboard() {
                                 </div>
 
                                 <div className="flex flex-col gap-3">
-                                    {currentData.waitlist.map((item: any, index: number) => (
+                                    {currentData.waitlist.map((item: WaitlistItemData, index: number) => (
                                         <WaitlistItem key={index} ticket={item.ticket} category={item.category} time={item.time} />
                                     ))}
                                 </div>

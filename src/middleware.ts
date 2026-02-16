@@ -27,20 +27,24 @@ export default async function middleware(request: NextRequest) {
             },
         }
     );
-    //protection for admin url to prevent unauthorized users
-    if (request.nextUrl.pathname.startsWith("/dashboard")) {
+    // Protection for dashboard-related routes
+    const protectedRoutes = ["/admin", "/caller", "/releasing", "/monitor", "/reports"];
+    const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route));
 
+    if (isProtectedRoute) {
         if (!session) {
             return NextResponse.redirect(new URL("/login", request.url));
         }
 
-        if (session.user.role !== "ADMIN") {
+        // Only ADMIN can access /admin
+        if (request.nextUrl.pathname.startsWith("/admin") && session.user.role !== "ADMIN") {
             return NextResponse.redirect(new URL("/", request.url));
         }
     }
-    return NextResponse.next();
 
+    return NextResponse.next();
 }
+
 export const config = {
-    matcher: ["/dashboard/:path*"],
+    matcher: ["/admin/:path*", "/caller/:path*", "/releasing/:path*", "/monitor/:path*", "/reports/:path*"],
 };

@@ -1,0 +1,4 @@
+https://github.com/adrianhajdin/dev-events-nextjs16-crash-course/tree/main/public
+https://github.com/JavaScript-Mastery-Pro/classroom/blob/main/README.MD
+https://github.com/bablukpik/nextjs-best-practices
+https://nextjs.org/docs/app/guides/backend-for-frontend

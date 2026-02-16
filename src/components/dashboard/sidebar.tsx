@@ -1,38 +1,43 @@
 "use client"
-import Link from 'next/link';
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarProvider,
-    SidebarTrigger,
-    SidebarFooter,
-} from '@/components/ui/sidebar'
+    SidebarMenuItem
+} from '@/components/ui/sidebar';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
     MdDashboard,
     MdDescription,
-    MdPhone,
-    MdMonitor,
     MdLogout,
-    MdSupportAgent,
-    MdSettings,
-    MdPeople,
-    MdPersonAdd,
-    MdSearch,
-    MdFilterList,
-    MdAccessTime,
-    MdCheckCircle,
-    MdCancel,
-    MdPendingActions
+    MdMonitor,
+    MdPhone,
+    MdSupportAgent
 } from 'react-icons/md';
 
+import { authClient } from "@/lib/database/auth-client";
+import { useRouter } from "next/navigation";
+
 export default function AdminSidebar() {
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await authClient.signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    router.push("/login");
+                    router.refresh();
+                }
+            }
+        });
+    };
+
     return (
         <Sidebar className="border-r bg-emerald-50/50">
             <SidebarContent>
@@ -173,11 +178,13 @@ export default function AdminSidebar() {
 
                     {/*LOGOUT*/}
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start">
-                            <a href="#" className="flex items-center gap-2">
+                        <SidebarMenuButton
+                            onClick={handleLogout}
+                            className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start cursor-pointer">
+                            <div className="flex items-center gap-2">
                                 <MdLogout size={20} className="mr-2" />
                                 <span> Logout </span>
-                            </a>
+                            </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
 

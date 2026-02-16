@@ -1,12 +1,21 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { loginSchema, LoginSchemaType } from "@/lib/schemas/login-schema"
+import { authClient } from "@/lib/database/auth-client";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+
+import { loginSchema, LoginSchemaType } from "@/lib/schemas/login-schema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent
+} from "@/components/ui/card";
 import {
     Form,
     FormControl,
@@ -14,30 +23,42 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
-} from "@/components/ui/form"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import Image from 'next/image'
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import Image from 'next/image';
 
 
 export default function LoginForm() {
+
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+
     const form = useForm<LoginSchemaType>({
-        resolver: zodResolver(loginSchema as any),
+        resolver: zodResolver(loginSchema),
         defaultValues: {
-            name: "",
             email: "",
             password: "",
-            confirmPassword: "",
         },
     })
 
+    console.log("Validation Errors:", form.formState.errors);
 
-    function onSubmit(values: z.infer<typeof loginSchema>) {
+    async function onSubmit(values: z.infer<typeof loginSchema>) {
+        setIsLoading(true);
+        const { error } = await authClient.signIn.email({
+            email: values.email,
+            password: values.password,
+        });
+        if (error) {
+            alert(error.message || "Invalid email or Password");
+            setIsLoading(false);
+        }
+        else {
+            router.push("/admin")
+            router.refresh();
+        }
+
         console.log(values)
     }
 
@@ -92,7 +113,16 @@ export default function LoginForm() {
                                                 </a>
                                             </div>
                                             <FormControl>
-                                                <Input type="password" {...field} />
+                                                <div className="relative">
+                                                    <Input type={showPassword ? "text" : "password"} {...field} />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                    >
+                                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                </div>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -100,14 +130,15 @@ export default function LoginForm() {
                                 />
                                 {/* Dont have an account */}
                                 <div className="text-left text-sm">
-                                    Don't have an account?{" "}
+                                    Dont have an account?{" "}
                                     <a href="/signup" className="underline underline-offset-4">
                                         Sign up
                                     </a>
                                 </div>
 
                                 {/* Submit Button */}
-                                <Button type="submit" className="w-full h-10">
+                                <Button type="submit" className="w-full h-10" disabled={isLoading}>
+                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Login
                                 </Button>
                             </div>
@@ -115,7 +146,7 @@ export default function LoginForm() {
                     </Form>
                     {/* Right Side: The Image */}
                     <div className="relative hidden lg:block flex-1 overflow-hidden min-h-[500px] ">
-                        <div className="absolute inset-0 z-10 bg-linear-to-b from-[#0B7035]/80 via-[#31965B]/12 via-[#059943]/41 via-[#059943]/59 to-[#0B7035]/80" />
+                        <div className="absolute inset-0 z-10 bg-linear-to-b from-[#0B7035]/80 via-[#31965B]/40 to-[#0B7035]/80" />
                         <Image
                             src="/nmmcpics.png"
                             alt="NMMC Login Image"
@@ -123,7 +154,7 @@ export default function LoginForm() {
                             className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale bg-linear-to-r from-cyan-500 to-blue-500"
                         />
                         <div className="relative z-20 h-full flex flex-col items-center justify-center px-10 text-white text-center">
-                            <div className="mb-3 transform hover:scale-110 transition-transform duration-500">
+                            <div className="mb-3 transform hover:scale-103 transition-transform duration-500">
                                 <Image
                                     src="/logo.png"
                                     alt="Hospital Logo"
@@ -143,17 +174,10 @@ export default function LoginForm() {
                 </CardContent>
             </Card>
 
-            {/* Footer Text */}
             <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-                By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-                and <a href="#">Privacy Policy</a>.
+                {/* Footer Text ???*/}
             </div>
         </div>
 
     )
-
-
-
-
-
 }

@@ -1,12 +1,19 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardHeader
+} from "@/components/ui/card"
 import {
   Field,
-  FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel
 } from "@/components/ui/field"
 
+import { AuthHeader } from "@/components/auth/auth-header"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -15,172 +22,253 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
+import { HOSPITAL_DEPARTMENTS, HOSPITAL_ROLES } from "@/lib/constants/hospital"
+import { authClient } from "@/lib/database/auth-client"
+import { registrationSchema } from "@/lib/schemas/registration-schema"
 import { cn } from "@/lib/utils"
-import Image from 'next/image'
+import { SignUpPayload } from "@/types/auth"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { useState } from "react"
+import { Controller, useForm } from "react-hook-form"
+import { z } from "zod"
 
+type RegistrationValues = z.infer<typeof registrationSchema>
+
+/**
+ * COMPONENT: SignupForm
+ * High-level coordinator for user registration.
+ * Delegates branding to AuthHeader and uses centralized hospital constants.
+ */
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const form = useForm<RegistrationValues>({
+    resolver: zodResolver(registrationSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      middleName: "",
+      suffix: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      employeeID: "",
+      role: "",
+      department: "",
+      birthDate: "",
+      contactNumber: "",
+    }
+  })
+
+  const { register, handleSubmit, formState: { errors } } = form;
+
+  /**
+   * HANDLER: Form Submission
+   * Processes the registration using BetterAuth client.
+   */
+  async function onSubmit(values: RegistrationValues) {
+    setIsLoading(true)
+    try {
+      const payload: SignUpPayload = {
+        email: values.email,
+        password: values.password,
+        name: `${values.firstName} ${values.lastName}`.trim(),
+        firstName: values.firstName,
+        lastName: values.lastName,
+        middleName: values.middleName || "",
+        suffix: values.suffix || "",
+        employeeID: values.employeeID,
+        role: values.role,
+        department: values.department,
+        contactNumber: values.contactNumber,
+        birthDate: new Date(values.birthDate).toISOString(),
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await authClient.signUp.email(payload as any);
+
+      if (error) {
+        alert(error.message)
+      } else {
+        alert("Registration successful! Please wait for administrative approval.")
+        form.reset()
+      }
+    } catch (err) {
+      console.error("Signup error:", err)
+      alert("An unexpected error occurred. Please try again later.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8">
-            <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Create your account</h1>
-                <p className="text-muted-foreground text-sm text-balance">
-                  Fill out the Form and wait for Admin Approval
-                </p>
+      <Card className="border-slate-200/60 shadow-xl shadow-slate-200/50">
+        <CardHeader className="pb-0">
+          <AuthHeader title="Registration Form" />
+        </CardHeader>
+
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <FieldGroup className="space-y-4">
+              {/* --- NAME SECTION --- */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="firstName">First Name</FieldLabel>
+                  <Input {...register("firstName")} id="firstName" placeholder="Juan" />
+                  <FieldError errors={[errors.firstName]} />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="lastName">Last Name</FieldLabel>
+                  <Input {...register("lastName")} id="lastName" placeholder="Dela Cruz" />
+                  <FieldError errors={[errors.lastName]} />
+                </Field>
               </div>
 
-              {/*Name Input */}
-              <FieldGroup>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="firstName">First Name</FieldLabel>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      placeholder="Juan"
-                      required
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="lastName">Last Name</FieldLabel>
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      placeholder="Dela Cruz"
-                      required
-                    />
-                  </Field>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="middleName">Middle Name (Optional)</FieldLabel>
+                  <Input {...register("middleName")} id="middleName" placeholder="M." />
+                  <FieldError errors={[errors.middleName]} />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="suffix">Suffix (Optional)</FieldLabel>
+                  <Input {...register("suffix")} id="suffix" placeholder="Jr, Sr, III" />
+                  <FieldError errors={[errors.suffix]} />
+                </Field>
+              </div>
 
-                {/*Optional Name Inputs, Middle and Suffix */}
+              {/* --- EMPLOYMENT SECTION --- */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="employeeID">Employee ID</FieldLabel>
+                  <Input {...register("employeeID")} id="employeeID" placeholder="Ex: 2022300556" />
+                  <FieldError errors={[errors.employeeID]} />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="role">Select your Role</FieldLabel>
+                  <Controller
+                    name="role"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="role" className="bg-slate-50/50">
+                          <SelectValue placeholder="Choose a role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {HOSPITAL_ROLES.map(role => (
+                            <SelectItem key={role.value} value={role.value}>
+                              {role.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <FieldError errors={[errors.role]} />
+                </Field>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="middleName">Middle Name</FieldLabel>
-                    <Input
-                      id="middleName"
-                      name="middleName"
-                      placeholder=""
-                    />
-                  </Field>
-
-                  <Field>
-                    <FieldLabel htmlFor="suffix">Suffix</FieldLabel>
-                    <Input
-                      id="suffix"
-                      name="suffix"
-                      placeholder="Jr, Sr, III"
-                    />
-                  </Field>
-                </div>
-
-                {/*Employee Role / ID Input */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="employeeID">Employee ID</FieldLabel>
-                    <Input
-                      id="employeeID"
-                      name="employeeID"
-                      placeholder="2022300556"
-                      required
-                    />
-
-                  </Field>
-
-                  <Field>
-                    <FieldLabel htmlFor="role">Select your Role</FieldLabel>
-                    <Select name="role">
-                      <SelectTrigger id="role">
-                        <SelectValue placeholder="Select your role" />
+              <Field>
+                <FieldLabel htmlFor="department">Select Department / Service</FieldLabel>
+                <Controller
+                  name="department"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger id="department" className="bg-slate-50/50">
+                        <SelectValue placeholder="Choose your department" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="TRIAGE_NURSE">Triage Nurse</SelectItem>
-                        <SelectItem value="WINDOW_CLERK">Window Clerk</SelectItem>
-                        <SelectItem value="CLINIC_CALLER">Clinic Caller</SelectItem>
-                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        {HOSPITAL_DEPARTMENTS.map(dept => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
-                  </Field>
-                </div>
-
-                {/*Birth Date and Contact Number*/}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="birthDate">Birth Date</FieldLabel>
-                    <Input
-                      id="birthDate"
-                      name="birthDate"
-                      type="date"
-                      required
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="contactNumber">Contact Number</FieldLabel>
-                    <Input
-                      id="contactNumber"
-                      name="contactNumber"
-                      placeholder="09123456789"
-                      required
-                    />
-                  </Field>
-                </div>
-              </FieldGroup>
-
-              {/*Email Input */}
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
+                  )}
                 />
+                <FieldError errors={[errors.department]} />
               </Field>
 
-              {/*Password Input*/}
-              <Field>
-                <Field className="grid grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input id="password" type="password" required />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="confirm-password">
-                      Confirm Password
-                    </FieldLabel>
-                    <Input id="confirm-password" type="password" required />
-                  </Field>
+              {/* --- PERSONAL INFO --- */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="birthDate">Birth Date</FieldLabel>
+                  <Input {...register("birthDate")} id="birthDate" type="date" className="bg-slate-50/50" />
+                  <FieldError errors={[errors.birthDate]} />
                 </Field>
-                <FieldDescription>
-                  Must be at least 8 characters long.
-                </FieldDescription>
-              </Field>
+                <Field>
+                  <FieldLabel htmlFor="contactNumber">Contact Number</FieldLabel>
+                  <Input {...register("contactNumber")} id="contactNumber" placeholder="09xxxxxxxxx" />
+                  <FieldError errors={[errors.contactNumber]} />
+                </Field>
+              </div>
+
+              {/* --- ACCOUNT INFO --- */}
               <Field>
-                <Button type="submit">Create Account</Button>
+                <FieldLabel htmlFor="email">Email Address</FieldLabel>
+                <Input {...register("email")} id="email" type="email" placeholder="staff@nmmc.gov.ph" />
+                <FieldError errors={[errors.email]} />
               </Field>
 
-              <FieldDescription className="text-center">
-                Already have an account? <a href="#">Sign in</a>
-              </FieldDescription>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <div className="relative">
+                    <Input {...register("password")} id="password" type={showPassword ? "text" : "password"} className="bg-slate-50/50 focus:bg-white transition-colors" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-700 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <FieldError errors={[errors.password]} />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
+                  <div className="relative">
+                    <Input {...register("confirmPassword")} id="confirmPassword" type={showPassword ? "text" : "password"} className="bg-slate-50/50 focus:bg-white transition-colors" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-700 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <FieldError errors={[errors.confirmPassword]} />
+                </Field>
+              </div>
+
+              {/* --- ACTIONS --- */}
+              <div className="pt-4 space-y-4">
+                <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 text-base font-bold shadow-lg shadow-emerald-200" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registration"}
+                </Button>
+
+                <p className="text-center text-sm text-slate-500">
+                  Already have an account?{" "}
+                  <a href="/login" className="text-emerald-700 font-bold hover:underline underline-offset-4">
+                    Sign in here
+                  </a>
+                </p>
+              </div>
             </FieldGroup>
           </form>
-          <div className="bg-muted relative hidden md:block">
-            <Image
-              src="/login-img.png"
-              fill={true}
-              alt="nmmc"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
-          </div>
         </CardContent>
-      </Card >
+      </Card>
 
-    </div >
+      <div className="px-6 text-center text-sm font-medium text-emerald-600/80 bg-emerald-50 py-3 rounded-lg border border-emerald-100">
+        Approval required. Contact Administration at <strong>#09123456789</strong> after signing up.
+      </div>
+    </div>
   )
 }
+

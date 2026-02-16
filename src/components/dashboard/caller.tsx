@@ -16,16 +16,72 @@ import {
 } from 'react-icons/md';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Switch } from '@/components/ui/switch';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
 
-const historyData = [
-    { ticket: 'REG-123', category: 'REGULAR', start: '10:45 AM', end: '10:58 AM', duration: '13 min', status: 'Served' },
-    { ticket: 'FT-042', category: 'FAST TRACK', start: '10:30 AM', end: '10:44 AM', duration: '14 min', status: 'Served' },
-    { ticket: 'REG-122', category: 'REGULAR', start: '10:15 AM', end: '--', duration: '--', status: 'No Show' },
-    { ticket: 'CH-015', category: 'CHILD', start: '10:00 AM', end: '10:14 AM', duration: '14 min', status: 'Served' },
-];
+const DEPARTMENT_DATA: Record<string, any> = {
+    "ANIMAL BITE DEPT": {
+        currentTicket: "REG-124",
+        waitlist: [
+            { ticket: "REG-125", category: "REGULAR", time: "10:45 AM" },
+            { ticket: "CH-016", category: "CHILD", time: "10:48 AM" },
+            { ticket: "FT-043", category: "FAST TRACK", time: "10:50 AM" },
+        ],
+        stats: { regular: "42", pediatric: "18", fastTrack: "09", erRef: "05" }
+    },
+    "X-RAY DEPARTMENT": {
+        currentTicket: "XR-001",
+        waitlist: [
+            { ticket: "XR-002", category: "CHEST PA-L", time: "11:00 AM" },
+            { ticket: "XR-003", category: "EXTREMITIES", time: "11:05 AM" },
+            { ticket: "XR-004", category: "PORTABLE", time: "11:10 AM" },
+        ],
+        stats: { regular: "15", pediatric: "08", fastTrack: "02", erRef: "01" }
+    },
+    "FAMILY MEDICINE": {
+        currentTicket: "FM-089",
+        waitlist: [
+            { ticket: "FM-090", category: "CONSULT", time: "09:30 AM" },
+            { ticket: "FM-091", category: "FOLLOW-UP", time: "09:45 AM" },
+        ],
+        stats: { regular: "28", pediatric: "12", fastTrack: "05", erRef: "00" }
+    },
+    "DENTAL CLINIC": {
+        currentTicket: "DEN-012",
+        waitlist: [
+            { ticket: "DEN-013", category: "EXTRACTION", time: "02:15 PM" },
+            { ticket: "DEN-014", category: "CLEANING", time: "02:30 PM" },
+        ],
+        stats: { regular: "10", pediatric: "04", fastTrack: "00", erRef: "00" }
+    },
+    "ER - REFERRAL": {
+        currentTicket: "ER-005",
+        waitlist: [
+            { ticket: "ER-006", category: "TRAUMA", time: "12:00 PM" },
+        ],
+        stats: { regular: "05", pediatric: "01", fastTrack: "00", erRef: "00" }
+    },
+    "LABORATORY": {
+        currentTicket: "LAB-055",
+        waitlist: [
+            { ticket: "LAB-056", category: "BLOOD WORK", time: "08:00 AM" },
+            { ticket: "LAB-057", category: "URINALYSIS", time: "08:15 AM" },
+        ],
+        stats: { regular: "60", pediatric: "20", fastTrack: "15", erRef: "10" }
+    }
+};
 
 export default function CallerDashboard() {
     const [isAvailable, setIsAvailable] = useState(true);
+    const [department, setDepartment] = useState("ANIMAL BITE DEPT");
+
+    const currentData = DEPARTMENT_DATA[department] || DEPARTMENT_DATA["ANIMAL BITE DEPT"];
 
     return (
         <div className="flex min-h-screen w-full bg-slate-50/50">
@@ -58,23 +114,52 @@ export default function CallerDashboard() {
                         <div className="lg:col-span-3 flex flex-col gap-4">
 
                             {/*NOW SERVING*/}
-                            <Card className="flex flex-col items-center justify-center p-19 py-17 shadow-sm border-0 bg-white relative overflow-hidden">
-                                <span className="text-orange-500 font-bold tracking-widest text-sm uppercase mb-1"> Current Patient Ticket
+                            <Card className="flex flex-col items-center justify-center p-19 py-20 shadow-sm border-0 bg-white relative overflow-hidden">
+                                <span className="text-emerald-500 font-bold tracking-widest text-sm uppercase mb-1"> Current Patient Ticket
                                 </span>
-                                <h1 className="text-8xl leading-none font-bold text-slate-900 tracking-tighter drop-shadow-sm mb-2">
-                                    REG-124
+                                <h1 className="text-9xl leading-none font-bold text-slate-900 tracking-tighter drop-shadow-sm mb-4">
+                                    {currentData.currentTicket}
                                 </h1>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button className="bg-emerald-900 text-white px-20 py-8 rounded-full text-xl font-bold tracking-wider shadow-lg shadow-emerald-700/20 mt-2 hover:bg-emerald-800 uppercase">
+                                            {department}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-center text-xl font-bold text-emerald-950 uppercase tracking-widest">Select Department</DialogTitle>
+                                            <DialogDescription className="text-center text-slate-400">
+                                                Choose a department to switch the caller view.
+                                            </DialogDescription>
+                                        </DialogHeader>
 
-                                {/*BUTTONS*/}
-                                <div className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full content-center mt-2">
+                                        {/* CLINIC GRID */}
+                                        <div className="grid grid-cols-2 gap-3 py-4">
+                                            {/* You can map these or just list them like this */}
+                                            <DepartmentButton label="ANIMAL BITE DEPT" current={department} onClick={() => setDepartment("ANIMAL BITE DEPT")} />
+                                            <DepartmentButton label="X-RAY DEPARTMENT" current={department} onClick={() => setDepartment("X-RAY DEPARTMENT")} />
+                                            <DepartmentButton label="FAMILY MEDICINE" current={department} onClick={() => setDepartment("FAMILY MEDICINE")} />
+                                            <DepartmentButton label="DENTAL CLINIC" current={department} onClick={() => setDepartment("DENTAL CLINIC")} />
+                                            <DepartmentButton label="ER - REFERRAL" current={department} onClick={() => setDepartment("ER - REFERRAL")} />
+                                            <DepartmentButton label="LABORATORY" current={department} onClick={() => setDepartment("LABORATORY")} />
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </Card>
+
+                            <div>
+                                {/*TOP BUTTONS*/}
+                                <div className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full content-center mt-3">
                                     <TopButton label="REGULAR" hotkey="Press 1" color="bg-emerald-800" />
                                     <TopButton label="CHILD" hotkey="Press 2" color="bg-emerald-800" />
                                     <TopButton label="FT" hotkey="Press 3" color="bg-emerald-800" />
                                     <TopButton label="ER - REF" hotkey="Press 4" color="bg-emerald-800" />
                                     <TopButton label="REFERRALS" hotkey="Press 5" color="bg-yellow-600" />
                                 </div>
-                            </Card>
+                            </div>
 
+                            {/*BOTTOM BUTTONS*/}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <BotButton label="MARK SERVED" hotkey="Press S" />
                                 <BotButton label="TRANSFER QUEUE" hotkey="Press Q" />
@@ -85,16 +170,7 @@ export default function CallerDashboard() {
 
                         <div className="flex flex-col gap-4" >
 
-                            {/*TOTAL TICKETS*/}
-                            <Card className="p-4 border-0 shadow-sm bg-white">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">TOTAL TICKETS CALLED</span>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <StatItem label="Regular" value="42" />
-                                    <StatItem label="Pediatric" value="18" />
-                                    <StatItem label="Fast Track" value="09" />
-                                    <StatItem label="ER-Ref" value="05" />
-                                </div>
-                            </Card >
+                            {/*WAIT LIST*/}
                             <Card className="p-4 border-0 shadow-sm bg-white">
                                 <div className="flex items-center justify-between mb-4">
                                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">WAIT LISTS</span>
@@ -102,9 +178,9 @@ export default function CallerDashboard() {
                                 </div>
 
                                 <div className="flex flex-col gap-3">
-                                    <WaitlistItem ticket="REG-125" category="REGULAR" time="10:45 AM" />
-                                    <WaitlistItem ticket="CH-016" category="CHILD" time="10:48 AM" />
-                                    <WaitlistItem ticket="FT-043" category="FAST TRACK" time="10:50 AM" />
+                                    {currentData.waitlist.map((item: any, index: number) => (
+                                        <WaitlistItem key={index} ticket={item.ticket} category={item.category} time={item.time} />
+                                    ))}
                                 </div>
 
                                 <Button variant="ghost" className="w-full mt-3 text-xs font-bold text-slate-400 hover:text-slate-600 h-8">
@@ -112,6 +188,18 @@ export default function CallerDashboard() {
                                 </Button>
                             </Card>
 
+                            {/*TOTAL TICKETS*/}
+                            <Card className="p-4 border-0 shadow-sm bg-white">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">TOTAL TICKETS CALLED</span>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <StatItem label="Regular" value={currentData.stats.regular} />
+                                    <StatItem label="Pediatric" value={currentData.stats.pediatric} />
+                                    <StatItem label="Fast Track" value={currentData.stats.fastTrack} />
+                                    <StatItem label="ER-Ref" value={currentData.stats.erRef} />
+                                </div>
+                            </Card >
+
+                            {/*SIDE BUTTONS*/}
                             <div className="flex flex-col gap-1">
                                 <Button variant="outline" className="h-14 w-full flex items-center justify-between px-7 bg-white border-0 shadow-sm hover:bg-slate-50">
                                     <div className="flex items-center gap-3">
@@ -167,6 +255,20 @@ function TopButton({ label, hotkey, color = "bg-emerald-800" }: { label: string,
         <Button className={`h-24 flex flex-col items-start justify-center p-4 ${color} hover:opacity-90 text-left shadow-lg shadow-emerald-900/10 rounded-2xl`}>
             <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{hotkey}</span>
             <span className="text-xl font-black tracking-wide text-white">{label}</span>
+        </Button>
+    )
+}
+
+function DepartmentButton({ label, onClick, current }: { label: string, onClick: () => void, current: string }) {
+    const isActive = current === label;
+    return (
+        <Button
+            variant="outline"
+            onClick={onClick}
+            className={`h-24 flex flex-col items-center justify-center p-2 border-2 ${isActive ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-100 hover:border-emerald-200 hover:bg-slate-50 text-slate-600'}`}
+        >
+            <span className="font-bold text-center leading-tight">{label}</span>
+            {isActive && <span className="text-[10px] text-emerald-500 font-bold mt-1 uppercase tracking-wider">Active</span>}
         </Button>
     )
 }

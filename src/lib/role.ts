@@ -5,31 +5,25 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { auth } from '@/lib/database/auth';
 
 export type UserRole = 'admin' | 'user' | 'guest';
 
 /**
- * Get the current user's role from the session
- * In a real app, this would query your auth session/database
- * For now, we use a simple cookie-based approach
+ * Read the role from the BetterAuth session. This is now the
+ * single source of truth for authorization and removes the need
+ * for manually‑managed cookies.
  */
 export async function getUserRole(): Promise<UserRole> {
   try {
-    const headersList = await headers();
-    const cookie = headersList.get('cookie');
+    const session = await auth.api.getSession({ headers: await headers() });
+    const role = session?.user?.role as string | undefined;
 
-    // Check for userRole in cookies (set during login)
-    // In production, validate this with a real session store/JWT
-    if (cookie) {
-      const roleMatch = cookie.match(/userRole=([^;]+)/);
-      if (roleMatch && (roleMatch[1] === 'admin' || roleMatch[1] === 'user')) {
-        return roleMatch[1] as UserRole;
-      }
-    }
-
+    if (role === 'ADMIN') return 'admin';
+    if (role) return 'user';
     return 'guest';
   } catch (error) {
-    console.error('Error getting user role:', error);
+    console.error('Error getting user role from session:', error);
     return 'guest';
   }
 }
@@ -51,8 +45,8 @@ export async function isUser(): Promise<boolean> {
 }
 
 /**
- * Client-side role check (requires session data passed from server)
- * Use this in client components after fetching role from parent server component
+ * Client-side role helpers remain the same; you can still pass in the
+ * role value obtained from a server component or session endpoint.
  */
 export function isAdminClient(role: UserRole | null): boolean {
   return role === 'admin';
@@ -86,20 +80,15 @@ export async function requireRole(requiredRole: UserRole): Promise<UserRole> {
 }
 
 /**
- * Get user info from session (placeholder)
- * Replace with actual session query in production
+ * Get full session info from BetterAuth.
+ * This replaces the old cookie‑parsing placeholder and ensures the
+ * data comes straight from the auth database.
  */
 export async function getUserInfo() {
-  const headersList = await headers();
-  const cookie = headersList.get('cookie');
-
-  const userMatch = cookie?.match(/userName=([^;]+)/);
-  const userEmail = cookie?.match(/userEmail=([^;]+)/);
-  const userRole = cookie?.match(/userRole=([^;]+)/);
-
+  const session = await auth.api.getSession({ headers: await headers() });
   return {
-    name: userMatch ? decodeURIComponent(userMatch[1]) : 'User',
-    email: userEmail ? decodeURIComponent(userEmail[1]) : 'user@example.com',
-    role: (userRole?.[1] as UserRole) || 'guest',
+    name: session?.user?.name || 'User',
+    email: session?.user?.email || 'user@example.com',
+    role: session?.user?.role === 'ADMIN' ? 'admin' : session?.user?.role ? 'user' : 'guest',
   };
 }

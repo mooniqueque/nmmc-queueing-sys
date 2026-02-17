@@ -49,12 +49,19 @@ Currently, roles are stored in cookies for demonstration. In production, replace
 - JWT tokens
 - Database session store
 
-Cookie format (for testing):
+Initially the project stored roles in a cookie for simplicity:
 ```
 userRole=admin|user
 userName=John%20Doe
 userEmail=john@example.com
 ```
+Those helper functions lived in `src/lib/role.ts` and parsed `document.cookie`.
+
+> **Update:** the system now uses BetterAuth's session API instead of manual
+> cookies. `requireRole()` and friends call `auth.api.getSession()` under the
+> hood so you don't need any client code to manage cookies. Login redirects
+> also consult the session endpoint. This approach is more secure and avoids
+> inconsistencies between client and server state.
 
 ### Routing Structure
 

@@ -1,6 +1,7 @@
-import type { Metadata } from 'next'
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import AdminSidebar from "@/components/dashboard/sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+
+import type { Metadata } from 'next'
 export const metadata: Metadata = {
     title: 'Admin Dashboard',
     description: 'Queue System Administration',
@@ -12,10 +13,11 @@ export default function AdminLayout({
 }) {
     return (
         <SidebarProvider>
-            {/* SIDEBAR */}
             <AdminSidebar />
+            {/* SIDEBAR /}
+            
 
-            {/* MAIN CONT*/}
+            {/ MAIN CONT*/}
             <SidebarInset className="bg-slate-50/50">
                 {children}
             </SidebarInset >

@@ -13,6 +13,9 @@ export default async function Page() {
     return redirect("/login");
   }
 
+  if (session.user.role !== "ADMIN") {
+    return redirect("/")
+  }
   // Use the service layer to fetch data
   const allUsers = await getAllUsers();
 

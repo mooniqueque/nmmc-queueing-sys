@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MdPlayArrow, MdAccessTime, MdPeople } from "react-icons/md";
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 // Mock Data
 const NOW_SERVING = {
@@ -12,20 +13,19 @@ const NOW_SERVING = {
     department: "Priority Lane",
 };
 
-const REGULAR_QUEUE = [
-    { ticket: "A-125", status: "Waiting" },
-    { ticket: "A-126", status: "Waiting" },
-    { ticket: "A-127", status: "Waiting" },
-    { ticket: "A-128", status: "Waiting" },
-    { ticket: "B-005", status: "On-Hold" },
-    { ticket: "C-012", status: "Waiting" },
+const SERVING_LIST = [
+    { service: "Priority-NEW", ticket: "PRIONEW-11" },
+    { service: "Priority-OLD", ticket: "PRIOOLD-2" },
+    { service: "Regular-NEW", ticket: "REGNEW-18" },
+    { service: "Malasakit-PHIC", ticket: "PHIC-14" },
+    { service: "Regular-OLD", ticket: "REGOLD-2" }, // Add more if needed
 ];
 
-const PRIORITY_QUEUE = [
-    { ticket: "P-025", status: "Child / Pedia" },
-    { ticket: "F-001", status: "Fast Track" },
-    { ticket: "ER-012", status: "ER-Ref" },
-    { ticket: "P-026", status: "Child / Pedia" },
+const UPCOMING_QUEUE = [
+    { ticket: "A-129", category: "Regular-NEW", type: "regular" },
+    { ticket: "P-027", category: "Child / Pedia", type: "priority" },
+    { ticket: "A-130", category: "Regular-OLD", type: "regular" },
+    { ticket: "ER-013", category: "ER-Ref", type: "urgent" },
 ];
 
 export default function QueueMonitor() {
@@ -48,13 +48,31 @@ export default function QueueMonitor() {
         }).toUpperCase();
     };
 
+    // Helper for styling tickets based on type
+    const getTicketStyle = (type: string) => {
+        switch (type) {
+            case 'priority': return 'bg-red-50 border-red-100 text-red-900 border';
+            case 'urgent': return 'bg-orange-50 border-orange-100 text-orange-900 border';
+            default: return 'bg-emerald-50 border-emerald-100 text-emerald-900 border';
+        }
+    };
+
+    const getLabelStyle = (type: string) => {
+        switch (type) {
+            case 'priority': return 'text-red-500';
+            case 'urgent': return 'text-orange-500';
+            default: return 'text-emerald-500';
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-white flex flex-col font-sans text-slate-800">
-            {/* Header */}
-            <header className="bg-white shadow-sm px-8 py-4 flex justify-between items-center sticky top-0 z-10 border-b border-emerald-100/50">
+        <div className="w-full h-screen bg-white flex flex-col font-sans text-slate-800 overflow-hidden">
+            {/* HEADER */}
+            <header className="bg-white shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-10 border-b border-emerald-100/50 w-full shrink-0">
                 <div className="flex items-center gap-4">
-                    {/* Logo placeholders */}
-                    {/* Logos */}
+                    <div className="flex items-center gap-3">
+                        <SidebarTrigger className="w-12 h-12 text-emerald-800 scale-125" />
+                    </div>
                     <div className="flex gap-2">
                         <div className="relative w-15 h-15">
                             <Image
@@ -88,85 +106,74 @@ export default function QueueMonitor() {
                 </div>
             </header>
 
-            {/* MAIN CONT */}
-            <main className="flex-1 p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-100px)]">
 
-                {/* LEFT QUEUE LIST*/}
-                <div className="lg:col-span-1 flex flex-col gap-6 h-full">
-                    {/* Now Serving Card */}
-                    <Card className="border-0 shadow-lg rounded-2xl overflow-hidden ring-1 ring-emerald-100/50 bg-white relative group h-1/3 flex flex-col">
-                        <CardHeader className="bg-emerald-50/50 border-b border-emerald-100 py-3">
-                            <CardTitle className=" text-emerald-800 uppercase tracking-wider text-sm font-bold flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                Now Serving
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center justify-center flex-1 py-4 text-center space-y-2 z-10">
-                            <div className="text-[5rem] sm:text-[6rem] font-black text-emerald-900 leading-none drop-shadow-sm tracking-tighter">
-                                {NOW_SERVING.ticket}
-                            </div>
-                            <div className="space-y-1">
-                                <div className="text-2xl font-bold text-emerald-700 uppercase">{NOW_SERVING.counter}</div>
-                                <div className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">{NOW_SERVING.department}</div>
-                            </div>
-                        </CardContent>
-                    </Card>
+            <main className="flex-1 px-6 pt-5 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden pb-6">
+                {/* LEFT COLUMN: Service List */}
+                <div className="col-span-1 flex flex-col gap-3 h-full overflow-hidden">
+                    <div className="flex justify-between px-4 py-3 bg-emerald-800 text-white rounded-t-xl font-bold uppercase tracking-wider text-sm shadow-md shrink-0">
+                        <span>Service</span>
+                        <span>Now Serving</span>
+                    </div>
 
-                    {/* NEXT QUEUE */}
-                    <Card className="border-0 shadow-lg rounded-2xl overflow-hidden ring-1 ring-emerald-100/50 bg-white/80 backdrop-blur-sm flex-1 flex flex-col">
-                        <CardHeader className="bg-slate-50/80 border-b border-slate-100 py-3 sticky top-0">
-                            <CardTitle className="text-slate-700 uppercase tracking-wider text-sm font-bold flex items-center gap-2">
-                                <MdPeople size={16} />
-                                Regular Queue
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0 overflow-y-auto flex-1 custom-scrollbar">
-                            <div className="divide-y divide-slate-100">
-                                {REGULAR_QUEUE.map((item, index) => (
-                                    <div key={index} className="flex items-center justify-between p-4 hover:bg-emerald-50/50 transition-colors">
-                                        <span className="text-3xl font-bold text-slate-700 font-mono tracking-tight">{item.ticket}</span>
-                                        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded uppercase tracking-wider">{item.status}</span>
+                    {/* The List of Cards */}
+                    <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-2 pb-2">
+                        {SERVING_LIST.map((item, index) => (
+                            <Card key={index} className="border-0 shadow-sm rounded-lg overflow-hidden ring-1 ring-emerald-50 bg-white hover:shadow-md transition-all shrink-0">
+                                <CardContent className="p-0 flex flex-row items-stretch h-14">
+                                    {/* Service Name (Left Side) - Slightly darker bg for contrast */}
+                                    <div className="w-1/2 flex items-center justify-start px-4 border-r border-slate-100 ">
+                                        <span className="text-sm font-bold uppercase leading-tight line-clamp-2">
+                                            {item.service}
+                                        </span>
                                     </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                    {/* Ticket Number (Right Side) */}
+                                    <div className="w-1/2 flex items-center justify-center bg-white">
+                                        <span className="text-2xl font-black text-emerald-800 tracking-tighter">
+                                            {item.ticket}
+                                        </span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
                 </div>
 
-                {/* RIGHT VIDEO */}
-                <div className="lg:col-span-2 flex flex-col gap-6 h-full">
+                {/* RIGHT COLUMN: Video & Upcoming */}
+                <div className="col-span-2 flex flex-col gap-6 h-full">
 
-                    {/* VID PLACEHOLDER */}
-                    <Card className="border-0 shadow-xl rounded-2xl overflow-hidden bg-black relative group flex-1 min-h-[400px]">
-                        {/* Thumbnail / overlay */}
-                        <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-                            <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 ring-4 ring-white/10 group-hover:scale-110 transition-transform duration-300">
-                                <MdPlayArrow size={64} className="text-white ml-2" />
+                    {/* TOP: Video Player */}
+                    <Card className="h-[65%] bg-black rounded-xl overflow-hidden relative shadow-lg group">
+                        {/* Thumbnail / Play Button */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+                            <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 ring-4 ring-white/10 group-hover:scale-110 transition-transform duration-300">
+                                <MdPlayArrow size={50} className="text-white ml-2" />
                             </div>
-                            <div className="absolute bottom-6 left-6 text-white/50 text-sm font-medium">Promtional Video Area</div>
+                            <div className="absolute bottom-4 left-6 text-white/50 text-xs font-medium uppercase tracking-widest">Promotional Video</div>
                         </div>
                     </Card>
 
-                    {/* PRIORITY QUEUE */}
-                    <Card className="border-0 shadow-lg rounded-2xl overflow-hidden ring-1 ring-red-100/50 bg-white h-1/4 flex flex-col">
-                        <CardHeader className="bg-white border-b border-slate-50 py-3 px-6">
-                            <CardTitle className="text-emerald-800 uppercase tracking-widest text-sm font-bold flex items-center gap-2">
+                    {/* BOTTOM LIST, UPCOMING QUEUE*/}
+                    <Card className="flex-1 bg-white border-0 shadow-md rounded-lg flex flex-col">
+                        <CardHeader className="bg-white py-2 px-6">
+                            <CardTitle className="text-slate-700 uppercase tracking-widest text-sm font-bold flex items-center gap-2">
                                 <div className="flex space-x-1">
-                                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-emerald-800 border-b-[6px] border-b-transparent"></div>
-                                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-emerald-800 border-b-[6px] border-b-transparent"></div>
+                                    {/*ARROW*/}
+                                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-emerald-600 border-b-[6px] border-b-transparent"></div>
+                                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-emerald-600 border-b-[6px] border-b-transparent"></div>
                                 </div>
-                                Priority / Special Lane
+                                Next in Line / Upcoming
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="flex items-center flex-1 p-0 overflow-x-auto custom-scrollbar px-4">
-                            <div className="flex gap-4 min-w-full px-2">
-                                {PRIORITY_QUEUE.map((item, index) => (
-                                    <div key={index} className="flex-shrink-0 w-48 h-28 bg-emerald-50 rounded-xl flex flex-col items-center justify-center border border-emerald-100 shadow-sm relative overflow-hidden group">
-                                        <div className="text-4xl font-extrabold text-gray-800 tracking-tight z-10">{item.ticket}</div>
-                                        <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest mt-1 z-10">{item.status}</div>
 
-                                        {/* Active Indicator Line */}
-                                        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-red-300 to-red-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+                        <CardContent>
+                            <div className="flex gap-4 min-w-full px-2 py-2">
+                                {UPCOMING_QUEUE.map((item, index) => (
+                                    <div key={index} className={`flex-shrink-0 w-48 h-28 rounded-xl flex flex-col items-center justify-center shadow-sm relative overflow-hidden group transition-colors ${getTicketStyle(item.type)}`}>
+                                        <div className="text-2xl font-extrabold tracking-tight z-10">{item.ticket}</div>
+                                        <div className={`text-[10px] font-bold uppercase tracking-widest mt-1 z-10 ${getLabelStyle(item.type)}`}>{item.category}</div>
+
+                                        {/* Indicator Line */}
+                                        <div className={`absolute bottom-0 left-0 w-full h-1 bg-current opacity-30`}></div>
                                     </div>
                                 ))}
                             </div>
@@ -174,8 +181,9 @@ export default function QueueMonitor() {
                     </Card>
 
                 </div>
-
             </main>
+
+
         </div>
     );
 }

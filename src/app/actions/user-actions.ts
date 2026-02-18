@@ -81,7 +81,7 @@ export async function adminCreateUser(data: {
         await auth.api.signUpEmail({
             body: {
                 email: data.email,
-                password: "password123", // Default password
+                password: "password123", // should be in env when final
                 name: data.name,
                 firstName: data.name.split(' ')[0],
                 lastName: data.name.split(' ').slice(1).join(' '),
@@ -100,5 +100,50 @@ export async function adminCreateUser(data: {
     } catch (error) {
         console.error("Failed to create user:", error);
         return { success: false, error: "Failed to create user. It might already exist." };
+    }
+}
+
+/**
+ * Updates a user's role in the database.
+ * @param userId - The ID of the user to update.
+ * @param newRole - The new role string (e.g., 'ADMIN', 'CLINIC_CALLER').
+ */
+export async function updateUserRole(userId: string, newRole: string) {
+    try {
+        await db.user.update({
+            where: { id: userId },
+            data: { role: newRole },
+        });
+
+        // Revalidate relevant paths to update UI
+        revalidatePath("/admin");
+        revalidatePath("/dashboard");
+
+        return { success: true };
+    } catch (error) {
+        console.error("❌ [Action] Failed to update user role:", error);
+        return { success: false, error: "Unable to update role. Please try again." };
+    }
+}
+
+/**
+ * Toggles a user's active status (Active/Inactive).
+ * @param userId - The ID of the user to update.
+ * @param status - The new active status.
+ */
+export async function toggleUserStatus(userId: string, status: boolean) {
+    try {
+        await db.user.update({
+            where: { id: userId },
+            data: { isActive: status },
+        });
+
+        revalidatePath("/admin");
+        revalidatePath("/dashboard");
+
+        return { success: true };
+    } catch (error) {
+        console.error("❌ [Action] Failed to update user status:", error);
+        return { success: false, error: "Unable to update status. Please try again." };
     }
 }

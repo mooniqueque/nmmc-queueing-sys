@@ -1,6 +1,7 @@
 "use client";
 
-import { approveUser, rejectUser } from "@/app/actions/user-actions";
+import { approveUser, rejectUser, toggleUserStatus, updateUserRole } from "@/app/actions/user-actions";
+import { HOSPITAL_ROLES } from "@/lib/constants/hospital";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useState } from 'react';
@@ -57,13 +58,14 @@ export default function AdminDashboard({
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRole, setFilterRole] = useState('All Users');
     const [viewPendingOnly, setViewPendingOnly] = useState(false);
+    const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
     // 2. DATA CALCULATIONS (Derived State)
     const analytics = {
         total: initialUsers.length,
         pending: initialUsers.filter(u => !u.isApproved).length,
-        active: initialUsers.filter(u => u.isApproved).length,
-        inactive: 0
+        active: initialUsers.filter(u => u.isApproved && u.isActive).length,
+        inactive: initialUsers.filter(u => u.isApproved && !u.isActive).length
     };
 
     // 3. FILTERING (Let React Compiler handle memoization)
@@ -95,6 +97,34 @@ export default function AdminDashboard({
             const result = await rejectUser(userId);
             if (result.success) router.refresh();
             else alert(result.error);
+        }
+    };
+
+    const handleUpdateRole = async (userId: string, newRole: string) => {
+        setUpdatingUserId(userId);
+        try {
+            const result = await updateUserRole(userId, newRole);
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert(result.error);
+            }
+        } finally {
+            setUpdatingUserId(null);
+        }
+    };
+
+    const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+        setUpdatingUserId(userId);
+        try {
+            const result = await toggleUserStatus(userId, !currentStatus);
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert(result.error);
+            }
+        } finally {
+            setUpdatingUserId(null);
         }
     };
 
@@ -221,19 +251,70 @@ export default function AdminDashboard({
                                     </TableCell>
                                     <TableCell className="font-bold text-emerald-800">{user.department}</TableCell>
                                     <TableCell>
-                                        <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200 uppercase px-3 py-1 font-semibold text-[10px]">
-                                            {getRoleIcon(user.role)} {user.role.replace('_', ' ')}
-                                        </Badge>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className={cn(
+                                                        "h-8 px-2 hover:bg-slate-100 transition-all",
+                                                        updatingUserId === user.id && "animate-pulse opacity-50 pointer-events-none"
+                                                    )}
+                                                >
+                                                    <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200 uppercase px-3 py-1 font-semibold text-[10px] cursor-pointer hover:border-emerald-300">
+                                                        {getRoleIcon(user.role)} {user.role.replace('_', ' ')}
+                                                    </Badge>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="start" className="w-48">
+                                                {HOSPITAL_ROLES.map(({ value, label }) => (
+                                                    <DropdownMenuItem
+                                                        key={value}
+                                                        onClick={() => handleUpdateRole(user.id, value)}
+                                                        className={cn(
+                                                            "flex items-center gap-2 text-xs font-medium",
+                                                            user.role === value && "bg-emerald-50 text-emerald-700 font-bold"
+                                                        )}
+                                                    >
+                                                        {getRoleIcon(value)} {label}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge className={cn(
-                                            "font-bold",
-                                            user.isApproved
-                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                                                : "bg-yellow-50 text-yellow-600 border-yellow-100"
-                                        )}>
-                                            {user.isApproved ? "ACTIVE" : "PENDING"}
-                                        </Badge>
+                                        {user.isApproved ? (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className={cn(
+                                                            "h-8 px-2 hover:bg-slate-100 transition-all",
+                                                            updatingUserId === user.id && "animate-pulse opacity-50 pointer-events-none"
+                                                        )}
+                                                    >
+                                                        <Badge className={cn(
+                                                            "font-bold cursor-pointer hover:opacity-80 transition-opacity",
+                                                            user.isActive
+                                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                                                : "bg-red-50 text-red-600 border-red-100"
+                                                        )}>
+                                                            {user.isActive ? "ACTIVE" : "INACTIVE"}
+                                                        </Badge>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="start">
+                                                    <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.isActive)}>
+                                                        {user.isActive ? "Set as Inactive" : "Set as Active"}
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        ) : (
+                                            <Badge className="bg-yellow-50 text-yellow-600 border-yellow-100 font-bold">
+                                                PENDING
+                                            </Badge>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {!user.isApproved && (

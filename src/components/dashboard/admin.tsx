@@ -43,9 +43,6 @@ import { StatsCard } from "./stats-card";
 
 /**
  * COORDINATOR COMPONENT: AdminDashboard
- * This is the high-level orchestration layer. 
- * It manages global filters and search but 
- * delegates specific UI logic to sub-components.
  */
 export default function AdminDashboard({
     loggedInUser,
@@ -125,7 +122,8 @@ export default function AdminDashboard({
             </header>
 
             <main className='p-6 space-y-6 bg-slate-50/50 px-10'>
-                {/* 📊 Analytics Dashboard */}
+
+                {/* ANALYTICS */}
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
                     <StatsCard
                         label="Total System User"

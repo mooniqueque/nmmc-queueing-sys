@@ -6,11 +6,17 @@ export const metadata: Metadata = {
     title: 'Admin Dashboard',
     description: 'Queue System Administration',
 }
-export default function AdminLayout({
+
+export const dynamic = 'force-dynamic'
+
+export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
+    // Protect admin routes - redirect to login if not admin
+    await requireRole('admin')
+
     return (
         <SidebarProvider>
             <AdminSidebar />

@@ -53,13 +53,30 @@ export default function LoginForm() {
         if (error) {
             alert(error.message || "Invalid email or Password");
             setIsLoading(false);
-        }
-        else {
-            router.push("/admin")
-            router.refresh();
+            return;
         }
 
-        console.log(values)
+        // once authentication succeeds, ask the server for the current session
+        try {
+            const res = await fetch("/api/auth/session");
+            const data = await res.json();
+            const role: string | undefined = data?.session?.user?.role;
+
+            if (role === "ADMIN") {
+                router.push("/admin");
+            } else {
+                // any non‑admin goes to the user area; the requireRole guards will
+                // redirect unauthorised people back to login automatically
+                router.push("/user");
+            }
+        } catch (fetchError) {
+            console.error("failed to fetch session after login", fetchError);
+            // fallback to admin path so the app doesn't hang
+            router.push("/");
+        }
+
+        router.refresh();
+        console.log(values);
     }
 
 

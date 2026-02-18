@@ -17,6 +17,7 @@ export interface UserData {
     role: string;
     department: string;
     isApproved: boolean;
+    isActive: boolean;
     createdAt: Date;
     employeeID: string;
 }

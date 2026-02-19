@@ -81,7 +81,7 @@ export async function adminCreateUser(data: {
         await auth.api.signUpEmail({
             body: {
                 email: data.email,
-                password: "password123", // Default password
+                password: "password123", // should be in env when final
                 name: data.name,
                 firstName: data.name.split(' ')[0],
                 lastName: data.name.split(' ').slice(1).join(' '),

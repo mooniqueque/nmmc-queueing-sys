@@ -1,6 +1,7 @@
-import type { Metadata } from 'next'
-import { requireRole } from '@/lib/role'
+import AdminSidebar from "@/components/dashboard/sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
+import type { Metadata } from 'next'
 export const metadata: Metadata = {
     title: 'Admin Dashboard',
     description: 'Queue System Administration',
@@ -14,11 +15,17 @@ export default async function AdminLayout({
     children: React.ReactNode
 }) {
     // Protect admin routes - redirect to login if not admin
-    await requireRole('admin')
-
+    ///
     return (
-        <div className="flex min-h-screen flex-col">
-            <main className="flex-1">{children}</main>
-        </div>
+        <SidebarProvider>
+            <AdminSidebar />
+            {/* SIDEBAR /}
+            
+
+            {/ MAIN CONT*/}
+            <SidebarInset className="bg-slate-50/50">
+                {children}
+            </SidebarInset >
+        </SidebarProvider>
     )
 }

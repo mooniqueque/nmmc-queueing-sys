@@ -18,7 +18,8 @@ import {
     MdLogout,
     MdMonitor,
     MdPhone,
-    MdSupportAgent
+    MdSupportAgent,
+    MdMedicalServices
 } from 'react-icons/md';
 
 import { authClient } from "@/lib/database/auth-client";
@@ -72,6 +73,16 @@ export default function AdminSidebar() {
                                     <Link href="/admin">
                                         <MdDashboard size={20} className="text-emerald-700" />
                                         <span>Admin Dashboard</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+                            {/*FOR TRIAGE NURSE*/}
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
+                                    <Link href='/triagenurse'>
+                                        <MdMedicalServices size={20} className="text-emerald-700" />
+                                        <span>Triage Nurse</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>

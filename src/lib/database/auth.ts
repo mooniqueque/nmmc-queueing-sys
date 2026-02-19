@@ -19,6 +19,7 @@ export const auth = betterAuth({
             middleName: { type: "string" },
             suffix: { type: "string" },
             employeeID: { type: "string" },
+            department: { type: "string" },
             role: { type: "string" },
             birthDate: { type: "string" },
             contactNumber: { type: "string" },

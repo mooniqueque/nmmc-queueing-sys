@@ -1,10 +1,10 @@
 "use client";
 
 import { authClient } from "@/lib/database/auth-client";
+import { SessionUser } from "@/types/user";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
 
 import { loginSchema, LoginSchemaType } from "@/lib/schemas/login-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -58,16 +58,14 @@ export default function LoginForm() {
 
         // once authentication succeeds, ask the server for the current session
         try {
-            const res = await fetch("/api/auth/session");
-            const data = await res.json();
-            const role: string | undefined = data?.session?.user?.role;
-
-            if (role === "ADMIN") {
+            const { data: session } = await authClient.getSession();
+            const user = session?.user as unknown as SessionUser;
+            if (user?.role === "ADMIN") {
                 router.push("/admin");
             } else {
                 // any non‑admin goes to the user area; the requireRole guards will
                 // redirect unauthorised people back to login automatically
-                router.push("/user");
+                router.push("/");
             }
         } catch (fetchError) {
             console.error("failed to fetch session after login", fetchError);

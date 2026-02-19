@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
     Dialog,
@@ -220,13 +220,13 @@ export default function CallerDashboard({
 
                             {/*SIDE BUTTONS*/}
                             <div className="flex flex-col gap-1">
-                                <Button variant="outline" className="h-14 w-full flex items-center justify-between px-7 bg-white border-0 shadow-sm hover:bg-slate-50">
+                                <div className={buttonVariants({ variant: "outline", className: "h-14 w-full flex items-center justify-between px-7 bg-white border-0 shadow-sm hover:bg-slate-50 cursor-default" })}>
                                     <div className="flex items-center gap-3">
                                         <div className={`h-3 w-3 rounded-full ${isAvailable ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
                                         <span className="font-bold font-extrabold text-slate-700">Available</span>
                                     </div>
                                     <Switch checked={isAvailable} onCheckedChange={setIsAvailable} />
-                                </Button>
+                                </div>
                                 <ActionButton icon={<MdCancel />} label="No Show" color="text-red-500" />
                                 <ActionButton icon={<MdSkipNext />} label="Switch Window" color="text-slate-500" />
                                 <ActionButton icon={<MdRefresh />} label="Re-Call Number" color="text-slate-500" />

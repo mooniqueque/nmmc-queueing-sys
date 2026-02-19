@@ -14,7 +14,16 @@ export default async function Page() {
   }
 
   if (session.user.role !== "ADMIN") {
-    return redirect("/")
+    switch (session.user.role) {
+      case "TRIAGE_NURSE":
+        return redirect("/triage");
+      case "CLINIC_CALLER":
+        return redirect("/caller");
+      case "WINDOW_CLERK":
+        return redirect("/releasing");
+      default:
+        return redirect("/");
+    }
   }
   // Use the service layer to fetch data
   const allUsers = await getAllUsers();

@@ -31,7 +31,7 @@ model User {
   employeeID String  @unique
   image      String?
   role       String
-  department String  @default("General")
+  department String
   isApproved Boolean @default(false)
   isActive   Boolean @default(true)
 

@@ -4,11 +4,10 @@
 import { auth } from "@/lib/database/auth";
 import { db } from "@/lib/database/prisma";
 import { revalidatePath } from "next/cache";
-
+import { headers } from "next/headers";
 /**
- * ACTIONS LAYER: Data Mutations (Write/Update/Delete Operations)
- * This file contains Server Actions that change data in the database.
- * These are called 'Command' functions because they instruct the system to do something.
+ * ACTIONS LAYER: FOR Data Mutations (Write/Update/Delete Operations)
+ * This file contains Server Actions that change data in the database
  */
 
 // --- USER MANAGEMENT ACTIONS ---
@@ -18,6 +17,13 @@ import { revalidatePath } from "next/cache";
  * @param userId - The unique ID of the user to approve.
  */
 export async function approveUser(userId: string) {
+    //session checker if admin
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
+    if (!session || session.user.role !== "ADMIN") {
+        return { success: false, error: "Unauthorized" };
+    }
     try {
         await db.user.update({
             where: { id: userId },
@@ -36,6 +42,12 @@ export async function approveUser(userId: string) {
  * @param userId - The unique ID of the user to delete.
  */
 export async function rejectUser(userId: string) {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    });
+    if (!session || session.user.role !== "ADMIN") {
+        return { success: false, error: "UNAUTHORIZED" };
+    }
     try {
         // In a real scenario, you might want to mark as inactive or delete
         // For now, let's delete the user to keep the pending list clean
@@ -76,7 +88,12 @@ export async function adminCreateUser(data: {
         contactNumber: string;
         isApproved: boolean;
     }
-
+    const session = await auth.api.getSession({
+        headers: await headers()
+    })
+    if (!session || session.user.role !== "ADMIN") {
+        return { success: false, error: "UNAUTHORIZED" }
+    }
     try {
         await auth.api.signUpEmail({
             body: {
@@ -109,6 +126,12 @@ export async function adminCreateUser(data: {
  * @param newRole - The new role string (e.g., 'ADMIN', 'CLINIC_CALLER').
  */
 export async function updateUserRole(userId: string, newRole: string) {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    })
+    if (!session || session.user.role !== "ADMIN") {
+        return { success: false, error: "UNAUTHORIZED" }
+    }
     try {
         await db.user.update({
             where: { id: userId },
@@ -132,6 +155,12 @@ export async function updateUserRole(userId: string, newRole: string) {
  * @param status - The new active status.
  */
 export async function toggleUserStatus(userId: string, status: boolean) {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    })
+    if (!session || session.user.role !== "ADMIN") {
+        return { success: false, error: "UNAUTHORIZED" }
+    }
     try {
         await db.user.update({
             where: { id: userId },

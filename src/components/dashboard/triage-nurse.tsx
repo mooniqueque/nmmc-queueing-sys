@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import React from 'react';
 
 // Helper components for missing UI elements (Checkbox, Textarea)
 // You might want to install these from shadcn/ui later: npx shadcn@latest add checkbox textarea
@@ -135,7 +135,7 @@ export default function TriageNurseForm() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-6 rounded-lg border border-slate-200">
                         {/* Disposition */}
                         <div>
-                            <Label className="text-sm font-bold text-slate-500 uppercase mb-3 block">Triage Officer's Disposition</Label>
+                            <Label className="text-sm font-bold text-slate-500 uppercase mb-3 block">Triage Officer&apos;s Disposition</Label>
                             <div className="space-y-3">
                                 <div className="flex items-center space-x-2 p-2 rounded hover:bg-red-50 cursor-pointer">
                                     <input type="radio" name="disposition" id="disp-emergent" className="h-4 w-4 text-red-600 focus:ring-red-500" />
@@ -177,7 +177,7 @@ export default function TriageNurseForm() {
                     {/* SECTION 5: SIGNATURE */}
                     <div className="pt-6 flex justify-end">
                         <div className="w-full max-w-sm">
-                            <Label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Triage Officer's Name / Signature</Label>
+                            <Label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Triage Officer&apos;s Name / Signature</Label>
                             <Input placeholder="Enter Verify Name" className="font-medium text-lg border-b-2 border-t-0 border-x-0 rounded-none px-0 shadow-none border-slate-400 focus:border-emerald-600 focus:ring-0" />
                             <div className="text-right text-xs text-slate-400 mt-1">Authorized Signature</div>
                         </div>

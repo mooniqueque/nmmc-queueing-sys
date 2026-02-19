@@ -28,14 +28,20 @@ export default function AdminSidebar() {
     const router = useRouter();
 
     const handleLogout = async () => {
-        await authClient.signOut({
-            fetchOptions: {
-                onSuccess: () => {
-                    router.push("/login");
-                    router.refresh();
-                }
+        try {
+            const { error } = await authClient.signOut({
+                redirectTo: "/login" // explicit target, avoids URL hashes
+            });
+            if (error) {
+                console.error("Logout error:", error);
+                return;
             }
-        });
+            // pushing again just in case the client didn't redirect
+            router.push("/login");
+            router.refresh();
+        } catch (err) {
+            console.error("Unexpected logout failure", err);
+        }
     };
 
     return (
@@ -179,6 +185,7 @@ export default function AdminSidebar() {
                     {/*LOGOUT*/}
                     <SidebarMenuItem>
                         <SidebarMenuButton
+                            type="button"
                             onClick={handleLogout}
                             className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start cursor-pointer">
                             <div className="flex items-center gap-2">

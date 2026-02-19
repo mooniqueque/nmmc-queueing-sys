@@ -62,7 +62,17 @@ Those helper functions lived in `src/lib/role.ts` and parsed `document.cookie`.
 > hood so you don't need any client code to manage cookies. Login redirects
 > also consult the session endpoint. This approach is more secure and avoids
 > inconsistencies between client and server state.
-
+> **Note:** BetterAuth requires a valid `baseURL` for callback/redirects. If
+> you see a warning about the base URL not being determined or logout links
+> drop you back to `/admin#`, set one of these environment variables in your
+> `.env` and restart the dev server:
+> ```env
+> NEXT_PUBLIC_APP_URL=http://localhost:3000
+> BETTER_AUTH_BASE_URL=http://localhost:3000
+> ```
+> We added explicit `baseURL` configuration in `src/lib/database/auth.ts`.
+> Without it, sign‑out redirects can misbehave, which was the root cause of
+> the `#` being appended to `/admin` earlier.
 ### Routing Structure
 
 #### Admin Routes

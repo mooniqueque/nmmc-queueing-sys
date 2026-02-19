@@ -9,6 +9,9 @@ import {
     MdSupportAgent,
 } from 'react-icons/md';
 
+import { authClient } from '@/lib/database/auth-client';
+import { useRouter } from 'next/navigation';
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -42,6 +45,7 @@ interface MonitorData {
 }
 
 export default function UserMonitor({ userInfo }: { userInfo: UserInfo }) {
+    const router = useRouter();
     const monitorData: MonitorData[] = [
         {
             department: 'Animal Bite',
@@ -184,11 +188,20 @@ export default function UserMonitor({ userInfo }: { userInfo: UserInfo }) {
 
                             {/*LOGOUT*/}
                             <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start">
-                                    <a href="#" className="flex items-center gap-2">
+                                <SidebarMenuButton
+                                    type="button"
+                                    onClick={async () => {
+                                        const { error } = await authClient.signOut({ redirectTo: '/login' });
+                                        if (!error) {
+                                            router.push('/login');
+                                            router.refresh();
+                                        }
+                                    }}
+                                    className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start cursor-pointer">
+                                    <div className="flex items-center gap-2">
                                         <MdLogout size={20} className="mr-2" />
                                         <span> Logout </span>
-                                    </a>
+                                    </div>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
 

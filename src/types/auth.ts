@@ -1,6 +1,6 @@
 /**
- * AUTH TYPES
- * Strictly defined types for authentication payloads and responses.
+ * auth dictionary
+ * are strictly defined types for authentication payloads and responses.
  */
 
 export interface SignUpPayload {

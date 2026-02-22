@@ -1,6 +1,6 @@
 "use client";
 
-import { approveUser, rejectUser, toggleUserStatus, updateUserRole } from "@/app/actions/user-actions";
+import { approveUser, rejectUser, toggleUserStatus, updateUserRole } from "@/actions/user-actions";
 import { HOSPITAL_ROLES } from "@/lib/constants/hospital";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -37,7 +37,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { SessionUser, UserData } from "@/types/user";
+import { SessionUser, UserData } from "@/lib/types/user";
+import { Department } from "@prisma/client";
 import { MdDescription, MdPhone, MdSettings, MdSupportAgent } from "react-icons/md";
 import { AddUserDialog } from "./add-user-dialog";
 import { StatsCard } from "./stats-card";
@@ -47,10 +48,12 @@ import { StatsCard } from "./stats-card";
  */
 export default function AdminDashboard({
     loggedInUser,
-    initialUsers = []
+    initialUsers = [],
+    departments = []
 }: {
     loggedInUser?: SessionUser,
-    initialUsers?: UserData[]
+    initialUsers?: UserData[],
+    departments?: Department[]
 }) {
     const router = useRouter();
 
@@ -224,7 +227,7 @@ export default function AdminDashboard({
                             {viewPendingOnly ? "Show All Users" : "Pending Users"}
                         </Button>
 
-                        <AddUserDialog />
+                        <AddUserDialog departments={departments} />
                     </div>
                 </div>
 

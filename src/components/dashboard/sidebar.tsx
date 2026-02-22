@@ -16,10 +16,10 @@ import {
     MdDashboard,
     MdDescription,
     MdLogout,
+    MdMedicalServices,
     MdMonitor,
     MdPhone,
-    MdSupportAgent,
-    MdMedicalServices
+    MdSupportAgent
 } from 'react-icons/md';
 
 import { authClient } from "@/lib/database/auth-client";
@@ -142,12 +142,12 @@ export default function AdminSidebar() {
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
 
-                            {/*WINDOW SETTINGS*/}
+                            {/*WINDOW/DEPARTMENT SETTINGS*/}
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <a href='#'>
-                                        <span>Window Settings</span>
-                                    </a>
+                                    <Link href='/departments'>
+                                        <span>Department Settings</span>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
 

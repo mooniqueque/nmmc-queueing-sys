@@ -13,7 +13,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from '@/components/ui/switch';
-import { SessionUser } from '@/types/user';
+import { SessionUser } from '@/lib/types/user';
 import {
     MdCancel,
     MdRefresh,

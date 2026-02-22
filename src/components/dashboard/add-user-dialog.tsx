@@ -1,6 +1,6 @@
 "use client";
 
-import { adminCreateUser } from "@/app/actions/user-actions";
+import { adminCreateUser } from "@/actions/user-actions";
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -24,12 +24,14 @@ import { useRouter } from "next/navigation";
 import { useState } from 'react';
 import { MdPersonAdd } from 'react-icons/md';
 
+import { Department } from "@prisma/client";
+
 /**
  * COMPONENT: AddUserDialog
  * Handles the registration of new staff members.
  * Separates the complex form logic and state from the main dashboard.
  */
-export function AddUserDialog() {
+export function AddUserDialog({ departments = [] }: { departments?: Department[] }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -139,17 +141,13 @@ export function AddUserDialog() {
                                     <SelectValue placeholder="Select department" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Administration">Administration</SelectItem>
-                                    <SelectItem value="Animal Bites">Animal Bites</SelectItem>
-                                    <SelectItem value="Family Medicine">Family Medicine</SelectItem>
-                                    <SelectItem value="Dental Service">Dental Service</SelectItem>
-                                    <SelectItem value="Pediatrics">Pediatrics</SelectItem>
-                                    <SelectItem value="Internal Medicine">Internal Medicine</SelectItem>
-                                    <SelectItem value="Surgery">Surgery</SelectItem>
-                                    <SelectItem value="Obstetrics & Gynecology">Obstetrics & Gynecology</SelectItem>
-                                    <SelectItem value="X-RAY">X-RAY</SelectItem>
-                                    <SelectItem value="Laboratory">Laboratory</SelectItem>
-                                    <SelectItem value="Pharmacy">Pharmacy</SelectItem>
+                                    {departments.length > 0 ? (
+                                        departments.map(dept => (
+                                            <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="none" disabled>No departments found</SelectItem>
+                                    )}
                                 </SelectContent>
                             </Select>
                         </div>

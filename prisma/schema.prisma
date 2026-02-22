@@ -15,7 +15,7 @@ datasource db {
 //Models
 
 model User {
-  //Basic Personal Info
+  //Basic Personal Info for Staff/Employees
   id            String   @id @default(cuid())
   name          String
   firstName     String
@@ -42,6 +42,8 @@ model User {
   //BetterAuth connection to say these users own their specific seesions and accounts
   sessions Session[]
   accounts Account[]
+
+  triagedVisits Visit[] @relation("UserTriage")
 
   @@map("user") //auto small letter naming in sql
 }
@@ -90,4 +92,84 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+//departments
+model Department {
+  id   String @id @default(cuid())
+  name String @unique
+  code String @unique
+
+  //relations
+  visits    Visit[]
+  //staff User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("department")
+}
+
+//patient profile
+model Patient {
+  id          String   @id @default(cuid())
+  hospitalId  String?  @unique // For returning patients
+  firstName   String
+  lastName    String
+  middleName  String?
+  dateOfBirth DateTime
+  gender      String
+  contactNo   String?
+  address     String?
+
+  //relations
+  visits    Visit[] //becos patient can have multiple visits over time
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("patient")
+}
+
+model Visit {
+  id String @id @default(cuid())
+
+  // Links
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  departmentId String? // Assigned by the Window Clerk, NOT the Triage Nurse
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  // Queue Details
+  ticketNumber Int? // Sequence number (assigned by Window Clerk, null until then)
+  status       String @default("KIOSK_SUBMITTED") // KIOSK_SUBMITTED, TRIAGED, WAITING_CLINIC, COMPLETED, NO_SHOW
+
+  // --- TRIAGE DATA (From your UI) ---
+
+  // Vitals
+  bloodPressure   String? // e.g., "120/80"
+  heartRate       Int? // bpm
+  respiratoryRate Int? // cpm
+  temperature     Float? // °C
+  oxygenSat       Float? // %
+  // Symptoms & Status
+  hasFever        Boolean @default(false)
+  hasCough        Boolean @default(false)
+  hasColds        Boolean @default(false)
+  hasRashes       Boolean @default(false)
+  isInfectious    Boolean @default(false)
+  // Clinical Notes & Disposition
+  chiefComplaint  String? @db.Text
+  medicalHistory  String? @db.Text
+  triageRemarks   String? @db.Text
+  disposition     String? // e.g., "EMERGENT", "URGENT", "NON-URGENT"
+
+  // Staff Link
+  triagedByUserId String?
+  triagedByUser   User?    @relation("UserTriage", fields: [triagedByUserId], references: [id])
+  // NOTE: If you add relation here, you MUST add `triagedVisits Visit[] @relation("UserTriage")` to your User model!
+  queueDate       DateTime @default(now()) // To reset ticket counters daily
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("visit")
 }

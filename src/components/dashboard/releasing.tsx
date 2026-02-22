@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
     MdFilterList,
     MdOpenInNew,
-    MdSearch,
+    MdSearch
 } from 'react-icons/md';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -13,16 +13,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
-const departments = [
-    'Animal Bite', 'Cardiology', 'Dental', 'EC', 'ENT', 'Eye Care',
-    'Fam Med', 'Geriatric Med', 'IM Nephrology', 'Internal Med',
-    'Laboratory', 'LC Adult',
-]
+import { SessionUser } from '@/lib/types/user';
+import { Department } from '@prisma/client';
 
-export default function ReleasingDashboard() {
+export default function ReleasingDashboard({
+    loggedInUser,
+    departments = []
+}: {
+    loggedInUser: SessionUser;
+    departments: Department[];
+}) {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
     const [ticketsToRelease, setTicketsToRelease] = useState('');
+
+    // Filter departments based on search query
+    const filteredDepartments = departments.filter(dept =>
+        dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dept.code.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className='flex flex-1 flex-col h-full'>
@@ -34,14 +43,16 @@ export default function ReleasingDashboard() {
                 </div>
                 <div className='flex items-center gap-3'>
                     <div className="flex flex-col items-end mr-1 hidden sm:flex">
-                        <span className="text-sm font-bold text-emerald-300">
-                            Adreanne Sopogi
+                        <span className="text-sm font-bold text-emerald-900">
+                            {loggedInUser.name}
                         </span>
-                        <span className="text-xs text-slate-500">Administrator</span>
+                        <span className="text-xs text-slate-500 uppercase tracking-tighter">{loggedInUser.role.replace('_', ' ')}</span>
                     </div>
 
-                    <Avatar className='size-10 border-2 border-emerald-100 bg emerald-50-text-emerald 700'>
-                        <AvatarFallback className="font-bold">AS</AvatarFallback>
+                    <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
+                        <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
+                            {loggedInUser.name?.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
                     </Avatar>
                 </div>
             </header>
@@ -87,34 +98,39 @@ export default function ReleasingDashboard() {
                             <h3 className="font-medium text-sm text-emerald-700">All Departments</h3>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 flex-1 overflow-y-auto pr-2 pb-10">
-                            {Array.from({ length: 20 }).map((_, idx) => {
-                                const name = departments[idx % departments.length]
-                                return (
-                                    <Card
-                                        key={idx}
-                                        className={`w-full overflow-hidden shadow-sm border cursor-pointer transition-all ${selectedDepartment === name
-                                            ? 'ring-2 ring-emerald-600 border-emerald-600'
-                                            : 'border-slate-200 hover:border-emerald-300'
-                                            }`}
-                                        onClick={() => setSelectedDepartment(name)}
-                                    >
-                                        <div className="flex items-center gap-3 p-3">
-                                            <div className="w-1.5 h-10 rounded-full bg-emerald-600 flex-shrink-0" />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-semibold text-sm text-emerald-900 truncate">{name}</div>
-                                                <div className="text-xs text-slate-500">Tickets Released: 01</div>
-                                            </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 overflow-y-auto pr-2 pb-10 content-start auto-rows-max">
+                            {filteredDepartments.length === 0 ? (
+                                <div className="col-span-1 lg:col-span-2 text-center text-slate-500 mt-10 italic">
+                                    No departments found matching your search.
+                                </div>
+                            ) : (
+                                filteredDepartments.map((dept) => {
+                                    return (
+                                        <Card
+                                            key={dept.id}
+                                            className={`w-full overflow-hidden shadow-sm border cursor-pointer transition-all ${selectedDepartment === dept.name
+                                                ? 'ring-2 ring-emerald-600 border-emerald-600'
+                                                : 'border-slate-200 hover:border-emerald-300'
+                                                }`}
+                                            onClick={() => setSelectedDepartment(dept.name)}
+                                        >
+                                            <div className="flex items-center gap-3 p-3">
+                                                <div className="w-1.5 h-10 rounded-full bg-emerald-600 shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-semibold text-sm text-emerald-900 truncate">{dept.name}</div>
+                                                    <div className="text-xs text-slate-500">Tickets Released: 01</div>
+                                                </div>
 
-                                            <div className="flex-shrink-0">
-                                                <Button variant="ghost" size="icon" className="bg-emerald-50 hover:bg-emerald-100 h-8 w-8">
-                                                    <MdOpenInNew className="text-emerald-700" size={16} />
-                                                </Button>
+                                                <div className="shrink-0">
+                                                    <Button variant="ghost" size="icon" className="bg-emerald-50 hover:bg-emerald-100 h-8 w-8">
+                                                        <MdOpenInNew className="text-emerald-700" size={16} />
+                                                    </Button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </Card>
-                                )
-                            })}
+                                        </Card>
+                                    )
+                                })
+                            )}
                         </div>
                     </div>
 

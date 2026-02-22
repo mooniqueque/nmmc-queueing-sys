@@ -1,6 +1,9 @@
 import AdminDashboard from '@/components/dashboard/admin';
 import { auth } from "@/lib/database/auth";
+import { SessionUser } from "@/lib/types/user";
+import { getDepartments } from '@/services/department-services';
 import { getAllUsers } from '@/services/user-service';
+import { Department } from "@prisma/client";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -28,10 +31,14 @@ export default async function Page() {
   // Use the service layer to fetch data
   const allUsers = await getAllUsers();
 
+  const response = await getDepartments();
+  const departments = response.success ? response.data : [];
+
   return (
     <AdminDashboard
-      loggedInUser={session.user}
+      loggedInUser={session.user as unknown as SessionUser}
       initialUsers={allUsers}
+      departments={departments as Department[]}
     />
   );
 }

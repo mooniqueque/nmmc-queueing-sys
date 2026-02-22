@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/database/prisma";
-import { UserData } from "@/types/user";
+import { UserData } from "@/lib/types/user";
 
 /**
  * SERVICE LAYER: Data Fetching (Read Operations)

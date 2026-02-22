@@ -22,18 +22,24 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { HOSPITAL_DEPARTMENTS, HOSPITAL_ROLES } from "@/lib/constants/hospital"
+import { HOSPITAL_ROLES } from "@/lib/constants/hospital"
 import { authClient } from "@/lib/database/auth-client"
 import { registrationSchema } from "@/lib/schemas/registration-schema"
+import { SignUpPayload } from "@/lib/types/auth"
 import { cn } from "@/lib/utils"
-import { SignUpPayload } from "@/types/auth"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { z } from "zod"
 
+import { Department } from "@prisma/client"
+
 type RegistrationValues = z.infer<typeof registrationSchema>
+
+interface SignupFormProps extends React.ComponentProps<"div"> {
+  departments?: Department[];
+}
 
 /**
  * COMPONENT: SignupForm
@@ -41,9 +47,10 @@ type RegistrationValues = z.infer<typeof registrationSchema>
  * Delegates branding to AuthHeader and uses centralized hospital constants.
  */
 export function SignupForm({
+  departments = [],
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: SignupFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -185,9 +192,13 @@ export function SignupForm({
                         <SelectValue placeholder="Choose your department" />
                       </SelectTrigger>
                       <SelectContent>
-                        {HOSPITAL_DEPARTMENTS.map(dept => (
-                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                        ))}
+                        {departments.length > 0 ? (
+                          departments.map(dept => (
+                            <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>No departments found</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   )}

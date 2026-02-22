@@ -1,7 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/database/auth-client";
-import { SessionUser } from "@/types/user";
+import { SessionUser } from "@/lib/types/user";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

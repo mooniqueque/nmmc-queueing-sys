@@ -1,5 +1,5 @@
-import ReleasingAdmin from '@/components/admin/releasing-admin'
+import ReleasingDashboard from '@/components/dashboard/releasing'
 
 export default function ReleasingPage() {
-  return <ReleasingAdmin />
+  return <ReleasingDashboard />
 }

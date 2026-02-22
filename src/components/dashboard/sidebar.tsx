@@ -29,20 +29,14 @@ export default function AdminSidebar() {
     const router = useRouter();
 
     const handleLogout = async () => {
-        try {
-            const { error } = await authClient.signOut({
-                redirectTo: "/login" // explicit target, avoids URL hashes
-            });
-            if (error) {
-                console.error("Logout error:", error);
-                return;
+        await authClient.signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    router.push("/login");
+                    router.refresh();
+                }
             }
-            // pushing again just in case the client didn't redirect
-            router.push("/login");
-            router.refresh();
-        } catch (err) {
-            console.error("Unexpected logout failure", err);
-        }
+        });
     };
 
     return (

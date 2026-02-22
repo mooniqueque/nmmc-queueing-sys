@@ -2,12 +2,15 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "./prisma";
 
+
+//connection from betterauth to db
 export const auth = betterAuth({
     // important for redirect/callback URLs
     baseURL: process.env.BETTER_AUTH_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
     database: prismaAdapter(db, {
         provider: "mysql",
     }),
+    //signin and signup validator
     emailAndPassword: {
         enabled: true,
     },

@@ -1,6 +1,6 @@
+import "dotenv/config";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "@prisma/client";
-import "dotenv/config";
 import { auth } from "../src/lib/database/auth"; // Relative import to local auth instance
 
 

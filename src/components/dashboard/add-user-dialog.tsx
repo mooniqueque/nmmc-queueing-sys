@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useState } from 'react';
-import { MdPersonAdd } from 'react-icons/md';
+import { UserPlus } from '@phosphor-icons/react';
 
 import { Department } from "@prisma/client";
 
@@ -64,7 +64,7 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-200">
-                    <MdPersonAdd size={18} className="mr-2" /> Add Users
+                    <UserPlus size={18} className="mr-2" /> Add Users
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">

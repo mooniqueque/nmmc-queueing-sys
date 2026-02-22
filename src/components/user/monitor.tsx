@@ -2,12 +2,12 @@
 import { useState } from 'react';
 import Image from 'next/image'
 import {
-    MdDescription,
-    MdPhone,
-    MdMonitor,
-    MdLogout,
-    MdSupportAgent,
-} from 'react-icons/md';
+    FileText,
+    Phone,
+    Desktop,
+    SignOut,
+    Headset,
+} from '@phosphor-icons/react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -100,7 +100,7 @@ export default function UserMonitor({ userInfo }: { userInfo: UserInfo }) {
     ];
 
     const getStatusColor = (status: string) => {
-        switch(status) {
+        switch (status) {
             case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
             case 'idle': return 'bg-slate-50 text-slate-700 border-slate-200';
             case 'break': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
@@ -138,7 +138,7 @@ export default function UserMonitor({ userInfo }: { userInfo: UserInfo }) {
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
                                             <a href='/user/releasing'>
-                                                <MdDescription size={20} className="text-emerald-700" />
+                                                <FileText size={20} className="text-emerald-700" />
                                                 <span>Releasing</span>
                                             </a>
                                         </SidebarMenuButton>
@@ -148,7 +148,7 @@ export default function UserMonitor({ userInfo }: { userInfo: UserInfo }) {
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
                                             <a href='/user/call-number'>
-                                                <MdPhone size={20} className="text-emerald-700" />
+                                                <Phone size={20} className="text-emerald-700" />
                                                 <span>Call Number</span>
                                             </a>
                                         </SidebarMenuButton>
@@ -158,7 +158,7 @@ export default function UserMonitor({ userInfo }: { userInfo: UserInfo }) {
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
                                             <a href='/user/monitor'>
-                                                <MdMonitor size={20} className="text-emerald-700" />
+                                                <Desktop size={20} className="text-emerald-700" />
                                                 <span>Monitor</span>
                                             </a>
                                         </SidebarMenuButton>
@@ -176,7 +176,7 @@ export default function UserMonitor({ userInfo }: { userInfo: UserInfo }) {
                             <SidebarMenuItem className="mb-2">
                                 <SidebarMenuButton className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto">
                                     <a href="#" className="flex items-left gap-2">
-                                        <MdSupportAgent size={20} className="mr-2" />
+                                        <Headset size={20} className="mr-2" />
                                         <span> Contact Support </span>
                                     </a>
                                 </SidebarMenuButton>
@@ -186,7 +186,7 @@ export default function UserMonitor({ userInfo }: { userInfo: UserInfo }) {
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start">
                                     <a href="#" className="flex items-center gap-2">
-                                        <MdLogout size={20} className="mr-2" />
+                                        <SignOut size={20} className="mr-2" />
                                         <span> Logout </span>
                                     </a>
                                 </SidebarMenuButton>

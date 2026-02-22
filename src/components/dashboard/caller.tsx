@@ -15,10 +15,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { SessionUser } from '@/lib/types/user';
 import {
-    MdCancel,
-    MdRefresh,
-    MdSkipNext
-} from 'react-icons/md';
+    XCircle,
+    ArrowsClockwise,
+    SkipForward
+} from '@phosphor-icons/react';
 import { SidebarTrigger } from '../ui/sidebar';
 
 interface WaitlistItemData {
@@ -227,9 +227,9 @@ export default function CallerDashboard({
                                     </div>
                                     <Switch checked={isAvailable} onCheckedChange={setIsAvailable} />
                                 </div>
-                                <ActionButton icon={<MdCancel />} label="No Show" color="text-red-500" />
-                                <ActionButton icon={<MdSkipNext />} label="Switch Window" color="text-slate-500" />
-                                <ActionButton icon={<MdRefresh />} label="Re-Call Number" color="text-slate-500" />
+                                <ActionButton icon={<XCircle />} label="No Show" color="text-red-500" />
+                                <ActionButton icon={<SkipForward />} label="Switch Window" color="text-slate-500" />
+                                <ActionButton icon={<ArrowsClockwise />} label="Re-Call Number" color="text-slate-500" />
                             </div>
                         </div>
                     </div>

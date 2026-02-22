@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Department } from "@prisma/client";
 import { useState } from "react";
-import { MdDelete } from "react-icons/md";
+import { Trash } from "@phosphor-icons/react";
 
 export default function DepartmentSettings({ initialDepartments }: { initialDepartments: Department[] }) {
     const [name, setName] = useState("");
@@ -134,7 +134,7 @@ export default function DepartmentSettings({ initialDepartments }: { initialDepa
                                                         onClick={() => handleDelete(dept.id)}
                                                         className="text-slate-400 hover:text-red-600 hover:bg-red-50 font-bold transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                                                     >
-                                                        <MdDelete size={18} className="mr-1" />
+                                                        <Trash size={18} className="mr-1" />
                                                         Delete
                                                     </Button>
                                                 </td>

@@ -1,4 +1,4 @@
-import AdminDashboard from '@/components/dashboard/admin';
+import AdminDashboard from '@/components/admin-dashboard/admin';
 import { auth } from "@/lib/database/auth";
 import { SessionUser } from "@/lib/types/user";
 import { getDepartments } from '@/services/department-services';

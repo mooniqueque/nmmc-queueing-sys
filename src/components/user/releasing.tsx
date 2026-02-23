@@ -1,7 +1,8 @@
 "use client";
+import Image from 'next/image';
 import { useState } from 'react';
-import Image from 'next/image'
 import {
+<<<<<<< HEAD
     SquaresFour,
     FileText,
     Phone,
@@ -12,25 +13,34 @@ import {
     Funnel,
     ArrowSquareOut,
 } from '@phosphor-icons/react';
+=======
+    MdDescription,
+    MdFilterList,
+    MdLogout,
+    MdMonitor,
+    MdOpenInNew,
+    MdPhone,
+    MdSearch,
+    MdSupportAgent,
+} from 'react-icons/md';
+>>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
-    SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarProvider,
     SidebarTrigger,
-    SidebarFooter,
-} from '@/components/ui/sidebar'
+} from '@/components/ui/sidebar';
 
 const departments = [
     'Animal Bite',
@@ -212,19 +222,24 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                                             <Card
                                                 key={idx}
                                                 className={`w-[250px] overflow-hidden shadow-sm border cursor-pointer transition-all ${selectedDepartment === name
+<<<<<<< HEAD
                                                         ? 'ring-2 ring-emerald-600 border-emerald-600'
                                                         : 'border-slate-200 hover:border-emerald-300'
+=======
+                                                    ? 'ring-2 ring-emerald-600 border-emerald-600'
+                                                    : 'border-slate-200 hover:border-emerald-300'
+>>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
                                                     }`}
                                                 onClick={() => setSelectedDepartment(name)}
                                             >
                                                 <div className="flex items-center gap-3 p-1">
-                                                    <div className="w-1.5 h-10 rounded-full bg-emerald-600 flex-shrink-0" />
+                                                    <div className="w-1.5 h-10 rounded-full bg-emerald-600 shrink-0" />
                                                     <div className="flex-1 min-w-0">
                                                         <div className="font-semibold text-sm text-emerald-900 truncate">{name}</div>
                                                         <div className="text-xs text-slate-500">Queue Position: 01</div>
                                                     </div>
 
-                                                    <div className="flex-shrink-0">
+                                                    <div className="shrink-0">
                                                         <Button variant="ghost" size="icon" className="bg-emerald-50 hover:bg-emerald-100 h-8 w-8">
                                                             <ArrowSquareOut className="text-emerald-700" size={16} />
                                                         </Button>
@@ -237,7 +252,7 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                             </div>
 
                             {/* RIGHT SIDE - TICKET INFO CARD */}
-                            <div className="w-80 flex-shrink-0">
+                            <div className="w-80 shrink-0">
                                 <Card className="shadow-sm border-slate-200 sticky top-[120px]">
                                     <CardHeader className="border-b border-slate-200">
                                         <CardTitle className="text-lg text-emerald-900">Your Ticket Info</CardTitle>

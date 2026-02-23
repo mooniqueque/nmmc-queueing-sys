@@ -1,4 +1,4 @@
-import DepartmentSettings from "@/components/dashboard/admin-settings/departments";
+import DepartmentSettings from "@/components/admin-dashboard/admin-settings/departments";
 import { getDepartments } from "@/services/department-services";
 import { Department } from "@prisma/client";
 

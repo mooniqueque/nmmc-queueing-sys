@@ -1,7 +1,8 @@
 "use client";
+import Image from 'next/image';
 import { useState } from 'react';
-import Image from 'next/image'
 import {
+<<<<<<< HEAD
     FileText,
     Phone,
     Desktop,
@@ -11,14 +12,27 @@ import {
     Funnel,
     SpeakerHigh,
 } from '@phosphor-icons/react';
+=======
+    MdDescription,
+    MdFilterList,
+    MdLogout,
+    MdMonitor,
+    MdPhone,
+    MdSearch,
+    MdSupportAgent,
+    MdVolumeUp,
+} from 'react-icons/md';
+>>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarMenu,
@@ -26,9 +40,7 @@ import {
     SidebarMenuItem,
     SidebarProvider,
     SidebarTrigger,
-    SidebarFooter,
-} from '@/components/ui/sidebar'
-import { Badge } from "@/components/ui/badge"
+} from '@/components/ui/sidebar';
 
 interface UserInfo {
     name: string;
@@ -47,7 +59,7 @@ interface CallRecord {
 
 export default function UserCallNumber({ userInfo }: { userInfo: UserInfo }) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'called' | 'serving' | 'completed'>('all');
+    const [filterStatus] = useState<'all' | 'called' | 'serving' | 'completed'>('all');
 
     const callRecords: CallRecord[] = [
         { id: 1, ticketNumber: 'Q-ANI-001', department: 'Animal Bite', window: 1, calledTime: '10:30 AM', status: 'completed' },
@@ -213,7 +225,7 @@ export default function UserCallNumber({ userInfo }: { userInfo: UserInfo }) {
                         </div>
 
                         {/* CURRENT CALL CARD */}
-                        <Card className="shadow-lg border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50">
+                        <Card className="shadow-lg border-emerald-200 bg-linear-to-r from-emerald-50 to-blue-50">
                             <CardHeader className="border-b border-emerald-200">
                                 <CardTitle className="text-lg text-emerald-900">Now Calling</CardTitle>
                             </CardHeader>

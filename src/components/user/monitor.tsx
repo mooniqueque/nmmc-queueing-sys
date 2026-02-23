@@ -1,19 +1,30 @@
 "use client";
-import { useState } from 'react';
-import Image from 'next/image'
+
+import Image from 'next/image';
 import {
+<<<<<<< HEAD
     FileText,
     Phone,
     Desktop,
     SignOut,
     Headset,
 } from '@phosphor-icons/react';
+=======
+    MdDescription,
+    MdLogout,
+    MdMonitor,
+    MdPhone,
+    MdSupportAgent,
+} from 'react-icons/md';
+>>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarMenu,
@@ -21,9 +32,7 @@ import {
     SidebarMenuItem,
     SidebarProvider,
     SidebarTrigger,
-    SidebarFooter,
-} from '@/components/ui/sidebar'
-import { Badge } from "@/components/ui/badge"
+} from '@/components/ui/sidebar';
 
 interface UserInfo {
     name: string;

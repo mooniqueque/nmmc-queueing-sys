@@ -1,4 +1,4 @@
-import AdminSidebar from "@/components/dashboard/sidebar"
+import AdminSidebar from "@/components/admin-dashboard/sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
 import type { Metadata } from 'next'

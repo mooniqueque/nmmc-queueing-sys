@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `visit` ADD COLUMN `priorityClass` VARCHAR(191) NOT NULL DEFAULT 'REGNEW';

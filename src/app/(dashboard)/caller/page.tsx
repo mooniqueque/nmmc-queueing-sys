@@ -1,4 +1,4 @@
-import CallerDashboard from '@/components/dashboard/caller';
+import CallerDashboard from '@/components/admin-dashboard/caller';
 import { auth } from "@/lib/database/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";

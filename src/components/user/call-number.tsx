@@ -1,24 +1,26 @@
 "use client";
+import Image from 'next/image';
 import { useState } from 'react';
-import Image from 'next/image'
 import {
     MdDescription,
-    MdPhone,
-    MdMonitor,
-    MdLogout,
-    MdSupportAgent,
-    MdSearch,
     MdFilterList,
+    MdLogout,
+    MdMonitor,
+    MdPhone,
+    MdSearch,
+    MdSupportAgent,
     MdVolumeUp,
 } from 'react-icons/md';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarMenu,
@@ -26,9 +28,7 @@ import {
     SidebarMenuItem,
     SidebarProvider,
     SidebarTrigger,
-    SidebarFooter,
-} from '@/components/ui/sidebar'
-import { Badge } from "@/components/ui/badge"
+} from '@/components/ui/sidebar';
 
 interface UserInfo {
     name: string;
@@ -47,7 +47,7 @@ interface CallRecord {
 
 export default function UserCallNumber({ userInfo }: { userInfo: UserInfo }) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'called' | 'serving' | 'completed'>('all');
+    const [filterStatus] = useState<'all' | 'called' | 'serving' | 'completed'>('all');
 
     const callRecords: CallRecord[] = [
         { id: 1, ticketNumber: 'Q-ANI-001', department: 'Animal Bite', window: 1, calledTime: '10:30 AM', status: 'completed' },
@@ -64,7 +64,7 @@ export default function UserCallNumber({ userInfo }: { userInfo: UserInfo }) {
     });
 
     const getStatusColor = (status: string) => {
-        switch(status) {
+        switch (status) {
             case 'called': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
             case 'serving': return 'bg-blue-50 text-blue-700 border-blue-200';
             case 'completed': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
@@ -197,11 +197,11 @@ export default function UserCallNumber({ userInfo }: { userInfo: UserInfo }) {
                                         <div className="absolute left-3 top-2.5 text-slate-400">
                                             <MdSearch size={20} />
                                         </div>
-                                        <Input 
-                                            placeholder="Search ticket number....." 
+                                        <Input
+                                            placeholder="Search ticket number....."
                                             className="pl-10 bg-white border-slate-200"
                                             value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)} 
+                                            onChange={(e) => setSearchQuery(e.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -213,7 +213,7 @@ export default function UserCallNumber({ userInfo }: { userInfo: UserInfo }) {
                         </div>
 
                         {/* CURRENT CALL CARD */}
-                        <Card className="shadow-lg border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50">
+                        <Card className="shadow-lg border-emerald-200 bg-linear-to-r from-emerald-50 to-blue-50">
                             <CardHeader className="border-b border-emerald-200">
                                 <CardTitle className="text-lg text-emerald-900">Now Calling</CardTitle>
                             </CardHeader>

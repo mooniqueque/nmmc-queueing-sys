@@ -1,4 +1,4 @@
-import ReleasingDashboard from '@/components/dashboard/releasing';
+import ReleasingDashboard from '@/components/admin-dashboard/releasing';
 import { auth } from "@/lib/database/auth";
 import { SessionUser } from "@/lib/types/user";
 import { getDepartments } from '@/services/department-services';

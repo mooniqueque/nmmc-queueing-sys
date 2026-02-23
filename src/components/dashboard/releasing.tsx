@@ -16,22 +16,36 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SessionUser } from '@/lib/types/user';
 import { Department } from '@prisma/client';
 
+const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
+
+function normalizeDepartmentKey(value: string) {
+    return value.trim().toUpperCase();
+}
+
 export default function ReleasingDashboard({
     loggedInUser,
-    departments = []
+    departments = [],
+    queueOptionsByDepartment = {}
 }: {
     loggedInUser: SessionUser;
     departments: Department[];
+    queueOptionsByDepartment?: Record<string, string[]>;
 }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
     const [ticketsToRelease, setTicketsToRelease] = useState('');
+    const [selectedQueueOption, setSelectedQueueOption] = useState('');
 
     // Filter departments based on search query
     const filteredDepartments = departments.filter(dept =>
         dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         dept.code.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Get queue options for selected department
+    const queueOptions = selectedDepartment
+        ? (queueOptionsByDepartment[normalizeDepartmentKey(selectedDepartment)] ?? DEFAULT_QUEUE_OPTIONS)
+        : [];
 
     return (
         <div className='flex flex-1 flex-col h-full'>
@@ -151,6 +165,30 @@ export default function ReleasingDashboard({
                                     </div>
                                 </div>
 
+                                {/* QUEUE OPTIONS */}
+                                {selectedDepartment && queueOptions.length > 0 && (
+                                    <div>
+                                        <label className="text-sm font-semibold text-slate-700 block mb-2">Queue Option</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {queueOptions.map((option) => (
+                                                <Button
+                                                    key={option}
+                                                    type="button"
+                                                    variant={selectedQueueOption === option ? "default" : "outline"}
+                                                    className={`text-xs font-bold ${
+                                                        selectedQueueOption === option
+                                                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                            : 'border-slate-300 hover:bg-slate-50'
+                                                    }`}
+                                                    onClick={() => setSelectedQueueOption(option)}
+                                                >
+                                                    {option}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* NUMBER INPUT */}
                                 <div>
                                     <label htmlFor="tickets" className="text-sm font-semibold text-slate-700 block mb-2">
@@ -171,7 +209,7 @@ export default function ReleasingDashboard({
                                 {/* SUBMIT BUTTON */}
                                 <Button
                                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md"
-                                    disabled={!selectedDepartment || !ticketsToRelease}
+                                    disabled={!selectedDepartment || !ticketsToRelease || !selectedQueueOption}
                                 >
                                     Release Tickets
                                 </Button>
@@ -183,6 +221,7 @@ export default function ReleasingDashboard({
                                     onClick={() => {
                                         setSelectedDepartment('')
                                         setTicketsToRelease('')
+                                        setSelectedQueueOption('')
                                     }}
                                 >
                                     Clear

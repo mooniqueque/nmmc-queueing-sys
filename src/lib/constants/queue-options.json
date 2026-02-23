@@ -1,0 +1,32 @@
+{
+  "byDepartment": {
+    "DENTAL SERVICES": [
+      "REGULAR",
+      "CHILD",
+      "ER-REF",
+      "FT",
+      "REFERRALS"
+    ],
+    "FAMILY MEDICINE": [
+      "REGULAR",
+      "CHILD",
+      "ER-REF",
+      "FT",
+      "REFERRALS"
+    ],
+    "OPTAL": [
+      "REGULAR",
+      "CHILD",
+      "ER-REF",
+      "FT",
+      "REFERRALS"
+    ]
+  },
+  "legacyGlobalOptions": [
+    "REGULAR",
+    "CHILD",
+    "FT",
+    "REFERRALS",
+    "ER - REF"
+  ]
+}

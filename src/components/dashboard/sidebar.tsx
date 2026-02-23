@@ -207,7 +207,7 @@ export default function AdminSidebar() {
                     </SidebarMenuItem>
 
                 </SidebarMenu>
-            </SidebarFooter>
+            </SidebarFooter>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
         </Sidebar>
     )
 }

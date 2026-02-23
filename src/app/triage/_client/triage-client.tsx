@@ -1,6 +1,6 @@
 "use client"
 
-import { submitTriageAction } from "@/actions/triage-actions";
+import { markNoShowAction, removeQueueAction, restoreNoShowAction, submitTriageAction } from "@/actions/triage-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { triageFormSchema, TriageFormValues } from "@/lib/schemas/triage-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Prisma } from "@prisma/client";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 type VisitWithPatient = Prisma.VisitGetPayload<{
@@ -19,42 +20,92 @@ type VisitWithPatient = Prisma.VisitGetPayload<{
 }>;
 
 export default function TriageDashboardClient({ initialQueue }: { initialQueue: VisitWithPatient[] }) {
+    const router = useRouter();
     const [isManualEntry, setIsManualEntry] = useState(false);
     const [selectedPatient, setSelectedPatient] = useState<VisitWithPatient | null>(null);
     const [isPending, startTransition] = useTransition();
     const [submitError, setSubmitError] = useState("");
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [activeTab, setActiveTab] = useState<"ACTIVE" | "NO_SHOW">("ACTIVE");
 
-    const form = useForm<z.input<typeof triageFormSchema>>({
+    const activeQueue = initialQueue.filter(v => v.status === "KIOSK_SUBMITTED");
+    const noShowQueue = initialQueue.filter(v => v.status === "NO_SHOW");
+
+    const handleNoShow = (visitId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        startTransition(async () => {
+            const res = await markNoShowAction(visitId);
+            if (res.error) setSubmitError(res.error);
+            if (selectedPatient?.id === visitId) setSelectedPatient(null);
+        });
+    }
+
+    const handleRestore = (visitId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        startTransition(async () => {
+            const res = await restoreNoShowAction(visitId);
+            if (res.error) setSubmitError(res.error);
+        });
+    }
+
+    const handleRemove = (visitId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm("Are you sure you want to completely remove this patient from the triage queue?")) return;
+        startTransition(async () => {
+            const res = await removeQueueAction(visitId);
+            if (res.error) setSubmitError(res.error);
+            if (selectedPatient?.id === visitId) setSelectedPatient(null);
+        });
+    }
+
+    const form = useForm<z.input<typeof triageFormSchema>, unknown, TriageFormValues>({
         resolver: zodResolver(triageFormSchema),
         defaultValues: {
             isManualEntry: false,
-            firstName: "", lastName: "", dateOfBirth: "", gender: "Male",
+            firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Male",
+            address: "", birthPlace: "", religion: "", civilStatus: "Single", hasAppointment: false,
             bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
-            disposition: "NON-URGENT", priorityClass: "REGNEW",
             hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false
         }
     });
 
-    useEffect(() => {
+    const watchDob = useWatch({ control: form.control, name: "dateOfBirth" });
+    const calculateAge = (dobString: string | Date | undefined) => {
+        if (!dobString) return "";
+        const dob = new Date(dobString);
+        if (isNaN(dob.getTime())) return "";
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+        return age >= 0 ? age : "";
+    };
 
+    useEffect(() => {
         if (isManualEntry) {
             form.reset({
                 isManualEntry: true,
-                firstName: "", lastName: "", dateOfBirth: "", gender: "Male",
+                firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Male",
+                address: "", birthPlace: "", religion: "", civilStatus: "Single", hasAppointment: false,
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
-                disposition: "NON-URGENT", priorityClass: "REGNEW",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false
             });
         } else if (selectedPatient) {
             form.reset({
                 isManualEntry: false,
                 firstName: selectedPatient.patient.firstName,
+                middleName: selectedPatient.patient.middleName || "",
                 lastName: selectedPatient.patient.lastName,
                 dateOfBirth: new Date(selectedPatient.patient.dateOfBirth).toISOString().split('T')[0],
                 gender: selectedPatient.patient.gender,
+                address: selectedPatient.patient.address || "",
+                birthPlace: selectedPatient.patient.birthPlace || "",
+                religion: selectedPatient.patient.religion || "",
+                civilStatus: selectedPatient.patient.civilStatus || "Single",
+                hasAppointment: selectedPatient.hasAppointment || false,
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
-                disposition: "NON-URGENT", priorityClass: (selectedPatient.priorityClass as "REGNEW" | "REGOLD" | "PRIO") || "REGNEW",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false
             });
         } else {
@@ -62,14 +113,45 @@ export default function TriageDashboardClient({ initialQueue }: { initialQueue: 
         }
     }, [isManualEntry, selectedPatient, form]);
 
-    const onSubmit = (values: z.input<typeof triageFormSchema>) => {
+    // SET UP SSE FOR REAL-TIME QUEUE UPDATES
+    useEffect(() => {
+        const eventSource = new EventSource('/api/stream/queue');
+
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'queue-updated') {
+                    // Start a non-blocking transition to refresh the Next.js Server Component payload
+                    // This seamlessly updates initialQueue without losing local component React state!
+                    startTransition(() => {
+                        router.refresh();
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to parse SSE message:", error);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error("SSE connection error:", error);
+            eventSource.close();
+            // Optional: Implement reconnection logic here if needed
+        };
+
+        // Clean up connection when component unmounts
+        return () => {
+            eventSource.close();
+        };
+    }, [router]);
+
+    const onSubmit = (values: TriageFormValues) => {
         setSubmitError("");
         setSubmitSuccess(false);
 
         startTransition(async () => {
-            const res = await submitTriageAction(values as TriageFormValues, selectedPatient?.id);
+            const res = await submitTriageAction(values, selectedPatient?.id);
             if (res.error) {
-                setSubmitError(res.error);
+                setSubmitError(res.error as string);
             } else {
                 setSubmitSuccess(true);
                 setTimeout(() => {
@@ -126,42 +208,105 @@ export default function TriageDashboardClient({ initialQueue }: { initialQueue: 
 
                                 {/* DEMOGRAPHICS SECTION */}
                                 <div className="p-5 bg-slate-50 rounded-lg border border-slate-200 space-y-4">
-                                    <h3 className="font-bold text-slate-700 uppercase border-b pb-2">Patient Demographics</h3>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>First Name *</Label>
-                                            <Input disabled={!isManualEntry} {...form.register("firstName")} />
-                                            {form.formState.errors.firstName && <span className="text-red-500 text-xs">{form.formState.errors.firstName.message}</span>}
-                                        </div>
+                                    <div className="flex justify-between items-center border-b pb-2">
+                                        <h3 className="font-bold text-slate-700 uppercase">Patient Demographics</h3>
+                                        <Controller
+                                            control={form.control}
+                                            name="hasAppointment"
+                                            render={({ field }) => (
+                                                <div className="flex items-center space-x-2 bg-white px-3 py-1 rounded-md border text-sm font-semibold text-slate-700">
+                                                    <Switch
+                                                        checked={field.value as boolean}
+                                                        onCheckedChange={field.onChange}
+                                                        disabled={!isManualEntry && !!selectedPatient}
+                                                    />
+                                                    <Label className="cursor-pointer">Has Appointment</Label>
+                                                </div>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="space-y-2">
                                             <Label>Last Name *</Label>
-                                            <Input disabled={!isManualEntry} {...form.register("lastName")} />
+                                            <Input className="bg-white" disabled={!isManualEntry && !!selectedPatient} {...form.register("lastName")} />
                                             {form.formState.errors.lastName && <span className="text-red-500 text-xs">{form.formState.errors.lastName.message}</span>}
                                         </div>
                                         <div className="space-y-2">
+                                            <Label>First Name *</Label>
+                                            <Input className="bg-white" disabled={!isManualEntry && !!selectedPatient} {...form.register("firstName")} />
+                                            {form.formState.errors.firstName && <span className="text-red-500 text-xs">{form.formState.errors.firstName.message}</span>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Middle Name</Label>
+                                            <Input className="bg-white" disabled={!isManualEntry && !!selectedPatient} {...form.register("middleName")} />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Complete Address *</Label>
+                                        <Input className="bg-white" disabled={!isManualEntry && !!selectedPatient} {...form.register("address")} />
+                                        {form.formState.errors.address && <span className="text-red-500 text-xs">{form.formState.errors.address.message}</span>}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="space-y-2">
                                             <Label>Date of Birth *</Label>
-                                            <Input type="date" disabled={!isManualEntry} {...form.register("dateOfBirth")} />
+                                            <Input type="date" className="bg-white" disabled={!isManualEntry && !!selectedPatient} {...form.register("dateOfBirth")} />
                                             {form.formState.errors.dateOfBirth && <span className="text-red-500 text-xs">{form.formState.errors.dateOfBirth.message}</span>}
                                         </div>
                                         <div className="space-y-2">
+                                            <Label>Age</Label>
+                                            <Input value={calculateAge(watchDob)} disabled className="bg-slate-100 font-medium text-slate-700" />
+                                        </div>
+                                        <div className="space-y-2 md:col-span-2">
+                                            <Label>Birthplace *</Label>
+                                            <Input className="bg-white" disabled={!isManualEntry && !!selectedPatient} {...form.register("birthPlace")} />
+                                            {form.formState.errors.birthPlace && <span className="text-red-500 text-xs">{form.formState.errors.birthPlace.message}</span>}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="space-y-2">
                                             <Label>Gender *</Label>
-                                            {isManualEntry ? (
-                                                <Controller
-                                                    control={form.control}
-                                                    name="gender"
-                                                    render={({ field }) => (
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="Male">Male</SelectItem>
-                                                                <SelectItem value="Female">Female</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    )}
-                                                />
-                                            ) : (
-                                                <Input disabled value={form.getValues("gender") || ""} />
-                                            )}
+                                            <Controller
+                                                control={form.control}
+                                                name="gender"
+                                                render={({ field }) => (
+                                                    <Select disabled={!isManualEntry && !!selectedPatient} onValueChange={field.onChange} value={field.value as string}>
+                                                        <SelectTrigger className="bg-white"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Male">Male</SelectItem>
+                                                            <SelectItem value="Female">Female</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                )}
+                                            />
+                                            {form.formState.errors.gender && <span className="text-red-500 text-xs">{form.formState.errors.gender.message}</span>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Civil Status *</Label>
+                                            <Controller
+                                                control={form.control}
+                                                name="civilStatus"
+                                                render={({ field }) => (
+                                                    <Select disabled={!isManualEntry && !!selectedPatient} onValueChange={field.onChange} value={field.value as string}>
+                                                        <SelectTrigger className="bg-white"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Single">Single</SelectItem>
+                                                            <SelectItem value="Married">Married</SelectItem>
+                                                            <SelectItem value="Widowed">Widowed</SelectItem>
+                                                            <SelectItem value="Divorced">Divorced</SelectItem>
+                                                            <SelectItem value="Separated">Separated</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                )}
+                                            />
+                                            {form.formState.errors.civilStatus && <span className="text-red-500 text-xs">{form.formState.errors.civilStatus.message}</span>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Religion *</Label>
+                                            <Input className="bg-white" disabled={!isManualEntry && !!selectedPatient} {...form.register("religion")} />
+                                            {form.formState.errors.religion && <span className="text-red-500 text-xs">{form.formState.errors.religion.message}</span>}
                                         </div>
                                     </div>
                                 </div>
@@ -267,25 +412,6 @@ export default function TriageDashboardClient({ initialQueue }: { initialQueue: 
                                                 )}
                                             />
                                         </div>
-                                        <div className="w-48">
-                                            <Label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Priority Class</Label>
-                                            <Controller
-                                                control={form.control}
-                                                name="priorityClass"
-                                                render={({ field }) => (
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="REGNEW">Regular New</SelectItem>
-                                                            <SelectItem value="REGOLD">Regular Old</SelectItem>
-                                                            <SelectItem value="PRIO">Priority (PWD/Senior)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            />
-                                        </div>
                                     </div>
 
                                     <div className="flex flex-col items-end">
@@ -306,49 +432,110 @@ export default function TriageDashboardClient({ initialQueue }: { initialQueue: 
 
             {/* RIGHT COLUMN: THE QUEUE SIDEBAR */}
             <div className="w-80 flex flex-col bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden shrink-0">
-                <div className="p-4 bg-emerald-900 border-b border-emerald-800 flex justify-between items-center">
+                <div className="p-4 bg-emerald-900 border-b border-emerald-800 flex justify-between items-center shrink-0">
                     <h2 className="font-bold text-white tracking-wide">WAITING FOR TRIAGE</h2>
-                    <span className="bg-emerald-700 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        {initialQueue.length}
-                    </span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-2 space-y-2 pointer-events-auto bg-slate-50">
-                    {initialQueue.length === 0 ? (
-                        <div className="text-center text-slate-400 p-8 text-sm font-medium">No patients in queue today.</div>
+                {/* Tabs */}
+                <div className="flex bg-emerald-800 shrink-0">
+                    <button
+                        onClick={() => setActiveTab("ACTIVE")}
+                        className={`flex-1 py-3 text-xs font-bold transition-colors ${activeTab === "ACTIVE" ? "bg-emerald-700 text-white border-b-2 border-emerald-300" : "text-emerald-300 hover:text-white"}`}
+                    >
+                        ACTIVE ({activeQueue.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("NO_SHOW")}
+                        className={`flex-1 py-3 text-xs font-bold transition-colors border-l border-emerald-900 ${activeTab === "NO_SHOW" ? "bg-slate-700 text-white border-b-2 border-slate-300" : "text-emerald-300 hover:text-white"}`}
+                    >
+                        NO SHOW ({noShowQueue.length})
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-2 space-y-2 pointer-events-auto bg-slate-50 relative">
+                    {/* Overlay spinner when queue is updating */}
+                    {isPending && (
+                        <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                            <span className="text-sm font-bold text-emerald-700 animate-pulse bg-white px-4 py-2 rounded-lg shadow-md">Updating Queue...</span>
+                        </div>
+                    )}
+
+                    {activeTab === "ACTIVE" ? (
+                        activeQueue.length === 0 ? (
+                            <div className="text-center text-slate-400 py-12 text-sm font-medium">No active patients in queue.</div>
+                        ) : (
+                            activeQueue.map((visit) => (
+                                <div
+                                    key={visit.id}
+                                    onClick={() => {
+                                        if (!isManualEntry) {
+                                            setSubmitError("");
+                                            setSubmitSuccess(false);
+                                            setSelectedPatient(visit);
+                                        }
+                                    }}
+                                    className={`p-3 rounded-lg border cursor-pointer transition-all shadow-sm flex flex-col gap-2 ${isManualEntry
+                                        ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200"
+                                        : selectedPatient?.id === visit.id
+                                            ? "bg-emerald-100 border-emerald-400 ring-2 ring-emerald-500/20"
+                                            : "bg-white border-slate-200 hover:border-emerald-300 hover:shadow-md"
+                                        }`}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">
+                                            {visit.patient.lastName}, {visit.patient.firstName}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs text-slate-500 font-medium">
+                                        <span>Queued: {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    <div className="flex gap-2 mt-1">
+                                        <button
+                                            disabled={isPending}
+                                            onClick={(e) => handleNoShow(visit.id, e)}
+                                            className="flex-1 px-2 py-1.5 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded text-[10px] font-bold uppercase transition-colors"
+                                        >
+                                            No Show
+                                        </button>
+                                        <button
+                                            disabled={isPending}
+                                            onClick={(e) => handleRemove(visit.id, e)}
+                                            className="flex-1 px-2 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-[10px] font-bold uppercase transition-colors"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )
                     ) : (
-                        initialQueue.map((visit) => (
-                            <div
-                                key={visit.id}
-                                onClick={() => {
-                                    if (!isManualEntry) {
-                                        setSubmitError("");
-                                        setSubmitSuccess(false);
-                                        setSelectedPatient(visit);
-                                    }
-                                }}
-                                className={`p-4 rounded-lg border cursor-pointer transition-all shadow-sm ${isManualEntry
-                                    ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200"
-                                    : selectedPatient?.id === visit.id
-                                        ? "bg-emerald-100 border-emerald-400 ring-2 ring-emerald-500/20"
-                                        : "bg-white border-slate-200 hover:border-emerald-300 hover:shadow-md"
-                                    }`}
-                            >
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">
-                                        {visit.patient.lastName}, {visit.patient.firstName}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                        Queued
+                        noShowQueue.length === 0 ? (
+                            <div className="text-center text-slate-400 py-12 text-sm font-medium">No missed patients today.</div>
+                        ) : (
+                            noShowQueue.map((visit) => (
+                                <div
+                                    key={visit.id}
+                                    className="p-3 rounded-lg border bg-slate-100 border-slate-300 shadow-sm flex flex-col gap-2"
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-bold text-slate-700 uppercase tracking-tight text-sm">
+                                            {visit.patient.lastName}, {visit.patient.firstName}
+                                        </span>
                                     </div>
-                                    <div className="text-xs font-semibold text-slate-700">
-                                        {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    <div className="flex justify-between items-center text-xs text-slate-500 font-medium pb-1 border-b border-slate-200">
+                                        <span className="text-amber-700 font-bold">MARKED NO SHOW</span>
+                                        <span>{new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>
+                                    <button
+                                        disabled={isPending}
+                                        onClick={(e) => handleRestore(visit.id, e)}
+                                        className="w-full mt-1 px-2 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded text-[10px] font-bold uppercase transition-colors"
+                                    >
+                                        Restore to Active Queue
+                                    </button>
                                 </div>
-                            </div>
-                        ))
+                            ))
+                        )
                     )}
                 </div>
             </div>

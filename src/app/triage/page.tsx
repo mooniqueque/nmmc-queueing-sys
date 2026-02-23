@@ -8,7 +8,7 @@ export default async function TriageDashboardPage() {
     // Fetch everyone waiting for Triage TODAY
     const pendingQueue = await prisma.visit.findMany({
         where: {
-            status: "KIOSK_SUBMITTED",
+            status: { in: ["KIOSK_SUBMITTED", "NO_SHOW"] },
             createdAt: { gte: today }
         },
         include: {

@@ -1,19 +1,21 @@
 "use client";
-import { useState } from 'react';
-import Image from 'next/image'
+
+import Image from 'next/image';
 import {
     MdDescription,
-    MdPhone,
-    MdMonitor,
     MdLogout,
+    MdMonitor,
+    MdPhone,
     MdSupportAgent,
 } from 'react-icons/md';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarMenu,
@@ -21,9 +23,7 @@ import {
     SidebarMenuItem,
     SidebarProvider,
     SidebarTrigger,
-    SidebarFooter,
-} from '@/components/ui/sidebar'
-import { Badge } from "@/components/ui/badge"
+} from '@/components/ui/sidebar';
 
 interface UserInfo {
     name: string;
@@ -100,7 +100,7 @@ export default function UserMonitor({ userInfo }: { userInfo: UserInfo }) {
     ];
 
     const getStatusColor = (status: string) => {
-        switch(status) {
+        switch (status) {
             case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
             case 'idle': return 'bg-slate-50 text-slate-700 border-slate-200';
             case 'break': return 'bg-yellow-50 text-yellow-700 border-yellow-200';

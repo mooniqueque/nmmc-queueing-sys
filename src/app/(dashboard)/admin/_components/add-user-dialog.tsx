@@ -1,6 +1,5 @@
 "use client";
 
-import { adminCreateUser } from "@/actions/user-actions";
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -23,6 +22,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from 'react';
 import { MdPersonAdd } from 'react-icons/md';
+import { adminCreateUser } from "../_actions/user-actions";
 
 import { Department } from "@prisma/client";
 

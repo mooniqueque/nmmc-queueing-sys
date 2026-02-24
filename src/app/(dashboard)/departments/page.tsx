@@ -1,4 +1,4 @@
-import DepartmentSettings from "@/components/dashboard/admin-settings/departments";
+import DepartmentSettings from "@/app/(dashboard)/admin/_components/admin-settings/departments";
 import { getDepartments } from "@/services/department-services";
 import { getQueueOptionsByDepartment } from "@/services/queue-option-services";
 import { Department } from "@prisma/client";

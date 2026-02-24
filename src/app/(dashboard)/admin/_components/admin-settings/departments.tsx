@@ -1,7 +1,5 @@
 "use client";
 
-import { createDepartment, deleteDepartment } from "@/actions/department-actions";
-import { createQueueOption, deleteQueueOption } from "@/actions/queue-option-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,22 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Department } from "@prisma/client";
 import { useState } from "react";
 import { MdDelete } from "react-icons/md";
+import { createDepartment, deleteDepartment } from "../../_actions/department-actions";
 
-const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
-
-function normalizeDepartmentKey(value: string) {
-    return value.trim().toUpperCase();
-}
-
-function orderOptions(values: string[]) {
-    const unique = Array.from(new Set(values.map((value) => value.trim().toUpperCase()).filter(Boolean)));
-    const defaults = DEFAULT_QUEUE_OPTIONS.filter((option) => unique.includes(option));
-    const custom = unique.filter((option) => !DEFAULT_QUEUE_OPTIONS.includes(option)).sort((a, b) => a.localeCompare(b));
-
-    return [...defaults, ...custom];
-}
-
-export default function DepartmentSettings({ initialDepartments, initialQueueOptionsByDepartment }: { initialDepartments: Department[]; initialQueueOptionsByDepartment: Record<string, string[]> }) {
+export default function DepartmentSettings({ initialDepartments }: { initialDepartments: Department[] }) {
     const [name, setName] = useState("");
     const [code, setCode] = useState("");
     const [queueOptionInput, setQueueOptionInput] = useState("");

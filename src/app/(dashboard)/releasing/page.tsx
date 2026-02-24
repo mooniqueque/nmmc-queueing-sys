@@ -1,4 +1,3 @@
-import ReleasingDashboard from '@/components/dashboard/releasing';
 import { auth } from "@/lib/database/auth";
 import { SessionUser } from "@/lib/types/user";
 import { getDepartments } from '@/services/department-services';
@@ -6,6 +5,7 @@ import { getQueueOptionsByDepartment } from '@/services/queue-option-services';
 import { Department } from "@prisma/client";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import ReleasingDashboard from './_components/releasing';
 
 export default async function ReleasingPage() {
   const session = await auth.api.getSession({

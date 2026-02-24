@@ -1,8 +1,8 @@
 
-import { SignupForm } from "@/components/forms/signup-form";
 import ParticlesBackground from "@/components/ui/particles-background";
 import { getDepartments } from "@/services/department-services";
 import { Department } from "@prisma/client";
+import { SignupForm } from "../_components/signup-form";
 
 export default async function SignupPage() {
   const response = await getDepartments();

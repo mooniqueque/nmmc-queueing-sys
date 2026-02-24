@@ -1,5 +1,5 @@
 import { db as prisma } from "@/lib/database/prisma";
-import TriageDashboardClient from "./_client/triage-client";
+import { TriageEntry } from "./_components/triage-entry";
 
 export default async function TriageDashboardPage() {
     const today = new Date();
@@ -19,5 +19,5 @@ export default async function TriageDashboardPage() {
         }
     });
 
-    return <TriageDashboardClient initialQueue={pendingQueue} />;
+    return <TriageEntry initialQueue={pendingQueue} />;
 }

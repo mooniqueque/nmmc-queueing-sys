@@ -1,10 +1,10 @@
-import ReleasingDashboard from '@/components/admin-dashboard/releasing';
 import { auth } from "@/lib/database/auth";
 import { SessionUser } from "@/lib/types/user";
 import { getDepartments } from '@/services/department-services';
 import { Department } from "@prisma/client";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import ReleasingDashboard from './_components/releasing';
 
 export default async function ReleasingPage() {
   const session = await auth.api.getSession({

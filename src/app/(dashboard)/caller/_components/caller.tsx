@@ -12,6 +12,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
 import { SessionUser } from '@/lib/types/user';
 import {
@@ -19,7 +20,6 @@ import {
     MdRefresh,
     MdSkipNext
 } from 'react-icons/md';
-import { SidebarTrigger } from '../ui/sidebar';
 
 interface WaitlistItemData {
     ticket: string;

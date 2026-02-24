@@ -2,9 +2,9 @@
 
 import { auth } from "@/lib/database/auth";
 import { db as prisma } from "@/lib/database/prisma";
-import { triageFormSchema, TriageFormValues } from "@/lib/schemas/triage-schema";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { triageFormSchema, TriageFormValues } from "../_schemas/triage-schema";
 
 export async function submitTriageAction(values: TriageFormValues, visitId?: string) {
     try {

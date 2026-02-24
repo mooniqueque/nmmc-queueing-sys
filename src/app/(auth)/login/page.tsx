@@ -1,5 +1,5 @@
-import LoginForm from "@/components/forms/login-form"
 import ParticlesBackground from "@/components/ui/particles-background"
+import LoginForm from "../_components/login-form"
 
 export default function LoginPage() {
     return (

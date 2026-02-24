@@ -1,6 +1,7 @@
 "use server";
 
 import { db as prisma } from "@/lib/database/prisma";
+import { eventBus } from "@/lib/sse-emitter";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -37,11 +38,17 @@ export async function submitKioskRegistration(formData: FormData) {
         // 1. Extract raw data from the form
         const rawData = {
             firstName: formData.get("firstName") as string,
+            middleName: formData.get("middleName") as string | null,
             lastName: formData.get("lastName") as string,
             dateOfBirth: new Date(formData.get("dateOfBirth") as string),
             gender: formData.get("gender") as string,
             hospitalId: hospitalIdInput && hospitalIdInput.trim() !== "" ? hospitalIdInput.trim() : null, // Fixes Unique Constraint!
+            address: formData.get("address") as string,
+            birthPlace: formData.get("birthPlace") as string,
+            religion: formData.get("religion") as string,
+            civilStatus: formData.get("civilStatus") as string,
         };
+        const hasAppointment = formData.get("hasAppointment") === "true" || formData.get("hasAppointment") === "on";
 
         // 2. Validate essential fields (Basic check)
         if (!rawData.firstName || !rawData.lastName || !rawData.gender) {
@@ -123,13 +130,17 @@ export async function submitKioskRegistration(formData: FormData) {
                 data: {
                     patientId: patient.id,
                     status: "KIOSK_SUBMITTED",
-                    ticketNumber: nextTicketNumber
+                    ticketNumber: nextTicketNumber,
+                    hasAppointment: hasAppointment
                 }
             });
         });
 
         // 4. Force the Triage Dashboard to instantly refresh without reloading the page!
         revalidatePath("/triage");
+
+        // 5. Trigger the Real-Time Server-Sent Event for any open dashboards!
+        eventBus.emit('queue-updated');
 
         return { success: true, message: "Successfully queued for Triage." };
     } catch (error: unknown) {

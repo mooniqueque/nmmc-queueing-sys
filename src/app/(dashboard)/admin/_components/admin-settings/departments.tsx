@@ -1,13 +1,17 @@
 "use client";
 
-import { createDepartment, deleteDepartment } from "@/actions/department-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Department } from "@prisma/client";
 import { useState } from "react";
+<<<<<<< HEAD:src/components/admin-dashboard/admin-settings/departments.tsx
 import { Trash } from "@phosphor-icons/react";
+=======
+import { MdDelete } from "react-icons/md";
+import { createDepartment, deleteDepartment } from "../../_actions/department-actions";
+>>>>>>> 1b88c6b584631d2da14b490e63dcaaca7c50abc5:src/app/(dashboard)/admin/_components/admin-settings/departments.tsx
 
 export default function DepartmentSettings({ initialDepartments }: { initialDepartments: Department[] }) {
     const [name, setName] = useState("");

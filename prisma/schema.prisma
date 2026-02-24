@@ -90,18 +90,22 @@ model Department {
 }
 
 model Patient {
-  id          String   @id @default(cuid())
-  hospitalId  String?  @unique
-  firstName   String
-  lastName    String
-  middleName  String?
-  dateOfBirth DateTime
-  gender      String
-  contactNo   String?
-  address     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  visits      Visit[]
+  id           String   @id @default(cuid())
+  hospitalId   String?  @unique
+  firstName    String
+  lastName     String
+  middleName   String?
+  dateOfBirth  DateTime
+  gender       String
+  contactNo    String?
+  address      String?
+  birthPlace   String?
+  religion     String?
+  civilStatus  String?
+  isRegistered Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  visits       Visit[]
 
   @@map("patient")
 }
@@ -126,6 +130,7 @@ model Visit {
   chiefComplaint  String?     @db.Text
   medicalHistory  String?     @db.Text
   triageRemarks   String?     @db.Text
+  hasAppointment  Boolean     @default(false)
   disposition     String?
   triagedByUserId String?
   queueDate       DateTime    @default(now())

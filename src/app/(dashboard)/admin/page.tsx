@@ -1,4 +1,3 @@
-import AdminDashboard from '@/components/admin-dashboard/admin';
 import { auth } from "@/lib/database/auth";
 import { SessionUser } from "@/lib/types/user";
 import { getDepartments } from '@/services/department-services';
@@ -6,6 +5,7 @@ import { getAllUsers } from '@/services/user-service';
 import { Department } from "@prisma/client";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import AdminDashboard from './_components/admin';
 
 export default async function Page() {
   const session = await auth.api.getSession({

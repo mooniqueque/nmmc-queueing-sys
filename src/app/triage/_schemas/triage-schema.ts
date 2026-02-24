@@ -4,9 +4,15 @@ export const triageFormSchema = z.object({
     // Patient Demographics (Required for Walk-ins, ignored if from Kiosk)
     isManualEntry: z.boolean().default(false),
     firstName: z.string().optional(),
+    middleName: z.string().optional(),
     lastName: z.string().optional(),
     dateOfBirth: z.union([z.date(), z.string()]).optional(),
     gender: z.string().optional(),
+    address: z.string().optional(),
+    birthPlace: z.string().optional(),
+    religion: z.string().optional(),
+    civilStatus: z.string().optional(),
+    hasAppointment: z.boolean().default(false),
 
     // Vitals
     bloodPressure: z.string().optional(),
@@ -27,7 +33,6 @@ export const triageFormSchema = z.object({
     medicalHistory: z.string().optional(),
     triageRemarks: z.string().optional(),
     disposition: z.enum(["EMERGENT", "URGENT", "NON-URGENT"]).default("NON-URGENT"),
-    priorityClass: z.enum(["REGNEW", "REGOLD", "PRIO"]).default("REGNEW"),
 })
     // SuperRefine to enforce Demographics validation ONLY if it is a manual entry!
     .superRefine((data, ctx) => {
@@ -43,6 +48,18 @@ export const triageFormSchema = z.object({
             }
             if (!data.gender || data.gender.trim() === "") {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Gender is required for walk-ins", path: ["gender"] });
+            }
+            if (!data.address || data.address.trim() === "") {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Address is required for walk-ins", path: ["address"] });
+            }
+            if (!data.birthPlace || data.birthPlace.trim() === "") {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Birthplace is required for walk-ins", path: ["birthPlace"] });
+            }
+            if (!data.religion || data.religion.trim() === "") {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Religion is required for walk-ins", path: ["religion"] });
+            }
+            if (!data.civilStatus || data.civilStatus.trim() === "") {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Civil status is required for walk-ins", path: ["civilStatus"] });
             }
         }
     });

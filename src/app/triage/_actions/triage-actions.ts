@@ -2,9 +2,9 @@
 
 import { auth } from "@/lib/database/auth";
 import { db as prisma } from "@/lib/database/prisma";
-import { triageFormSchema, TriageFormValues } from "@/lib/schemas/triage-schema";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { triageFormSchema, TriageFormValues } from "../_schemas/triage-schema";
 
 export async function submitTriageAction(values: TriageFormValues, visitId?: string) {
     try {
@@ -34,7 +34,7 @@ export async function submitTriageAction(values: TriageFormValues, visitId?: str
             medicalHistory: validData.medicalHistory,
             triageRemarks: validData.triageRemarks,
             disposition: validData.disposition,
-            priorityClass: validData.priorityClass,
+            hasAppointment: validData.hasAppointment,
             triagedAt: new Date(),
             triagedByUserId: session.user.id,
             status: "WAITING_CLINIC" // Proceed to the next step
@@ -59,9 +59,14 @@ export async function submitTriageAction(values: TriageFormValues, visitId?: str
                 patient = await prisma.patient.create({
                     data: {
                         firstName: validData.firstName,
+                        middleName: validData.middleName,
                         lastName: validData.lastName,
                         dateOfBirth: new Date(validData.dateOfBirth),
-                        gender: validData.gender
+                        gender: validData.gender,
+                        address: validData.address,
+                        birthPlace: validData.birthPlace,
+                        religion: validData.religion,
+                        civilStatus: validData.civilStatus
                     }
                 });
             }
@@ -94,10 +99,36 @@ export async function submitTriageAction(values: TriageFormValues, visitId?: str
                 return { error: "No Visit ID provided for queue patient." };
             }
 
-            await prisma.visit.update({
+            const existingVisit = await prisma.visit.findUnique({
                 where: { id: visitId },
-                data: triageUpdates
+                select: { patientId: true }
             });
+
+            if (!existingVisit) {
+                return { error: "Visit not found." };
+            }
+
+            // Using a transaction to ensure both the Patient info and Visit info are updated atomically
+            await prisma.$transaction([
+                prisma.patient.update({
+                    where: { id: existingVisit.patientId },
+                    data: {
+                        firstName: validData.firstName,
+                        middleName: validData.middleName,
+                        lastName: validData.lastName,
+                        dateOfBirth: validData.dateOfBirth ? new Date(validData.dateOfBirth) : undefined,
+                        gender: validData.gender,
+                        address: validData.address,
+                        birthPlace: validData.birthPlace,
+                        religion: validData.religion,
+                        civilStatus: validData.civilStatus
+                    }
+                }),
+                prisma.visit.update({
+                    where: { id: visitId },
+                    data: triageUpdates
+                })
+            ]);
         }
 
         revalidatePath("/triage");
@@ -109,5 +140,58 @@ export async function submitTriageAction(values: TriageFormValues, visitId?: str
             return { error: error.message };
         }
         return { error: "An unexpected error occurred." };
+    }
+}
+
+// === NEW QUEUE MANAGEMENT ACTIONS ===
+
+export async function markNoShowAction(visitId: string) {
+    try {
+        const reqHeaders = await headers();
+        const session = await auth.api.getSession({ headers: reqHeaders });
+        if (!session || session.user.role !== "TRIAGE_NURSE") return { error: "Unauthorized" };
+
+        await prisma.visit.update({
+            where: { id: visitId },
+            data: { status: "NO_SHOW" }
+        });
+        revalidatePath("/triage");
+        return { success: true };
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : "Failed to mark as no show" };
+    }
+}
+
+export async function restoreNoShowAction(visitId: string) {
+    try {
+        const reqHeaders = await headers();
+        const session = await auth.api.getSession({ headers: reqHeaders });
+        if (!session || session.user.role !== "TRIAGE_NURSE") return { error: "Unauthorized" };
+
+        await prisma.visit.update({
+            where: { id: visitId },
+            data: { status: "KIOSK_SUBMITTED" } // Return them to the active queue
+        });
+        revalidatePath("/triage");
+        return { success: true };
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : "Failed to restore patient" };
+    }
+}
+
+export async function removeQueueAction(visitId: string) {
+    try {
+        const reqHeaders = await headers();
+        const session = await auth.api.getSession({ headers: reqHeaders });
+        if (!session || session.user.role !== "TRIAGE_NURSE") return { error: "Unauthorized" };
+
+        // Hard delete the visit. (You could also soft-delete by setting a status like "VOIDED")
+        await prisma.visit.delete({
+            where: { id: visitId }
+        });
+        revalidatePath("/triage");
+        return { success: true };
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : "Failed to remove patient" };
     }
 }

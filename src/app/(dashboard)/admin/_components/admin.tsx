@@ -1,6 +1,5 @@
 "use client";
 
-import { approveUser, rejectUser, toggleUserStatus, updateUserRole } from "@/actions/user-actions";
 import { HOSPITAL_ROLES } from "@/lib/constants/hospital";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -20,7 +19,7 @@ import {
     Gear,
     Headset
 } from '@phosphor-icons/react';
-
+import { approveUser, rejectUser, toggleUserStatus, updateUserRole } from "../_actions/user-actions";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';

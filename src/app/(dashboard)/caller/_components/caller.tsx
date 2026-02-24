@@ -12,14 +12,22 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
 import { SessionUser } from '@/lib/types/user';
 import {
+<<<<<<< HEAD:src/components/admin-dashboard/caller.tsx
     XCircle,
     ArrowsClockwise,
     SkipForward
 } from '@phosphor-icons/react';
 import { SidebarTrigger } from '../ui/sidebar';
+=======
+    MdCancel,
+    MdRefresh,
+    MdSkipNext
+} from 'react-icons/md';
+>>>>>>> 1b88c6b584631d2da14b490e63dcaaca7c50abc5:src/app/(dashboard)/caller/_components/caller.tsx
 
 interface WaitlistItemData {
     ticket: string;

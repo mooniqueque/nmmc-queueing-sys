@@ -2,6 +2,18 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import {
+<<<<<<< HEAD
+    SquaresFour,
+    FileText,
+    Phone,
+    Desktop,
+    SignOut,
+    Headset,
+    MagnifyingGlass,
+    Funnel,
+    ArrowSquareOut,
+} from '@phosphor-icons/react';
+=======
     MdDescription,
     MdFilterList,
     MdLogout,
@@ -11,6 +23,7 @@ import {
     MdSearch,
     MdSupportAgent,
 } from 'react-icons/md';
+>>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -84,7 +97,7 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
                                             <a href='/user/releasing'>
-                                                <MdDescription size={20} className="text-emerald-700" />
+                                                <FileText size={20} className="text-emerald-700" />
                                                 <span>Releasing</span>
                                             </a>
                                         </SidebarMenuButton>
@@ -94,7 +107,7 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
                                             <a href='/user/call-number'>
-                                                <MdPhone size={20} className="text-emerald-700" />
+                                                <Phone size={20} className="text-emerald-700" />
                                                 <span>Call Number</span>
                                             </a>
                                         </SidebarMenuButton>
@@ -104,7 +117,7 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
                                             <a href='/user/monitor'>
-                                                <MdMonitor size={20} className="text-emerald-700" />
+                                                <Desktop size={20} className="text-emerald-700" />
                                                 <span>Monitor</span>
                                             </a>
                                         </SidebarMenuButton>
@@ -122,7 +135,7 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                             <SidebarMenuItem className="mb-2">
                                 <SidebarMenuButton className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto">
                                     <a href="#" className="flex items-left gap-2">
-                                        <MdSupportAgent size={20} className="mr-2" />
+                                        <Headset size={20} className="mr-2" />
                                         <span> Contact Support </span>
                                     </a>
                                 </SidebarMenuButton>
@@ -132,7 +145,7 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start">
                                     <a href="#" className="flex items-center gap-2">
-                                        <MdLogout size={20} className="mr-2" />
+                                        <SignOut size={20} className="mr-2" />
                                         <span> Logout </span>
                                     </a>
                                 </SidebarMenuButton>
@@ -177,7 +190,7 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                                 <div className="flex items-center gap-2 w-[300px]">
                                     <div className="relative w-full">
                                         <div className="absolute left-3 top-2.5 text-slate-400">
-                                            <MdSearch size={20} />
+                                            <MagnifyingGlass size={20} />
                                         </div>
                                         <Input
                                             placeholder="Search departments....."
@@ -189,7 +202,7 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                                 </div>
 
                                 <Button variant="outline" className="text-slate-600 border-slate-200">
-                                    <MdFilterList size={18} className="mr-2" /> Filter
+                                    <Funnel size={18} className="mr-2" /> Filter
                                 </Button>
                             </div>
                         </div>
@@ -209,8 +222,13 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                                             <Card
                                                 key={idx}
                                                 className={`w-[250px] overflow-hidden shadow-sm border cursor-pointer transition-all ${selectedDepartment === name
+<<<<<<< HEAD
+                                                        ? 'ring-2 ring-emerald-600 border-emerald-600'
+                                                        : 'border-slate-200 hover:border-emerald-300'
+=======
                                                     ? 'ring-2 ring-emerald-600 border-emerald-600'
                                                     : 'border-slate-200 hover:border-emerald-300'
+>>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
                                                     }`}
                                                 onClick={() => setSelectedDepartment(name)}
                                             >
@@ -223,7 +241,7 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
 
                                                     <div className="shrink-0">
                                                         <Button variant="ghost" size="icon" className="bg-emerald-50 hover:bg-emerald-100 h-8 w-8">
-                                                            <MdOpenInNew className="text-emerald-700" size={16} />
+                                                            <ArrowSquareOut className="text-emerald-700" size={16} />
                                                         </Button>
                                                     </div>
                                                 </div>

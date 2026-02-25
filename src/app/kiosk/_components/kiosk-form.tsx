@@ -33,18 +33,32 @@ export function KioskForm() {
             middleName: "",
             lastName: "",
             address: "",
-            dateOfBirth: "",
+            dobMonth: "",
+            dobDay: "",
+            dobYear: "",
             birthPlace: "",
             religion: "",
             hospitalId: ""
         }
     });
 
-    const watchDob = useWatch({ control, name: "dateOfBirth" });
-    const calculateAge = (dobString: string | undefined) => {
-        if (!dobString) return "";
+    const dobMonth = useWatch({ control, name: "dobMonth" });
+    const dobDay = useWatch({ control, name: "dobDay" });
+    const dobYear = useWatch({ control, name: "dobYear" });
+
+    const calculateAge = () => {
+        if (!dobMonth || !dobDay || !dobYear || String(dobYear).length < 4) return "";
+
+        const monthNames: Record<string, number> = {
+            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+        };
+        const mVal = monthNames[dobMonth as string] || Number(dobMonth);
+
         const today = new Date();
-        const birthDate = new Date(dobString);
+        const birthDate = new Date(Number(dobYear), mVal - 1, Number(dobDay));
+        if (isNaN(birthDate.getTime())) return "";
+
         let age = today.getFullYear() - birthDate.getFullYear();
         const m = today.getMonth() - birthDate.getMonth();
         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
@@ -66,12 +80,16 @@ export function KioskForm() {
 
         if (result.success && result.data) {
             setMessage({ type: 'success', text: "Patient record found." });
-            const dob = new Date(result.data.dateOfBirth).toISOString().split('T')[0];
+            const dobDate = new Date(result.data.dateOfBirth);
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
             setValue("hospitalId", result.data.hospitalId || "");
             setValue("firstName", result.data.firstName);
             setValue("middleName", result.data.middleName || "");
             setValue("lastName", result.data.lastName);
-            setValue("dateOfBirth", dob);
+            setValue("dobMonth", monthNames[dobDate.getMonth()]);
+            setValue("dobDay", String(dobDate.getDate()).padStart(2, '0'));
+            setValue("dobYear", String(dobDate.getFullYear()));
             setValue("gender", result.data.gender as "Male" | "Female");
             setValue("address", result.data.address || "");
             setValue("birthPlace", result.data.birthPlace || "");
@@ -85,8 +103,21 @@ export function KioskForm() {
     async function onSubmit(data: KioskFormValues) {
         setIsLoading(true); setMessage(null);
         const submitData = new FormData();
+
+        const monthNamesToNum: Record<string, string> = {
+            "January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06",
+            "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"
+        };
+        const formattedMonth = monthNamesToNum[data.dobMonth] || String(data.dobMonth).padStart(2, '0');
+
+        // Combine 3 separate strings into a valid YYYY-MM-DD
+        const compiledDob = `${data.dobYear}-${formattedMonth}-${String(data.dobDay).padStart(2, '0')}`;
+        submitData.append("dateOfBirth", compiledDob);
+
         Object.entries(data).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) submitData.append(key, value.toString());
+            if (key !== 'dobMonth' && key !== 'dobDay' && key !== 'dobYear' && value !== undefined && value !== null) {
+                submitData.append(key, value.toString());
+            }
         });
 
         const result = await submitKioskRegistration(submitData);
@@ -182,16 +213,36 @@ export function KioskForm() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="dateOfBirth">Date of Birth *</Label>
-                                <Input id="dateOfBirth" type="date" className="bg-white" {...register("dateOfBirth")} />
-                                {errors.dateOfBirth && <p className="text-xs text-red-500">{errors.dateOfBirth.message}</p>}
+                            <div className="space-y-2 md:col-span-2">
+                                <Label>Date of Birth *</Label>
+                                <div className="flex gap-2">
+                                    <Input placeholder="Month" list="months-list" className="bg-white w-full" {...register("dobMonth")} />
+                                    <datalist id="months-list">
+                                        <option value="January" />
+                                        <option value="February" />
+                                        <option value="March" />
+                                        <option value="April" />
+                                        <option value="May" />
+                                        <option value="June" />
+                                        <option value="July" />
+                                        <option value="August" />
+                                        <option value="September" />
+                                        <option value="October" />
+                                        <option value="November" />
+                                        <option value="December" />
+                                    </datalist>
+                                    <Input placeholder="Day" maxLength={2} className="bg-white w-20" {...register("dobDay")} />
+                                    <Input placeholder="Year" maxLength={4} className="bg-white w-24" {...register("dobYear")} />
+                                </div>
+                                {errors.dobMonth && <p className="text-xs text-red-500">{errors.dobMonth.message}</p>}
+                                {errors.dobDay && <p className="text-xs text-red-500">{errors.dobDay.message}</p>}
+                                {errors.dobYear && <p className="text-xs text-red-500">{errors.dobYear.message}</p>}
                             </div>
                             <div className="space-y-2">
                                 <Label>Age</Label>
-                                <Input value={calculateAge(watchDob)} disabled className="bg-slate-100 font-medium" />
+                                <Input value={calculateAge()} disabled className="bg-slate-100 font-medium" />
                             </div>
-                            <div className="space-y-2 md:col-span-2">
+                            <div className="space-y-2">
                                 <Label htmlFor="birthPlace">Birthplace *</Label>
                                 <Input id="birthPlace" className="bg-white" {...register("birthPlace")} />
                                 {errors.birthPlace && <p className="text-xs text-red-500">{errors.birthPlace.message}</p>}

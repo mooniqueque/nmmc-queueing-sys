@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Play, Clock, Users } from "@phosphor-icons/react";
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import useSWR from "swr";
 
 // Mock Data
 const NOW_SERVING = {
@@ -18,7 +19,7 @@ const SERVING_LIST = [
     { service: "Priority-OLD", ticket: "PRIOOLD-2" },
     { service: "Regular-NEW", ticket: "REGNEW-18" },
     { service: "Malasakit-PHIC", ticket: "PHIC-14" },
-    { service: "Regular-OLD", ticket: "REGOLD-2" }, // Add more if needed
+    { service: "Regular-OLD", ticket: "REGOLD-2" },
 ];
 
 const UPCOMING_QUEUE = [

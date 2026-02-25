@@ -10,23 +10,26 @@ import {
     SidebarMenuButton,
     SidebarMenuItem
 } from '@/components/ui/sidebar';
+import {
+    Article,
+    Desktop,
+    FirstAidKit,
+    Headset,
+    Newspaper,
+    Phone,
+    SignOut,
+    SquaresFour
+} from '@phosphor-icons/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-    MdDashboard,
-    MdDescription,
-    MdLogout,
-    MdMedicalServices,
-    MdMonitor,
-    MdPhone,
-    MdSupportAgent
-} from 'react-icons/md';
 
 import { authClient } from "@/lib/database/auth-client";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+
 
 export default function AdminSidebar() {
     const router = useRouter();
+    const pathname = usePathname();
 
     const handleLogout = async () => {
         await authClient.signOut({
@@ -38,6 +41,23 @@ export default function AdminSidebar() {
             }
         });
     };
+    const isActive = (path: string) => pathname === path;
+
+    const mainSidebar = [
+        { label: 'Admin Dashboard', href: '/admin', Icon: SquaresFour },
+        { label: 'Triage Nurse', href: '/triagenurse', Icon: FirstAidKit },
+        { label: 'Releasing', href: '/releasing', Icon: Newspaper },
+        { label: 'Call Number', href: '/caller', Icon: Phone },
+        { label: 'Monitor', href: '/monitor', Icon: Desktop },
+        { label: 'Reports', href: '/reports', Icon: Article }
+    ];
+
+    const adminSettings = [
+        { label: 'Reset Services', href: '/resetservices' },
+        { label: 'Department Settings', href: '/departments' },
+        { label: 'Manage Releasing', href: '/manage' },
+        { label: 'Monitor Settings', href: '/monitorset' },
+    ];
 
     return (
         <Sidebar className="border-r bg-emerald-50/50">
@@ -61,115 +81,35 @@ export default function AdminSidebar() {
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {/*FOR ADMIN*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <Link href="/admin-dashboard">
-                                        <MdDashboard size={20} className="text-emerald-700" />
-                                        <span>Admin Dashboard</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            {/*FOR TRIAGE NURSE*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <Link href='/triagenurse'>
-                                        <MdMedicalServices size={20} className="text-emerald-700" />
-                                        <span>Triage Nurse</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            {/*FOR RELEASING*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <Link href='/releasing'>
-                                        <MdDescription size={20} className="text-emerald-700" />
-                                        <span>Releasing</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            {/*FOR CALL NUMBER*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <Link href='/caller'>
-                                        <MdPhone size={20} className="text-emerald-700" />
-                                        <span>Call Number</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            {/*FOR MONITOR*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <Link href='/monitor'>
-                                        <MdMonitor size={20} className="text-emerald-700" />
-                                        <span>Monitor</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            {/*FOR REPORTS*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <Link href='/reports'>
-                                        <MdDescription size={20} className="text-emerald-700" />
-                                        <span>Reports</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
+                            {mainSidebar.map((item) => (
+                                <SidebarMenuItem key={item.href}>
+                                    <SidebarMenuButton asChild className={`text-emerald-900 text-base px-3 h-auto w-full justify-start ${isActive(item.href) ? 'bg-emerald-200 font-bold' : 'font-medium hover:bg-emerald-200'}`}>
+                                        <Link href={item.href}>
+                                            <item.Icon size={20} className="text-emerald-700" />
+                                            <span>{item.label}</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
 
-                {/*Admin Settings*/}
                 <SidebarGroup className="mt-4">
-                    <SidebarGroupLabel className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2 " >
+                    <SidebarGroupLabel className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2">
                         Admin Settings
                     </SidebarGroupLabel>
-
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-
-                            {/*RESET SERVICES*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <a href='#'>
-                                        <span>Reset Services</span>
-                                    </a>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            {/*WINDOW/DEPARTMENT SETTINGS*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <Link href='/departments'>
-                                        <span>Department Settings</span>
+                    <SidebarMenu>
+                        {adminSettings.map((item) => (
+                            <SidebarMenuItem key={item.href}>
+                                <SidebarMenuButton asChild className={`text-emerald-900 text-base px-3 h-auto w-full justify-start ${isActive(item.href) ? 'bg-emerald-200 font-bold' : 'font-medium hover:bg-emerald-200'}`}>
+                                    <Link href={item.href}>
+                                        <span>{item.label}</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
-
-                            {/*MANAGE RELEASING*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <a href='#'>
-                                        <span>Manage Releasing</span>
-                                    </a>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            {/*LANE SETTINGS*/}
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <a href='#'>
-                                        <span>Lane Settings</span>
-                                    </a>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </SidebarMenu>
-                    </SidebarGroupContent>
+                        ))}
+                    </SidebarMenu>
                 </SidebarGroup>
             </SidebarContent>
 
@@ -181,7 +121,7 @@ export default function AdminSidebar() {
                     <SidebarMenuItem className="mb-2">
                         <SidebarMenuButton className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto">
                             <a href="#" className="flex items-left gap-2">
-                                <MdSupportAgent size={20} className="mr-2" />
+                                <Headset size={20} className="mr-2" />
                                 <span> Contact Support </span>
                             </a>
                         </SidebarMenuButton>
@@ -193,7 +133,7 @@ export default function AdminSidebar() {
                             onClick={handleLogout}
                             className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start cursor-pointer">
                             <div className="flex items-center gap-2">
-                                <MdLogout size={20} className="mr-2" />
+                                <SignOut size={20} className="mr-2" />
                                 <span> Logout </span>
                             </div>
                         </SidebarMenuButton>

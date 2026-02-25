@@ -28,7 +28,7 @@ import { registrationSchema } from "@/lib/schemas/registration-schema"
 import { SignUpPayload } from "@/lib/types/auth"
 import { cn } from "@/lib/utils"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeClosed, CircleNotch } from "@phosphor-icons/react"
 import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { z } from "zod"
@@ -237,7 +237,7 @@ export function SignupForm({
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-700 transition-colors"
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? <EyeClosed size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                   <FieldError errors={[errors.password]} />
@@ -251,7 +251,7 @@ export function SignupForm({
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-700 transition-colors"
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? <EyeClosed size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                   <FieldError errors={[errors.confirmPassword]} />
@@ -261,7 +261,7 @@ export function SignupForm({
               {/* --- ACTIONS --- */}
               <div className="pt-4 space-y-4">
                 <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 text-base font-bold shadow-lg shadow-emerald-200" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registration"}
+                  {isLoading ? <CircleNotch className="mr-2 h-5 w-5 animate-spin" /> : "Complete Registration"}
                 </Button>
 
                 <p className="text-center text-sm text-slate-500">

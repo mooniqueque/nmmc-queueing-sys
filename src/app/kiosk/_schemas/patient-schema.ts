@@ -5,9 +5,9 @@ export const kioskFormSchema = z.object({
     firstName: z.string().min(2, "First name is required"),
     middleName: z.string().optional(),
     lastName: z.string().min(2, "Last name is required"),
-    dateOfBirth: z.string().refine((date) => {
-        return new Date(date) <= new Date();
-    }, "Please enter a valid past date"),
+    dobMonth: z.string().min(1, "Month is required"),
+    dobDay: z.string().min(1, "Day is required"),
+    dobYear: z.string().length(4, "Valid year is required"),
     gender: z.enum(["Male", "Female"], {
         message: "Please select a gender",
     }),

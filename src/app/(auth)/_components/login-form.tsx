@@ -1,8 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/database/auth-client";
-import { SessionUser } from "@/lib/types/user";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { CircleNotch, Eye, EyeClosed } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -53,29 +52,13 @@ export default function LoginForm() {
         if (error) {
             alert(error.message || "Invalid email or Password");
             setIsLoading(false);
-            return;
+        }
+        else {
+            router.push("/admin")
+            router.refresh();
         }
 
-        // once authentication succeeds, ask the server for the current session
-        try {
-            const user = data?.user as unknown as SessionUser;
-            if (user?.role === "ADMIN") {
-                router.push("/admin-dashboard");
-            } else if (user?.role === "TRIAGE_NURSE") {
-                router.push("/triage");
-            } else {
-                // any non-admin goes to the user area; the requireRole guards will
-                // redirect unauthorised people back to login automatically
-                router.push("/");
-            }
-        } catch (routeError) {
-            console.error("failed to route after login", routeError);
-            // fallback to home path so the app doesn't hang
-            router.push("/");
-        }
-
-        router.refresh();
-        console.log(values);
+        console.log(values)
     }
 
 
@@ -136,7 +119,7 @@ export default function LoginForm() {
                                                         onClick={() => setShowPassword(!showPassword)}
                                                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                                     >
-                                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                        {showPassword ? <Eye size={18} /> : <EyeClosed size={18} />}
                                                     </button>
                                                 </div>
                                             </FormControl>
@@ -154,7 +137,7 @@ export default function LoginForm() {
 
                                 {/* Submit Button */}
                                 <Button type="submit" className="w-full h-10" disabled={isLoading}>
-                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isLoading && <CircleNotch className="mr-2 h-4 w-4 animate-spin" />}
                                     Login
                                 </Button>
                             </div>

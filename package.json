@@ -11,6 +11,7 @@
   "dependencies": {
     "@better-fetch/fetch": "^1.1.21",
     "@hookform/resolvers": "^5.2.2",
+    "@phosphor-icons/react": "^2.1.10",
     "@prisma/adapter-mariadb": "^7.3.0",
     "@prisma/adapter-mssql": "^7.3.0",
     "@prisma/client": "^7.3.0",

@@ -7,6 +7,7 @@ export default function KioskPage() {
 
             {/* Cicrle Bg*/}
             <ParticlesBackground />
+
             <KioskForm />
         </div>
     );

@@ -4,12 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Trash } from "@phosphor-icons/react";
 import { Department } from "@prisma/client";
 import { useState } from "react";
-<<<<<<< HEAD:src/components/admin-dashboard/admin-settings/departments.tsx
-import { Trash } from "@phosphor-icons/react";
-=======
-import { MdDelete } from "react-icons/md";
 import { createDepartment, deleteDepartment } from "../../_actions/department-actions";
 import { createQueueOption, deleteQueueOption } from "../../_actions/queue-option-actions";
 

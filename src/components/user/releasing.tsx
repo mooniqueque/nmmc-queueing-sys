@@ -1,29 +1,16 @@
 "use client";
-import Image from 'next/image';
-import { useState } from 'react';
 import {
-<<<<<<< HEAD
-    SquaresFour,
-    FileText,
-    Phone,
+    ArrowSquareOut,
     Desktop,
-    SignOut,
+    FileText,
+    Funnel,
     Headset,
     MagnifyingGlass,
-    Funnel,
-    ArrowSquareOut,
+    Phone,
+    SignOut
 } from '@phosphor-icons/react';
-=======
-    MdDescription,
-    MdFilterList,
-    MdLogout,
-    MdMonitor,
-    MdOpenInNew,
-    MdPhone,
-    MdSearch,
-    MdSupportAgent,
-} from 'react-icons/md';
->>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
+import Image from 'next/image';
+import { useState } from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -222,13 +209,8 @@ export default function UserReleasing({ userInfo }: { userInfo: UserInfo }) {
                                             <Card
                                                 key={idx}
                                                 className={`w-[250px] overflow-hidden shadow-sm border cursor-pointer transition-all ${selectedDepartment === name
-<<<<<<< HEAD
-                                                        ? 'ring-2 ring-emerald-600 border-emerald-600'
-                                                        : 'border-slate-200 hover:border-emerald-300'
-=======
                                                     ? 'ring-2 ring-emerald-600 border-emerald-600'
                                                     : 'border-slate-200 hover:border-emerald-300'
->>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
                                                     }`}
                                                 onClick={() => setSelectedDepartment(name)}
                                             >

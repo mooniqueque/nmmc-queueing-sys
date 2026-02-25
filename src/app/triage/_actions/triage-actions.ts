@@ -71,26 +71,22 @@ export async function submitTriageAction(values: TriageFormValues, visitId?: str
                 });
             }
 
-            // Determine next ticket number for today
-            const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0);
+            // Determine next ticket number and create visit atomically to prevent race conditions
+            await prisma.$transaction(async (tx) => {
+                const sequence = await tx.sequence.upsert({
+                    where: { name: 'DAILY_QUEUE' },
+                    update: { value: { increment: 1 } },
+                    create: { name: 'DAILY_QUEUE', value: 1 }
+                });
 
-            const latestVisit = await prisma.visit.findFirst({
-                where: {
-                    createdAt: { gte: startOfDay }
-                },
-                orderBy: { ticketNumber: 'desc' }
-            });
-
-            const nextTicketNumber = (latestVisit?.ticketNumber || 0) + 1;
-
-            // Create the visit directly into TRIAGED/WAITING_CLINIC status
-            await prisma.visit.create({
-                data: {
-                    patientId: patient.id,
-                    ticketNumber: nextTicketNumber,
-                    ...triageUpdates
-                }
+                // Create the visit directly into TRIAGED/WAITING_CLINIC status
+                await tx.visit.create({
+                    data: {
+                        patientId: patient!.id,
+                        ticketNumber: sequence.value,
+                        ...triageUpdates
+                    }
+                });
             });
 
         } else {

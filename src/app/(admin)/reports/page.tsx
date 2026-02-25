@@ -2,7 +2,7 @@ import { auth } from "@/lib/database/auth";
 import { getDepartments } from '@/services/department-services';
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import ReportsDashboardClient from "../../../components/dashboard/reports-dashboard-client";
+import ReportsDashboardClient from "../admin-dashboard/_components/reports-dashboard-client";
 import { getReportSnapshot } from "./lib/report-data";
 
 export default async function ReportsPage() {

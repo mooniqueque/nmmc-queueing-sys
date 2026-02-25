@@ -7,7 +7,7 @@ const globalForEmitter = globalThis as unknown as {
 };
 
 export const eventBus = globalForEmitter.emitter || new EventEmitter();
-eventBus.setMaxListeners(50); // Optional: Allow more concurrent connections if needed
+eventBus.setMaxListeners(500); // Allow many concurrent connections for the intranet TV screens/dashboards
 
 if (process.env.NODE_ENV !== 'production') {
     globalForEmitter.emitter = eventBus;

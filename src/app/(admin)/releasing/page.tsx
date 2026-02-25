@@ -17,7 +17,7 @@ export default async function ReleasingPage() {
   }
 
   const response = await getDepartments();
-  const departments = response.success ? response.data : [];
+  const departments = response.data || [];
 
   const departmentNames = departments.map((dept) => dept.name);
   const queueOptionsByDepartment = await getQueueOptionsByDepartment(departmentNames);

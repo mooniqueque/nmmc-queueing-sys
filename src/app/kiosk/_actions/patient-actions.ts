@@ -112,25 +112,19 @@ export async function submitKioskRegistration(formData: FormData) {
                 throw new Error("ALREADY_IN_QUEUE");
             }
 
-            // Determine next ticket number for today
-            const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0);
-
-            const latestVisit = await tx.visit.findFirst({
-                where: {
-                    createdAt: { gte: startOfDay }
-                },
-                orderBy: { ticketNumber: 'desc' }
+            // Determine next ticket number atomically to prevent race conditions
+            const sequence = await tx.sequence.upsert({
+                where: { name: 'DAILY_QUEUE' },
+                update: { value: { increment: 1 } },
+                create: { name: 'DAILY_QUEUE', value: 1 }
             });
-
-            const nextTicketNumber = (latestVisit?.ticketNumber || 0) + 1;
 
             // Step C: Create their Visit (Queue Entry)
             await tx.visit.create({
                 data: {
                     patientId: patient.id,
                     status: "KIOSK_SUBMITTED",
-                    ticketNumber: nextTicketNumber,
+                    ticketNumber: sequence.value,
                     hasAppointment: hasAppointment
                 }
             });

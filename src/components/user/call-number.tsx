@@ -1,28 +1,16 @@
 "use client";
-import Image from 'next/image';
-import { useState } from 'react';
 import {
-<<<<<<< HEAD
-    FileText,
-    Phone,
     Desktop,
-    SignOut,
+    FileText,
+    Funnel,
     Headset,
     MagnifyingGlass,
-    Funnel,
+    Phone,
+    SignOut,
     SpeakerHigh,
 } from '@phosphor-icons/react';
-=======
-    MdDescription,
-    MdFilterList,
-    MdLogout,
-    MdMonitor,
-    MdPhone,
-    MdSearch,
-    MdSupportAgent,
-    MdVolumeUp,
-} from 'react-icons/md';
->>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
+import Image from 'next/image';
+import { useState } from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from "@/components/ui/badge";

@@ -44,7 +44,7 @@ export default function AdminSidebar() {
     const isActive = (path: string) => pathname === path;
 
     const mainSidebar = [
-        { label: 'Admin Dashboard', href: '/admin', Icon: SquaresFour },
+        { label: 'Admin Dashboard', href: '/admin-dashboard', Icon: SquaresFour },
         { label: 'Triage Nurse', href: '/triagenurse', Icon: FirstAidKit },
         { label: 'Releasing', href: '/releasing', Icon: Newspaper },
         { label: 'Call Number', href: '/caller', Icon: Phone },

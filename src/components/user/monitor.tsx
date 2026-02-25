@@ -1,22 +1,13 @@
 "use client";
 
-import Image from 'next/image';
 import {
-<<<<<<< HEAD
-    FileText,
-    Phone,
     Desktop,
-    SignOut,
+    FileText,
     Headset,
+    Phone,
+    SignOut,
 } from '@phosphor-icons/react';
-=======
-    MdDescription,
-    MdLogout,
-    MdMonitor,
-    MdPhone,
-    MdSupportAgent,
-} from 'react-icons/md';
->>>>>>> 943986b88fdecf8291dddd2ca9033d43f38e115f
+import Image from 'next/image';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from "@/components/ui/badge";

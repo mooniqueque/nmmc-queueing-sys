@@ -80,13 +80,13 @@ model Verification {
 }
 
 model Department {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  code      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String       @id @default(cuid())
+  name         String       @unique
+  code         String       @unique
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
   queueOptions LaneOption[]
-  visits    Visit[]
+  visits       Visit[]
 
   @@map("department")
 }
@@ -159,4 +159,12 @@ model Visit {
   @@index([patientId], map: "visit_patientId_fkey")
   @@index([triagedByUserId], map: "visit_triagedByUserId_fkey")
   @@map("visit")
+}
+
+model Sequence {
+  id    String @id @default(cuid())
+  name  String @unique
+  value Int    @default(0)
+
+  @@map("sequence")
 }

@@ -64,7 +64,7 @@ export default function AdminSidebar() {
                             {/*FOR ADMIN*/}
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto w-full justify-start">
-                                    <Link href="/admin">
+                                    <Link href="/admin-dashboard">
                                         <MdDashboard size={20} className="text-emerald-700" />
                                         <span>Admin Dashboard</span>
                                     </Link>

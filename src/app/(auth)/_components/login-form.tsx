@@ -46,7 +46,7 @@ export default function LoginForm() {
 
     async function onSubmit(values: z.infer<typeof loginSchema>) {
         setIsLoading(true);
-        const { error } = await authClient.signIn.email({
+        const { data, error } = await authClient.signIn.email({
             email: values.email,
             password: values.password,
         });
@@ -58,18 +58,19 @@ export default function LoginForm() {
 
         // once authentication succeeds, ask the server for the current session
         try {
-            const { data: session } = await authClient.getSession();
-            const user = session?.user as unknown as SessionUser;
+            const user = data?.user as unknown as SessionUser;
             if (user?.role === "ADMIN") {
-                router.push("/admin");
+                router.push("/admin-dashboard");
+            } else if (user?.role === "TRIAGE_NURSE") {
+                router.push("/triage");
             } else {
-                // any non‑admin goes to the user area; the requireRole guards will
+                // any non-admin goes to the user area; the requireRole guards will
                 // redirect unauthorised people back to login automatically
                 router.push("/");
             }
-        } catch (fetchError) {
-            console.error("failed to fetch session after login", fetchError);
-            // fallback to admin path so the app doesn't hang
+        } catch (routeError) {
+            console.error("failed to route after login", routeError);
+            // fallback to home path so the app doesn't hang
             router.push("/");
         }
 
@@ -190,7 +191,7 @@ export default function LoginForm() {
             </Card>
 
             <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-                {/* Footer Text ???*/}
+                {/*  NEED BA Footer Text ???*/}
             </div>
         </div>
 

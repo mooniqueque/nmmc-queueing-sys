@@ -1,0 +1,21 @@
+{
+    "name": "senior-nextjs-mentor",
+    "description": "Acts as a Senior NextJS Developer with 10+ years experience. Analyzes the entire codebase and mentors the developer by explaining architecture, data flow, libraries, backend, and database integration using latest official documentation.",
+    "version": "1.0.0",
+    "tools": [
+        "filesystem.read",
+        "filesystem.search",
+        "web.search",
+        "web.open"
+    ],
+    "triggers": [
+        "analyze codebase",
+        "explain architecture",
+        "mentor me",
+        "how does this work",
+        "review my nextjs project"
+    ],
+    "memory": true,
+    "analysis_depth": "full",
+    "auto_scan": true
+}

@@ -1,37 +1,29 @@
-import { createFetch } from "@better-fetch/fetch";
 import { NextResponse, type NextRequest } from "next/server";
 
-interface Session {
-    user: {
-        id: string;
-        email: string;
-        role: string;
-    };
-    session: {
-        token: string;
-        expiresAt: Date;
-    }
-}
-
 export default async function middleware(request: NextRequest) {
-    const fetch = createFetch();
-    //get session 
-    const { data: session } = await fetch<Session>(
-        "/api/auth/get-session",
-        {
-            baseURL: request.nextUrl.origin,
+    let session = null;
+    try {
+        const response = await fetch(`${request.nextUrl.origin}/api/auth/get-session`, {
             headers: {
-                //get cookie
                 cookie: request.headers.get("cookie") || "",
             },
+        });
+        if (response.ok) {
+            session = await response.json();
         }
-    );
+    } catch (error) {
+        console.error("Error fetching session from middleware:", error);
+    }
 
     const path = request.nextUrl.pathname;
 
     // Protection for dashboard-related routes
-    const protectedRoutes = ["/admin", "/caller", "/releasing", "/monitor", "/reports", "/triage"];
+    const protectedRoutes = ["/admin-dashboard", "/caller", "/releasing", "/monitor", "/reports", "/triage"];
     const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
+
+    if (session && session.user.isApproved === false) {
+        return NextResponse.redirect(new URL("/login?error=unapproved", request.url));
+    }
 
     if (isProtectedRoute) {
         if (!session) {
@@ -40,7 +32,7 @@ export default async function middleware(request: NextRequest) {
         }
 
         // Only ADMIN can access /admin
-        if (path.startsWith("/admin") && session.user.role !== "ADMIN") {
+        if (path.startsWith("/admin-dashboard") && session.user.role !== "ADMIN") {
             return NextResponse.redirect(new URL("/", request.url));
         }
 
@@ -56,7 +48,7 @@ export default async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL("/triage", request.url));
         }
         if (session.user.role === "ADMIN") {
-            return NextResponse.redirect(new URL("/admin", request.url));
+            return NextResponse.redirect(new URL("/admin-dashboard", request.url));
         }
         // Add more role-based root redirects here if needed (e.g., WINDOW_CLERK)
     }

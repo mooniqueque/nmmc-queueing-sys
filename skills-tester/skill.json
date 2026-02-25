@@ -1,0 +1,21 @@
+{
+    "name": "nextjs-performance-auditor",
+    "description": "Performance testing and optimization agent for NextJS applications. Analyzes login flow, API routes, data fetching, database queries, caching, and middleware for performance bottlenecks and scalability risks.",
+    "version": "1.0.0",
+    "tools": [
+        "filesystem.read",
+        "filesystem.search",
+        "web.search",
+        "web.open"
+    ],
+    "triggers": [
+        "performance audit",
+        "optimize login",
+        "optimize fetch",
+        "check scalability",
+        "analyze performance",
+        "detect bottlenecks"
+    ],
+    "analysis_depth": "full",
+    "auto_scan": true
+}

@@ -1,7 +1,7 @@
+import { getReportSnapshot } from "@/app/(admin)/reports/lib/report-data";
 import { auth } from "@/lib/database/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { getReportSnapshot } from "@/app/(dashboard)/reports/lib/report-data";
 
 export const dynamic = "force-dynamic";
 

@@ -3,7 +3,7 @@
 import { HOSPITAL_ROLES } from "@/lib/constants/hospital";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     MdAccessTime,
     MdCancel,
@@ -62,6 +62,11 @@ export default function AdminDashboard({
     const [filterRole, setFilterRole] = useState('All Users');
     const [viewPendingOnly, setViewPendingOnly] = useState(false);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // 2. DATA CALCULATIONS (Derived State)
     const analytics = {
@@ -131,7 +136,7 @@ export default function AdminDashboard({
         }
     };
 
-    if (!loggedInUser) return null;
+    if (!loggedInUser || !isMounted) return null;
 
     return (
         <div className="flex flex-1 flex-col">

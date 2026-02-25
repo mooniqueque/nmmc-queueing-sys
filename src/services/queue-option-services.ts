@@ -1,21 +1,6 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { db } from "@/lib/database/prisma";
 
 export const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"] as const;
-
-const queueOptionStorePath = path.join(process.cwd(), "src", "lib", "constants", "queue-options.json");
-
-type QueueOptionStore = {
-    byDepartment: Record<string, string[]>;
-    legacyGlobalOptions: string[];
-};
-
-type PersistedQueueOptionStore = {
-    byDepartment?: unknown;
-    legacyGlobalOptions?: unknown;
-    initialized?: unknown;
-    options?: unknown;
-};
 
 function normalizeOption(value: string) {
     return value.trim().toUpperCase();
@@ -49,102 +34,87 @@ function sanitizeOptions(values: string[]) {
     );
 }
 
-async function readStoredOptions(): Promise<QueueOptionStore> {
-    try {
-        const raw = await fs.readFile(queueOptionStorePath, "utf8");
-        const parsed = JSON.parse(raw) as unknown;
-
-        if (Array.isArray(parsed)) {
-            return {
-                byDepartment: {},
-                legacyGlobalOptions: orderOptions(
-                    parsed.filter((value): value is string => typeof value === "string")
-                )
-            };
-        }
-
-        if (!parsed || typeof parsed !== "object") {
-            return { byDepartment: {}, legacyGlobalOptions: [] };
-        }
-
-        const objectStore = parsed as PersistedQueueOptionStore;
-
-        const legacyGlobalOptions = Array.isArray(objectStore.legacyGlobalOptions)
-            ? orderOptions(objectStore.legacyGlobalOptions.filter((value): value is string => typeof value === "string"))
-            : Array.isArray(objectStore.options)
-                ? orderOptions(objectStore.options.filter((value): value is string => typeof value === "string"))
-                : [];
-
-        const byDepartmentRaw = objectStore.byDepartment;
-        const byDepartmentEntries = byDepartmentRaw && typeof byDepartmentRaw === "object"
-            ? Object.entries(byDepartmentRaw as Record<string, unknown>)
-            : [];
-
-        const byDepartment = Object.fromEntries(
-            byDepartmentEntries.map(([departmentKey, options]) => {
-                const normalizedDepartmentKey = normalizeDepartmentKey(departmentKey);
-                const normalizedOptions = Array.isArray(options)
-                    ? orderOptions(options.filter((value): value is string => typeof value === "string"))
-                    : [];
-
-                return [normalizedDepartmentKey, normalizedOptions];
-            })
-        );
-
-        return {
-            byDepartment,
-            legacyGlobalOptions
-        };
-    } catch {
-        return { byDepartment: {}, legacyGlobalOptions: [] };
-    }
-}
-
-async function writeStoredOptions(store: QueueOptionStore) {
-    await fs.writeFile(queueOptionStorePath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
-}
-
-function getEffectiveOptionsForDepartment(store: QueueOptionStore, departmentName: string) {
-    const normalizedDepartmentKey = normalizeDepartmentKey(departmentName);
-    const departmentOptions = store.byDepartment[normalizedDepartmentKey];
-
-    if (departmentOptions) {
-        return [...departmentOptions];
+function getEffectiveOptionsForDepartment(storedOptions: string[]) {
+    if (storedOptions.length > 0) {
+        return orderOptions(storedOptions);
     }
 
-    const baseline = store.legacyGlobalOptions.length > 0
-        ? [...DEFAULT_QUEUE_OPTIONS, ...store.legacyGlobalOptions]
-        : [...DEFAULT_QUEUE_OPTIONS];
-
-    return orderOptions(baseline);
+    return [...DEFAULT_QUEUE_OPTIONS];
 }
 
-async function saveDepartmentOptions(departmentName: string, options: string[]) {
-    const store = await readStoredOptions();
-    const normalizedDepartmentKey = normalizeDepartmentKey(departmentName);
+async function replaceDepartmentOptions(departmentId: string, options: string[]) {
+    const next = orderOptions(options);
 
-    await writeStoredOptions({
-        ...store,
-        byDepartment: {
-            ...store.byDepartment,
-            [normalizedDepartmentKey]: orderOptions(options)
+    await db.$transaction(async (tx) => {
+        await tx.laneOption.deleteMany({
+            where: { departmentId }
+        });
+
+        if (next.length > 0) {
+            await tx.laneOption.createMany({
+                data: next.map((option) => ({
+                    departmentId,
+                    option
+                })),
+                skipDuplicates: true
+            });
         }
     });
 }
 
 export async function getQueueOptions(departmentName: string) {
-    const stored = await readStoredOptions();
-    return getEffectiveOptionsForDepartment(stored, departmentName);
+    const department = await db.department.findUnique({
+        where: { name: departmentName.trim() },
+        select: {
+            queueOptions: {
+                select: { option: true }
+            }
+        }
+    });
+
+    const storedOptions = department
+        ? department.queueOptions.map((item) => normalizeOption(item.option))
+        : [];
+
+    return getEffectiveOptionsForDepartment(storedOptions);
 }
 
 export async function getQueueOptionsByDepartment(departmentNames: string[]) {
-    const stored = await readStoredOptions();
+    const trimmedDepartmentNames = Array.from(
+        new Set(departmentNames.map((departmentName) => departmentName.trim()).filter((departmentName) => departmentName.length > 0))
+    );
+
+    const departments = await db.department.findMany({
+        where: {
+            name: {
+                in: trimmedDepartmentNames
+            }
+        },
+        select: {
+            name: true,
+            queueOptions: {
+                select: { option: true }
+            }
+        }
+    });
+
+    const optionsByNormalizedDepartmentKey = Object.fromEntries(
+        departments.map((department) => [
+            normalizeDepartmentKey(department.name),
+            getEffectiveOptionsForDepartment(
+                department.queueOptions.map((item) => normalizeOption(item.option))
+            )
+        ])
+    );
 
     return Object.fromEntries(
-        departmentNames.map((departmentName) => [
-            normalizeDepartmentKey(departmentName),
-            getEffectiveOptionsForDepartment(stored, departmentName)
-        ])
+        trimmedDepartmentNames.map((departmentName) => {
+            const key = normalizeDepartmentKey(departmentName);
+            return [
+                key,
+                optionsByNormalizedDepartmentKey[key] ?? [...DEFAULT_QUEUE_OPTIONS]
+            ];
+        })
     );
 }
 
@@ -155,15 +125,30 @@ export async function addQueueOption(departmentName: string, option: string) {
         return { success: false, error: "Queue option cannot be empty." };
     }
 
-    const stored = await readStoredOptions();
-    const effectiveOptions = getEffectiveOptionsForDepartment(stored, departmentName);
+    const department = await db.department.findUnique({
+        where: { name: departmentName.trim() },
+        select: {
+            id: true,
+            queueOptions: {
+                select: { option: true }
+            }
+        }
+    });
+
+    if (!department) {
+        return { success: false, error: "Department not found." };
+    }
+
+    const effectiveOptions = getEffectiveOptionsForDepartment(
+        department.queueOptions.map((item) => normalizeOption(item.option))
+    );
 
     if (effectiveOptions.includes(normalized)) {
         return { success: false, error: "Queue option already exists." };
     }
 
     const merged = orderOptions([...effectiveOptions, normalized]);
-    await saveDepartmentOptions(departmentName, merged);
+    await replaceDepartmentOptions(department.id, merged);
 
     return { success: true };
 }
@@ -175,15 +160,30 @@ export async function removeQueueOption(departmentName: string, option: string) 
         return { success: false, error: "Queue option cannot be empty." };
     }
 
-    const stored = await readStoredOptions();
-    const effectiveOptions = getEffectiveOptionsForDepartment(stored, departmentName);
+    const department = await db.department.findUnique({
+        where: { name: departmentName.trim() },
+        select: {
+            id: true,
+            queueOptions: {
+                select: { option: true }
+            }
+        }
+    });
+
+    if (!department) {
+        return { success: false, error: "Department not found." };
+    }
+
+    const effectiveOptions = getEffectiveOptionsForDepartment(
+        department.queueOptions.map((item) => normalizeOption(item.option))
+    );
     const next = effectiveOptions.filter((value) => value !== normalized);
 
     if (next.length === effectiveOptions.length) {
         return { success: false, error: "Queue option not found." };
     }
 
-    await saveDepartmentOptions(departmentName, next);
+    await replaceDepartmentOptions(department.id, next);
 
     return { success: true };
 }

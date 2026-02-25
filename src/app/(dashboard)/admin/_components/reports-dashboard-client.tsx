@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import { MdAccessTime, MdApartment, MdLocalHospital, MdTimer } from "react-icons/md";
 
-import { StatsCard } from "@/components/dashboard/stats-card";
+import { StatsCard } from "./stats-card";
 import {
   ChartContainer,
   ChartTooltip,
@@ -37,8 +37,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import type { SessionUser } from "@/lib/types/user";
 import type { Department } from "@prisma/client";
 
-import type { ReportFilters } from "../../app/(dashboard)/reports/lib/report-analytics";
-import type { ReportSnapshot } from "../../app/(dashboard)/reports/lib/report-data";
+import type { ReportFilters } from "../../reports/lib/report-analytics";
+import type { ReportSnapshot } from "../../reports/lib/report-data";
 
 const departmentChartConfig = {
   patients: {

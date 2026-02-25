@@ -21,6 +21,12 @@ import {
     MdSkipNext
 } from 'react-icons/md';
 
+const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
+
+function normalizeDepartmentKey(value: string) {
+    return value.trim().toUpperCase();
+}
+
 interface WaitlistItemData {
     ticket: string;
     category: string;
@@ -92,14 +98,21 @@ const DEPARTMENT_DATA: Record<string, DepartmentData> = {
 };
 
 export default function CallerDashboard({
-    loggedInUser
+    loggedInUser,
+    departments,
+    queueOptionsByDepartment
 }: {
-    loggedInUser: SessionUser
+    loggedInUser: SessionUser;
+    departments: string[];
+    queueOptionsByDepartment: Record<string, string[]>;
 }) {
+    const availableDepartments = departments.length > 0 ? departments : Object.keys(DEPARTMENT_DATA);
     const [isAvailable, setIsAvailable] = useState(true);
-    const [department, setDepartment] = useState("ANIMAL BITE DEPT");
+    const [department, setDepartment] = useState(availableDepartments[0] ?? "ANIMAL BITE DEPT");
 
-    const currentData = DEPARTMENT_DATA[department] || DEPARTMENT_DATA["ANIMAL BITE DEPT"];
+    const fallbackDepartment = Object.keys(DEPARTMENT_DATA)[0] ?? "ANIMAL BITE DEPT";
+    const currentData = DEPARTMENT_DATA[department] || DEPARTMENT_DATA[fallbackDepartment];
+    const topButtons = queueOptionsByDepartment[normalizeDepartmentKey(department)] ?? DEFAULT_QUEUE_OPTIONS;
 
     return (
         <div className="flex min-h-screen w-full bg-slate-50/50">
@@ -112,7 +125,7 @@ export default function CallerDashboard({
                         <h1 className="text-xl font-bold text-emerald-900">Caller Dashboard</h1>
                     </div>
                     <div className='flex items-center gap-3'>
-                        <div className="flex flex-col items-end mr-1 hidden sm:flex">
+                        <div className="hidden sm:flex flex-col items-end mr-1">
                             <span className="text-sm font-bold text-emerald-900">{loggedInUser.name}</span>
                             <span className="text-xs text-slate-500 uppercase tracking-tighter">{loggedInUser.role}</span>
                         </div>
@@ -155,13 +168,14 @@ export default function CallerDashboard({
 
                                         {/* CLINIC GRID */}
                                         <div className="grid grid-cols-2 gap-3 py-4">
-                                            {/* You can map these or just list them like this */}
-                                            <DepartmentButton label="ANIMAL BITE DEPT" current={department} onClick={() => setDepartment("ANIMAL BITE DEPT")} />
-                                            <DepartmentButton label="X-RAY DEPARTMENT" current={department} onClick={() => setDepartment("X-RAY DEPARTMENT")} />
-                                            <DepartmentButton label="FAMILY MEDICINE" current={department} onClick={() => setDepartment("FAMILY MEDICINE")} />
-                                            <DepartmentButton label="DENTAL CLINIC" current={department} onClick={() => setDepartment("DENTAL CLINIC")} />
-                                            <DepartmentButton label="ER - REFERRAL" current={department} onClick={() => setDepartment("ER - REFERRAL")} />
-                                            <DepartmentButton label="LABORATORY" current={department} onClick={() => setDepartment("LABORATORY")} />
+                                            {availableDepartments.map((departmentName) => (
+                                                <DepartmentButton
+                                                    key={departmentName}
+                                                    label={departmentName}
+                                                    current={department}
+                                                    onClick={() => setDepartment(departmentName)}
+                                                />
+                                            ))}
                                         </div>
                                     </DialogContent>
                                 </Dialog>
@@ -170,11 +184,14 @@ export default function CallerDashboard({
                             <div>
                                 {/*TOP BUTTONS*/}
                                 <div className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full content-center mt-3">
-                                    <TopButton label="REGULAR" hotkey="Press 1" color="bg-emerald-800" />
-                                    <TopButton label="CHILD" hotkey="Press 2" color="bg-emerald-800" />
-                                    <TopButton label="FT" hotkey="Press 3" color="bg-emerald-800" />
-                                    <TopButton label="ER - REF" hotkey="Press 4" color="bg-emerald-800" />
-                                    <TopButton label="REFERRALS" hotkey="Press 5" color="bg-yellow-600" />
+                                    {topButtons.map((option, index) => (
+                                        <TopButton
+                                            key={option}
+                                            label={option}
+                                            hotkey={`Press ${index + 1}`}
+                                            color={option === "REFERRALS" ? "bg-yellow-600" : "bg-emerald-800"}
+                                        />
+                                    ))}
                                 </div>
                             </div>
 
@@ -223,7 +240,7 @@ export default function CallerDashboard({
                                 <div className={buttonVariants({ variant: "outline", className: "h-14 w-full flex items-center justify-between px-7 bg-white border-0 shadow-sm hover:bg-slate-50 cursor-default" })}>
                                     <div className="flex items-center gap-3">
                                         <div className={`h-3 w-3 rounded-full ${isAvailable ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
-                                        <span className="font-bold font-extrabold text-slate-700">Available</span>
+                                        <span className="font-extrabold text-slate-700">Available</span>
                                     </div>
                                     <Switch checked={isAvailable} onCheckedChange={setIsAvailable} />
                                 </div>
@@ -264,7 +281,7 @@ function ActionButton({ icon, label, color }: { icon: React.ReactNode, label: st
     return (
         <Button variant="outline" className="h-15 flex items-center justify-start gap-6 px-7 bg-white border-0 shadow-sm hover:bg-slate-50">
             <span className={`text-xl ${color}`}>{icon}</span>
-            <span className="font-bold font-extrabold text-slate-700">{label}</span>
+            <span className="font-extrabold text-slate-700">{label}</span>
         </Button>
     )
 }

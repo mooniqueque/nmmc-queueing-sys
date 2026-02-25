@@ -85,9 +85,23 @@ model Department {
   code      String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  queueOptions LaneOption[]
   visits    Visit[]
 
   @@map("department")
+}
+
+model LaneOption {
+  id           String     @id @default(cuid())
+  departmentId String
+  option       String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, option])
+  @@index([departmentId], map: "lane_option_departmentId_fkey")
+  @@map("lane_option")
 }
 
 model Patient {

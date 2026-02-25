@@ -1,6 +1,7 @@
 import { auth } from "@/lib/database/auth";
 import { SessionUser } from "@/lib/types/user";
 import { getDepartments } from '@/services/department-services';
+import { getQueueOptionsByDepartment } from '@/services/queue-option-services';
 import { Department } from "@prisma/client";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -18,10 +19,14 @@ export default async function ReleasingPage() {
   const response = await getDepartments();
   const departments = response.success ? response.data : [];
 
+  const departmentNames = departments.map((dept) => dept.name);
+  const queueOptionsByDepartment = await getQueueOptionsByDepartment(departmentNames);
+
   return (
     <ReleasingDashboard
       loggedInUser={session.user as unknown as SessionUser}
       departments={departments as Department[]}
+      queueOptionsByDepartment={queueOptionsByDepartment}
     />
   )
 }

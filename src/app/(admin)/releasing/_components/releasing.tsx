@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import {
-    MdFilterList,
-    MdOpenInNew,
-    MdSearch
-} from 'react-icons/md';
+    Funnel,
+    ArrowSquareOut,
+    MagnifyingGlass
+} from '@phosphor-icons/react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -69,7 +69,7 @@ export default function ReleasingDashboard({
                         <div className="flex items-center gap-2 w-[300px]">
                             <div className="relative w-full">
                                 <div className="absolute left-3 top-2.5 text-slate-400">
-                                    <MdSearch size={20} />
+                                    <MagnifyingGlass size={20} />
                                 </div>
                                 <Input
                                     placeholder="Search departments....."
@@ -81,11 +81,11 @@ export default function ReleasingDashboard({
                         </div>
 
                         <Button variant="outline" className="text-slate-600 border-slate-200">
-                            <MdFilterList size={18} className="mr-2" /> Sort
+                            <Funnel size={18} className="mr-2" /> Sort
                         </Button>
 
                         <Button variant="outline" className="text-slate-600 border-slate-200">
-                            <MdFilterList size={18} className="mr-2" /> Filter
+                            <Funnel size={18} className="mr-2" /> Filter
                         </Button>
                     </div>
                 </div>
@@ -123,7 +123,7 @@ export default function ReleasingDashboard({
 
                                                 <div className="shrink-0">
                                                     <Button variant="ghost" size="icon" className="bg-emerald-50 hover:bg-emerald-100 h-8 w-8">
-                                                        <MdOpenInNew className="text-emerald-700" size={16} />
+                                                        <ArrowSquareOut className="text-emerald-700" size={16} />
                                                     </Button>
                                                 </div>
                                             </div>

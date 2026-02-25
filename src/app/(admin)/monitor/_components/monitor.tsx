@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MdPlayArrow, MdAccessTime, MdPeople } from "react-icons/md";
+import { Play, Clock, Users } from "@phosphor-icons/react";
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
 // Mock Data
@@ -146,7 +146,7 @@ export default function QueueMonitor() {
                         {/* Thumbnail / Play Button */}
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
                             <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 ring-4 ring-white/10 group-hover:scale-110 transition-transform duration-300">
-                                <MdPlayArrow size={50} className="text-white ml-2" />
+                                <Play size={50} className="text-white ml-2" weight="fill" />
                             </div>
                             <div className="absolute bottom-4 left-6 text-white/50 text-xs font-medium uppercase tracking-widest">Promotional Video</div>
                         </div>

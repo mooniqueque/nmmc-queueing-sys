@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useState } from 'react';
 import {
+<<<<<<< HEAD:src/app/(admin)/admin-dashboard/_components/admin.tsx
     MdAccessTime,
     MdCancel,
     MdCheck,
@@ -16,6 +17,22 @@ import {
     MdSearch,
 } from 'react-icons/md';
 import { approveUser, rejectUser, toggleUserStatus, updateUserRole } from "../_actions/user-actions";
+=======
+    Clock,
+    XCircle,
+    Check,
+    CheckCircle,
+    Trash,
+    Funnel,
+    HourglassMedium,
+    Users,
+    MagnifyingGlass,
+    FileText,
+    Phone,
+    Gear,
+    Headset
+} from '@phosphor-icons/react';
+>>>>>>> 7e812d6e1085f01cf57d38bdfb85558844d7e8e5:src/components/admin-dashboard/admin.tsx
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +56,6 @@ import {
 } from "@/components/ui/table";
 import { SessionUser, UserData } from "@/lib/types/user";
 import { Department } from "@prisma/client";
-import { MdDescription, MdPhone, MdSettings, MdSupportAgent } from "react-icons/md";
 import { AddUserDialog } from "./add-user-dialog";
 import { StatsCard } from "./stats-card";
 
@@ -161,25 +177,25 @@ export default function AdminDashboard({
                     <StatsCard
                         label="Total System User"
                         value={analytics.total.toString().padStart(2, '0')}
-                        icon={<MdPeople size={28} className="text-white" />}
+                        icon={<Users size={28} className="text-white" />}
                         color="bg-emerald-600"
                     />
                     <StatsCard
                         label="Pending Requests"
                         value={analytics.pending.toString().padStart(2, '0')}
-                        icon={<MdPendingActions size={28} className="text-white" />}
+                        icon={<HourglassMedium size={28} className="text-white" />}
                         color="bg-yellow-500"
                     />
                     <StatsCard
                         label="Active Users"
                         value={analytics.active.toString().padStart(2, '0')}
-                        icon={<MdCheckCircle size={28} className="text-white" />}
+                        icon={<CheckCircle size={28} className="text-white" />}
                         color="bg-emerald-500"
                     />
                     <StatsCard
                         label="Inactive Users"
                         value={analytics.inactive.toString().padStart(2, '0')}
-                        icon={<MdCancel size={28} className="text-white" />}
+                        icon={<XCircle size={28} className="text-white" />}
                         color="bg-red-500"
                     />
                 </div>
@@ -188,7 +204,7 @@ export default function AdminDashboard({
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         <div className="relative w-full sm:w-72">
-                            <MdSearch className="absolute left-3 top-2.5 text-slate-400" size={20} />
+                            <MagnifyingGlass className="absolute left-3 top-2.5 text-slate-400" size={20} />
                             <Input
                                 placeholder="Search by name, email, or dept..."
                                 className="pl-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
@@ -202,7 +218,7 @@ export default function AdminDashboard({
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="text-slate-600 border-slate-200">
-                                    <MdFilterList size={18} className="mr-2" /> {filterRole}
+                                    <Funnel size={18} className="mr-2" /> {filterRole}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -223,7 +239,7 @@ export default function AdminDashboard({
                                     : "bg-yellow-500 hover:bg-yellow-600 text-white shadow-yellow-200"
                             )}
                         >
-                            {viewPendingOnly ? <MdPeople size={18} className="mr-2" /> : <MdAccessTime size={18} className="mr-2" />}
+                            {viewPendingOnly ? <Users size={18} className="mr-2" /> : <Clock size={18} className="mr-2" />}
                             {viewPendingOnly ? "Show All Users" : "Pending Users"}
                         </Button>
 
@@ -328,7 +344,7 @@ export default function AdminDashboard({
                                                     onClick={() => handleApprove(user.id)}
                                                     className="h-8 w-8 p-0 border-emerald-200 text-emerald-600 hover:bg-emerald-50"
                                                 >
-                                                    <MdCheck size={18} />
+                                                    <Check size={18} />
                                                 </Button>
                                                 <Button
                                                     size="sm"
@@ -336,7 +352,7 @@ export default function AdminDashboard({
                                                     onClick={() => handleReject(user.id)}
                                                     className="h-8 w-8 p-0 border-red-200 text-red-600 hover:bg-red-50"
                                                 >
-                                                    <MdDelete size={18} />
+                                                    <Trash size={18} />
                                                 </Button>
                                             </div>
                                         )}
@@ -356,10 +372,10 @@ export default function AdminDashboard({
  */
 function getRoleIcon(role: string) {
     switch (role) {
-        case 'CLINIC_CALLER': return <MdPhone size={14} className="mr-1" />;
-        case 'WINDOW_CLERK': return <MdDescription size={14} className="mr-1" />;
-        case 'ADMIN': return <MdSettings size={14} className="mr-1" />;
-        case 'TRIAGE_NURSE': return <MdSupportAgent size={14} className="mr-1" />;
-        default: return <MdPeople size={14} className="mr-1" />;
+        case 'CLINIC_CALLER': return <Phone size={14} className="mr-1" />;
+        case 'WINDOW_CLERK': return <FileText size={14} className="mr-1" />;
+        case 'ADMIN': return <Gear size={14} className="mr-1" />;
+        case 'TRIAGE_NURSE': return <Headset size={14} className="mr-1" />;
+        default: return <Users size={14} className="mr-1" />;
     }
 }

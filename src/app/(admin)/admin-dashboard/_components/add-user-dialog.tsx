@@ -21,8 +21,12 @@ import {
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useState } from 'react';
+<<<<<<< HEAD:src/app/(admin)/admin-dashboard/_components/add-user-dialog.tsx
 import { MdPersonAdd } from 'react-icons/md';
 import { adminCreateUser } from "../_actions/user-actions";
+=======
+import { UserPlus } from '@phosphor-icons/react';
+>>>>>>> 7e812d6e1085f01cf57d38bdfb85558844d7e8e5:src/components/admin-dashboard/add-user-dialog.tsx
 
 import { Department } from "@prisma/client";
 
@@ -64,7 +68,7 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-200">
-                    <MdPersonAdd size={18} className="mr-2" /> Add Users
+                    <UserPlus size={18} className="mr-2" /> Add Users
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">

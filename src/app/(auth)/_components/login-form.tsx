@@ -1,7 +1,10 @@
 "use client";
 
 import { authClient } from "@/lib/database/auth-client";
+<<<<<<< HEAD:src/app/(auth)/_components/login-form.tsx
 import { SessionUser } from "@/lib/types/user";
+=======
+>>>>>>> 7e812d6e1085f01cf57d38bdfb85558844d7e8e5:src/components/forms/login-form.tsx
 import { Eye, EyeClosed, CircleNotch } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -59,6 +62,7 @@ export default function LoginForm() {
             router.refresh();
         }
 
+<<<<<<< HEAD:src/app/(auth)/_components/login-form.tsx
         // once authentication succeeds, ask the server for the current session
         try {
             const user = data?.user as unknown as SessionUser;
@@ -79,6 +83,9 @@ export default function LoginForm() {
 
         router.refresh();
         console.log(values);
+=======
+        console.log(values)
+>>>>>>> 7e812d6e1085f01cf57d38bdfb85558844d7e8e5:src/components/forms/login-form.tsx
     }
 
 

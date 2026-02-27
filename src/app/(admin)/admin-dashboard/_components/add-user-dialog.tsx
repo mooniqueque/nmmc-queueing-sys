@@ -19,11 +19,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { UserPlus } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
 import { useState } from 'react';
-import { UserPlus } from '@phosphor-icons/react';
 
 import { Department } from "@prisma/client";
+import { adminCreateUser } from '../_actions/user-actions';
 
 /**
  * COMPONENT: AddUserDialog

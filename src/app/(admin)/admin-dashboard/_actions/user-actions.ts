@@ -176,3 +176,30 @@ export async function toggleUserStatus(userId: string, status: boolean) {
         return { success: false, error: "Unable to update status. Please try again." };
     }
 }
+
+/**
+ * Fetches all registered users from the database.
+ * @returns Array of user objects ordered by most recent registration.
+ */
+export async function getAllUsers() {
+    const session = await auth.api.getSession({
+        headers: await headers()
+    })
+
+    // Only Admin or specific roles should be able to fetch the full user list
+    if (!session || session.user.role !== "ADMIN") {
+        throw new Error("UNAUTHORIZED");
+    }
+
+    try {
+        console.log("🔍 [Action] Fetching all users from database...");
+        return await db.user.findMany({
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+    } catch (error) {
+        console.error("❌ [Action] Failed to fetch users:", error);
+        throw new Error("Unable to retrieve user list.");
+    }
+}

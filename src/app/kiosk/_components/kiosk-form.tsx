@@ -102,25 +102,8 @@ export function KioskForm() {
 
     async function onSubmit(data: KioskFormValues) {
         setIsLoading(true); setMessage(null);
-        const submitData = new FormData();
 
-        const monthNamesToNum: Record<string, string> = {
-            "January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06",
-            "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"
-        };
-        const formattedMonth = monthNamesToNum[data.dobMonth] || String(data.dobMonth).padStart(2, '0');
-
-        // Combine 3 separate strings into a valid YYYY-MM-DD
-        const compiledDob = `${data.dobYear}-${formattedMonth}-${String(data.dobDay).padStart(2, '0')}`;
-        submitData.append("dateOfBirth", compiledDob);
-
-        Object.entries(data).forEach(([key, value]) => {
-            if (key !== 'dobMonth' && key !== 'dobDay' && key !== 'dobYear' && value !== undefined && value !== null) {
-                submitData.append(key, value.toString());
-            }
-        });
-
-        const result = await submitKioskRegistration(submitData);
+        const result = await submitKioskRegistration(data);
         setIsLoading(false);
 
         if (result.success) {

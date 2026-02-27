@@ -1,13 +1,11 @@
+"use server";
+
 import { db } from "@/lib/database/prisma";
 
-
 /**
- * SERVICE LAYER: Data Fetching (Read Operations)
- * This file is for fetching data from the database. 
- * These functions usually run on the server and are called by Server Components.
+ * Global Action: getDepartments
+ * Fetches all departments. Used globally across Auth and Admin routes.
  */
-
-//fetch all departments
 export async function getDepartments() {
     try {
         const departments = await db.department.findMany({

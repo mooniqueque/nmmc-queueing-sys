@@ -1,5 +1,5 @@
+import { getDepartments } from '@/app/actions/department-actions';
 import { auth } from "@/lib/database/auth";
-import { getDepartments } from '@/services/department-services';
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import ReportsDashboardClient from "../admin-dashboard/_components/reports-dashboard-client";

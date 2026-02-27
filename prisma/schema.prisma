@@ -158,6 +158,7 @@ model Visit {
   @@index([departmentId], map: "visit_departmentId_fkey")
   @@index([patientId], map: "visit_patientId_fkey")
   @@index([triagedByUserId], map: "visit_triagedByUserId_fkey")
+  @@index([status, createdAt], map: "visit_status_createdAt_idx")
   @@map("visit")
 }
 

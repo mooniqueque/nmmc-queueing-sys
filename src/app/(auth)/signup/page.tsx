@@ -1,6 +1,6 @@
 
+import { getDepartments } from "@/app/actions/department-actions";
 import ParticlesBackground from "@/components/ui/particles-background";
-import { getDepartments } from "@/services/department-services";
 import { Department } from "@prisma/client";
 import { SignupForm } from "../_components/signup-form";
 

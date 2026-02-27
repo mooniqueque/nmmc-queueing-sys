@@ -1,6 +1,6 @@
+import { getQueueOptionsByDepartment } from "@/app/(admin)/admin-dashboard/_actions/queue-option-actions";
 import DepartmentSettings from "@/app/(admin)/admin-dashboard/_components/admin-settings/departments";
-import { getDepartments } from "@/services/department-services";
-import { getQueueOptionsByDepartment } from "@/services/queue-option-services";
+import { getDepartments } from "@/app/actions/department-actions";
 import { Department } from "@prisma/client";
 
 export default async function DepartmentsPage() {

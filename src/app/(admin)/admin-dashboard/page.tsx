@@ -1,7 +1,7 @@
+import { getAllUsers } from '@/app/(admin)/admin-dashboard/_actions/user-actions';
+import { getDepartments } from '@/app/actions/department-actions';
 import { auth } from "@/lib/database/auth";
 import { SessionUser } from "@/lib/types/user";
-import { getDepartments } from '@/services/department-services';
-import { getAllUsers } from '@/services/user-service';
 import { Department } from "@prisma/client";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";

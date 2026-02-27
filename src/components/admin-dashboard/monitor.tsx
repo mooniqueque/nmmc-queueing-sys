@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Play, Clock, Users } from "@phosphor-icons/react";
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import useSWR from "swr";
+import { Play } from "@phosphor-icons/react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
 // Mock Data
 const NOW_SERVING = {

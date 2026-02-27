@@ -4,6 +4,8 @@ import { db as prisma } from "@/lib/database/prisma";
 import { eventBus } from "@/lib/sse-emitter";
 import { revalidatePath } from "next/cache";
 
+import { kioskFormSchema, KioskFormValues } from "../_schemas/patient-schema";
+
 /**
  * ACTION: getPatientByHospitalId
  * Securely fetches a returning patient's profile to auto-fill the Kiosk form.
@@ -31,29 +33,21 @@ export async function getPatientByHospitalId(hospitalId: string) {
  * ACTION: submitKioskRegistration
  * This safely takes data from the public Kiosk form and creates a new Visit.
  */
-export async function submitKioskRegistration(formData: FormData) {
+export async function submitKioskRegistration(payload: KioskFormValues) {
     try {
-        const hospitalIdInput = formData.get("hospitalId") as string | null;
+        // 1. Validate incoming data using Zod schema recursively
+        const rawData = await kioskFormSchema.parseAsync(payload);
 
-        // 1. Extract raw data from the form
-        const rawData = {
-            firstName: formData.get("firstName") as string,
-            middleName: formData.get("middleName") as string | null,
-            lastName: formData.get("lastName") as string,
-            dateOfBirth: new Date(formData.get("dateOfBirth") as string),
-            gender: formData.get("gender") as string,
-            hospitalId: hospitalIdInput && hospitalIdInput.trim() !== "" ? hospitalIdInput.trim() : null, // Fixes Unique Constraint!
-            address: formData.get("address") as string,
-            birthPlace: formData.get("birthPlace") as string,
-            religion: formData.get("religion") as string,
-            civilStatus: formData.get("civilStatus") as string,
+        // Calculate Date of Birth
+        const monthNamesToNum: Record<string, string> = {
+            "January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06",
+            "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"
         };
-        const hasAppointment = formData.get("hasAppointment") === "true" || formData.get("hasAppointment") === "on";
+        const formattedMonth = monthNamesToNum[rawData.dobMonth] || String(rawData.dobMonth).padStart(2, '0');
+        const compiledDobStr = `${rawData.dobYear}-${formattedMonth}-${String(rawData.dobDay).padStart(2, '0')}`;
+        const dateOfBirth = new Date(compiledDobStr);
 
-        // 2. Validate essential fields (Basic check)
-        if (!rawData.firstName || !rawData.lastName || !rawData.gender) {
-            return { success: false, error: "Missing required fields." };
-        }
+        const hospitalId = rawData.hospitalId && rawData.hospitalId.trim() !== "" ? rawData.hospitalId.trim() : null;
 
         // 3. Database Writing Logic
         // We use Prisma Transactions so both operations succeed or both fail together
@@ -65,8 +59,29 @@ export async function submitKioskRegistration(formData: FormData) {
                 // If they have an ID, update their existing record just in case info changed
                 patient = await tx.patient.upsert({
                     where: { hospitalId: rawData.hospitalId },
-                    update: { ...rawData },
-                    create: { ...rawData },
+                    update: {
+                        firstName: rawData.firstName,
+                        lastName: rawData.lastName,
+                        middleName: rawData.middleName || null,
+                        dateOfBirth,
+                        gender: rawData.gender,
+                        address: rawData.address,
+                        birthPlace: rawData.birthPlace,
+                        religion: rawData.religion,
+                        civilStatus: rawData.civilStatus
+                    },
+                    create: {
+                        hospitalId,
+                        firstName: rawData.firstName,
+                        lastName: rawData.lastName,
+                        middleName: rawData.middleName || null,
+                        dateOfBirth,
+                        gender: rawData.gender,
+                        address: rawData.address,
+                        birthPlace: rawData.birthPlace,
+                        religion: rawData.religion,
+                        civilStatus: rawData.civilStatus
+                    },
                 });
             } else {
                 // No Hospital ID provided. Check if they                // STRICT MATCHING: Check First, Last Name AND Date of Birth to avoid Junior/Senior mixups
@@ -74,18 +89,38 @@ export async function submitKioskRegistration(formData: FormData) {
                     where: {
                         firstName: rawData.firstName,
                         lastName: rawData.lastName,
-                        dateOfBirth: rawData.dateOfBirth
+                        dateOfBirth: dateOfBirth
                     }
                 });
 
                 if (patient) {
                     patient = await tx.patient.update({
                         where: { id: patient.id },
-                        data: { ...rawData }
+                        data: {
+                            firstName: rawData.firstName,
+                            lastName: rawData.lastName,
+                            middleName: rawData.middleName || null,
+                            dateOfBirth,
+                            gender: rawData.gender,
+                            address: rawData.address,
+                            birthPlace: rawData.birthPlace,
+                            religion: rawData.religion,
+                            civilStatus: rawData.civilStatus
+                        }
                     });
                 } else {
                     patient = await tx.patient.create({
-                        data: { ...rawData },
+                        data: {
+                            firstName: rawData.firstName,
+                            lastName: rawData.lastName,
+                            middleName: rawData.middleName || null,
+                            dateOfBirth,
+                            gender: rawData.gender,
+                            address: rawData.address,
+                            birthPlace: rawData.birthPlace,
+                            religion: rawData.religion,
+                            civilStatus: rawData.civilStatus
+                        },
                     });
                 }
             }
@@ -125,7 +160,7 @@ export async function submitKioskRegistration(formData: FormData) {
                     patientId: patient.id,
                     status: "KIOSK_SUBMITTED",
                     ticketNumber: sequence.value,
-                    hasAppointment: hasAppointment
+                    hasAppointment: rawData.hasAppointment
                 }
             });
         });

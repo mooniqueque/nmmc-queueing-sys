@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { VisitWithPatient } from "../_types";
 
 export type TabType = "ACTIVE" | "NO_SHOW";
@@ -13,6 +13,8 @@ export function useTriageQueue(initialQueue: VisitWithPatient[]) {
     const activeQueue = initialQueue.filter(v => v.status === "KIOSK_SUBMITTED");
     const noShowQueue = initialQueue.filter(v => v.status === "NO_SHOW");
 
+    const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     // SET UP SSE FOR REAL-TIME QUEUE UPDATES
     useEffect(() => {
         const eventSource = new EventSource('/api/stream/queue');
@@ -21,8 +23,13 @@ export function useTriageQueue(initialQueue: VisitWithPatient[]) {
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === 'queue-updated') {
-                    // Refresh the Server Component payload without losing local state
-                    router.refresh();
+                    // Debounce router.refresh to prevent spamming the Next.js server during high traffic
+                    if (refreshTimeoutRef.current) {
+                        clearTimeout(refreshTimeoutRef.current);
+                    }
+                    refreshTimeoutRef.current = setTimeout(() => {
+                        router.refresh();
+                    }, 1000);
                 }
             } catch (error) {
                 console.error("Failed to parse SSE message:", error);
@@ -36,6 +43,9 @@ export function useTriageQueue(initialQueue: VisitWithPatient[]) {
 
         return () => {
             eventSource.close();
+            if (refreshTimeoutRef.current) {
+                clearTimeout(refreshTimeoutRef.current);
+            }
         };
     }, [router]);
 

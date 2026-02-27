@@ -1,4 +1,3 @@
-import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "./prisma";
@@ -17,16 +16,7 @@ export const auth = betterAuth({
     },
     //signin and signup validator
     emailAndPassword: {
-        enabled: true,
-        password: {
-            hash: async (password) => {
-                const salt = await bcrypt.genSalt(10);
-                return await bcrypt.hash(password, salt);
-            },
-            verify: async ({ password, hash }) => {
-                return await bcrypt.compare(password, hash);
-            },
-        }
+        enabled: true
     },
     //mapping the custom fields so betterauth can read it
     user: {

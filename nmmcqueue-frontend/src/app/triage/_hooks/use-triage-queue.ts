@@ -18,7 +18,9 @@ export function useTriageQueue(initialQueue: VisitWithPatient[]) {
     // SET UP SSE FOR REAL-TIME QUEUE UPDATES
     useEffect(() => {
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const eventSource = new EventSource(`${backendUrl}/monitor/stream`);
+        const eventSource = new EventSource(`${backendUrl}/monitor/stream`, {
+            withCredentials: true
+        });
 
         eventSource.onmessage = (event) => {
             try {

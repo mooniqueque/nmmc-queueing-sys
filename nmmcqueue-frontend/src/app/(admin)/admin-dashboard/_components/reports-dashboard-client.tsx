@@ -37,8 +37,8 @@ import type { SessionUser } from "@/lib/types/user";
 import type { Department } from "@/types/models";
 import { StatsCard } from "./stats-card";
 
-import type { ReportFilters } from "../../reports/lib/report-analytics";
-import type { ReportSnapshot } from "../../reports/lib/report-data";
+import type { ReportFilters } from "../../admin-reports/lib/report-analytics";
+import type { ReportSnapshot } from "../../admin-reports/lib/report-data";
 
 const departmentChartConfig = {
   patients: {

@@ -18,46 +18,60 @@ export default async function middleware(request: NextRequest) {
 
     const path = request.nextUrl.pathname;
 
-    // Protection for dashboard-related routes
-    const protectedRoutes = ["/admin-dashboard", "/caller", "/releasing", "/monitor", "/reports", "/triage"];
+    // All routes that require authentication
+    const protectedRoutes = ["/admin-dashboard", "/admin-caller", "/admin-releasing", "/admin-departments", "/admin-monitor", "/admin-reports", "/admin-triage", "/releasing", "/caller", "/triage"];
     const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
 
+    // Block unapproved users everywhere
     if (session && session.user.isApproved === false) {
         return NextResponse.redirect(new URL("/login?error=unapproved", request.url));
     }
 
     if (isProtectedRoute) {
         if (!session) {
-            // Redirect unauthenticated users to login if they try to hit a protected route
             return NextResponse.redirect(new URL("/login", request.url));
         }
 
-        // Only ADMIN can access /admin
-        if (path.startsWith("/admin-dashboard") && session.user.role !== "ADMIN") {
+        const role = session.user.role;
+
+        // Admin-only routes (all /admin-* paths)
+        if (path.startsWith("/admin-") && role !== "ADMIN") {
             return NextResponse.redirect(new URL("/", request.url));
         }
 
-        // Only TRIAGE_NURSE or ADMIN can access /triage
-        if (path.startsWith("/triage") && session.user.role !== "TRIAGE_NURSE" && session.user.role !== "ADMIN") {
+        // Triage Nurse routes
+        if (path.startsWith("/triage") && role !== "TRIAGE_NURSE" && role !== "ADMIN") {
+            return NextResponse.redirect(new URL("/", request.url));
+        }
+
+        // Window Clerk routes
+        if (path.startsWith("/releasing") && role !== "WINDOW_CLERK" && role !== "ADMIN") {
+            return NextResponse.redirect(new URL("/", request.url));
+        }
+
+        // Clinic Caller routes
+        if (path.startsWith("/caller") && role !== "CLINIC_CALLER" && role !== "ADMIN") {
             return NextResponse.redirect(new URL("/", request.url));
         }
     }
 
-    // Role-based redirection upon successful login or landing on the root page
+    // Role-based redirection upon login or landing on root
     if (session && (path === "/" || path === "/login")) {
-        if (session.user.role === "TRIAGE_NURSE") {
-            return NextResponse.redirect(new URL("/triage", request.url));
+        switch (session.user.role) {
+            case "ADMIN":
+                return NextResponse.redirect(new URL("/admin-dashboard", request.url));
+            case "TRIAGE_NURSE":
+                return NextResponse.redirect(new URL("/triage", request.url));
+            case "WINDOW_CLERK":
+                return NextResponse.redirect(new URL("/releasing", request.url));
+            case "CLINIC_CALLER":
+                return NextResponse.redirect(new URL("/caller", request.url));
         }
-        if (session.user.role === "ADMIN") {
-            return NextResponse.redirect(new URL("/admin-dashboard", request.url));
-        }
-        // Add more role-based root redirects here if needed (e.g., WINDOW_CLERK)
     }
 
     return NextResponse.next();
 }
 
 export const config = {
-    // Mathers including root, login, and protected routes
-    matcher: ["/", "/login", "/admin/:path*", "/caller/:path*", "/releasing/:path*", "/monitor/:path*", "/reports/:path*", "/triage/:path*"],
+    matcher: ["/", "/login", "/admin-dashboard/:path*", "/admin-caller/:path*", "/admin-releasing/:path*", "/admin-departments/:path*", "/admin-monitor/:path*", "/admin-reports/:path*", "/admin-triage/:path*", "/releasing/:path*", "/caller/:path*", "/triage/:path*"],
 };

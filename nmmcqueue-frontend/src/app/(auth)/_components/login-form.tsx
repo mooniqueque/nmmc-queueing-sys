@@ -53,7 +53,7 @@ export default function LoginForm() {
             setIsLoading(false);
         }
         else {
-            router.push("/admin-dashboard")
+            router.push("/")
             router.refresh();
         }
 

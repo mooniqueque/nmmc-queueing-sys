@@ -14,18 +14,16 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode
 }) {
-    // Protect admin routes - redirect to login if not admin
-    ///
+    // Auth is enforced by:
+    // 1. middleware.ts — blocks non-ADMIN from any /admin-* route
+    // 2. Individual page-level getSession() guards
     return (
         <SidebarProvider>
             <AdminSidebar />
-            {/* SIDEBAR /}
-            
-
-            {/ MAIN CONT*/}
+            {/* MAIN CONTENT */}
             <SidebarInset className="bg-slate-50/50">
                 {children}
-            </SidebarInset >
+            </SidebarInset>
         </SidebarProvider>
     )
 }

@@ -45,18 +45,18 @@ export default function AdminSidebar() {
 
     const mainSidebar = [
         { label: 'Admin Dashboard', href: '/admin-dashboard', Icon: SquaresFour },
-        { label: 'Triage Nurse', href: '/triagenurse', Icon: FirstAidKit },
+        { label: 'Triage Nurse', href: '/admin-triage', Icon: FirstAidKit },
         { label: 'Releasing', href: '/admin-releasing', Icon: Newspaper },
-        { label: 'Call Number', href: '/caller', Icon: Phone },
-        { label: 'Monitor', href: '/monitor', Icon: Desktop },
-        { label: 'Reports', href: '/reports', Icon: Article }
+        { label: 'Call Number', href: '/admin-caller', Icon: Phone },
+        { label: 'Monitor', href: '/admin-monitor', Icon: Desktop },
+        { label: 'Reports', href: '/admin-reports', Icon: Article }
     ];
 
     const adminSettings = [
-        { label: 'Reset Services', href: '/resetservices' },
-        { label: 'Department Settings', href: '/departments' },
-        { label: 'Manage Releasing', href: '/manage' },
-        { label: 'Monitor Settings', href: '/monitorset' },
+        { label: 'Reset Services', href: '/admin-dashboard' },
+        { label: 'Department Settings', href: '/admin-departments' },
+        { label: 'Manage Releasing', href: '/admin-releasing' },
+        { label: 'Monitor Settings', href: '/admin-monitor' },
     ];
 
     return (

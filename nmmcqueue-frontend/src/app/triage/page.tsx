@@ -1,13 +1,13 @@
-import { getPendingQueue } from "./_actions/triage-actions";
-import { TriageEntry } from "./_components/triage-entry";
+export const dynamic = 'force-dynamic';
 
-export default async function TriageDashboardPage() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+import { FullPageSkeleton } from "@/components/ui/page-skeleton";
+import { Suspense } from "react";
+import TriageData from "./_components/triage-data";
 
-    // Fetch everyone waiting for Triage TODAY via Backend API
-    const response = await getPendingQueue();
-    const pendingQueue = response.success ? response.data : [];
-
-    return <TriageEntry initialQueue={pendingQueue} />;
+export default function TriageDashboardPage() {
+    return (
+        <Suspense fallback={<FullPageSkeleton />}>
+            <TriageData />
+        </Suspense>
+    );
 }

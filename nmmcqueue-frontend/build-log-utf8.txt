@@ -1,0 +1,57 @@
+﻿Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+node.exe : ΓÜá The "middleware" file convention is deprecated. 
+Please use "proxy" instead. Learn more: 
+https://nextjs.org/docs/messages/middleware-to-proxy
+At C:\Users\ACER\AppData\Roaming\npm\npx.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/npm/bin/npx-cli.js" 
+$args
++     
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ΓÜá The "middle...le 
+   ware-to-proxy:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 20.3s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+Error: Failed to collect configuration for /admin-caller
+    at ignore-listed frames {
+  [cause]: Error: A "use server" file can only export async 
+functions, found string.
+  Read more: 
+https://nextjs.org/docs/messages/invalid-use-server-value
+      at d (E:\queuesys\nmmc-queueing-sys\nmmcqueue-frontend\.next
+\server\chunks\ssr\_5e8c1473._.js:1:363)
+      at module evaluation (E:\queuesys\nmmc-queueing-sys\nmmcqueu
+e-frontend\.next\server\chunks\ssr\_2bf117da._.js:1:24345)
+      at instantiateModule (E:\queuesys\nmmc-queueing-sys\nmmcqueu
+e-frontend\.next\server\chunks\ssr\[turbopack]_runtime.js:740:9)
+      at getOrInstantiateModuleFromParent (E:\queuesys\nmmc-queuei
+ng-sys\nmmcqueue-frontend\.next\server\chunks\ssr\[turbopack]_runt
+ime.js:763:12)
+      at Context.esmImport [as i] (E:\queuesys\nmmc-queueing-sys\n
+mmcqueue-frontend\.next\server\chunks\ssr\[turbopack]_runtime.js:2
+28:20)
+      at module evaluation (E:\queuesys\nmmc-queueing-sys\nmmcqueu
+e-frontend\.next\server\chunks\ssr\_5e8c1473._.js:2:1357)
+      at instantiateModule (E:\queuesys\nmmc-queueing-sys\nmmcqueu
+e-frontend\.next\server\chunks\ssr\[turbopack]_runtime.js:740:9)
+      at getOrInstantiateModuleFromParent (E:\queuesys\nmmc-queuei
+ng-sys\nmmcqueue-frontend\.next\server\chunks\ssr\[turbopack]_runt
+ime.js:763:12)
+      at Context.esmImport [as i] (E:\queuesys\nmmc-queueing-sys\n
+mmcqueue-frontend\.next\server\chunks\ssr\[turbopack]_runtime.js:2
+28:20)
+      at module evaluation (E:\queuesys\nmmc-queueing-sys\nmmcqueu
+e-frontend\.next\server\chunks\ssr\[root-of-the-server]__69f9bd77.
+_.js:1:1757)
+}
+
+> Build error occurred
+Error: Failed to collect page data for /admin-caller
+    at ignore-listed frames {
+  type: 'Error'
+}

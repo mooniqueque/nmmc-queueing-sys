@@ -1,0 +1,30 @@
+import cors from 'cors';
+import express from 'express';
+import { authRouter, userRouter } from './modules/auth/routes.js';
+import { clerkRouter } from './modules/clerk/routes.js';
+import { clinicRouter } from './modules/clinic/routes.js';
+import { monitorRouter } from './modules/monitor/routes.js';
+import { triageRouter } from './modules/triage/routes.js';
+
+export const app = express();
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'cookie'],
+}));
+app.use(express.json());
+
+// Register API routes
+app.use('/api/monitor', monitorRouter);
+app.use('/api/triage', triageRouter);
+app.use('/api/clerk', clerkRouter);
+app.use('/api/clinic', clinicRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/users', userRouter);
+
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
+export default app;

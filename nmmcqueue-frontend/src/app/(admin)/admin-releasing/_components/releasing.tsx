@@ -56,7 +56,7 @@ export default function ReleasingDashboard({
                     <h1 className="text-xl font-bold text-emerald-900">Ticket Releasing</h1>
                 </div>
                 <div className='flex items-center gap-3'>
-                    <div className="flex flex-col items-end mr-1 hidden sm:flex">
+                    <div className="flex flex-col items-end mr-1 sm:flex">
                         <span className="text-sm font-bold text-emerald-900">
                             {loggedInUser.name}
                         </span>
@@ -149,7 +149,7 @@ export default function ReleasingDashboard({
                     </div>
 
                     {/* RIGHT SIDE - INPUT CARD */}
-                    <div className="w-80 flex-shrink-0">
+                    <div className="w-80 shrink-0">
                         <Card className="shadow-sm border-slate-200 sticky top-0">
                             <CardHeader className="border-b border-slate-200">
                                 <CardTitle className="text-lg text-emerald-900">Release Tickets</CardTitle>
@@ -176,8 +176,8 @@ export default function ReleasingDashboard({
                                                     type="button"
                                                     variant={selectedQueueOption === option ? "default" : "outline"}
                                                     className={`text-xs font-bold ${selectedQueueOption === option
-                                                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                                            : 'border-slate-300 hover:bg-slate-50'
+                                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                        : 'border-slate-300 hover:bg-slate-50'
                                                         }`}
                                                     onClick={() => setSelectedQueueOption(option)}
                                                 >

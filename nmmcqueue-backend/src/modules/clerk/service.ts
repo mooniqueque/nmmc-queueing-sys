@@ -33,7 +33,8 @@ class ClerkService {
             }
         });
 
-        emitQueueUpdate();
+        // Emit targeted update to this specific department
+        emitQueueUpdate(data.departmentId);
     }
 }
 

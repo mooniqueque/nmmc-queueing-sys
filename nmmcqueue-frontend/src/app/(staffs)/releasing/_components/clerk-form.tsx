@@ -1,6 +1,6 @@
 "use client";
 
-import { VisitWithPatient } from "@/app/triage/_types";
+import { VisitWithPatient } from "@/app/(staffs)/triage/_types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

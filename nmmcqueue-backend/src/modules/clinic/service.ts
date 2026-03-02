@@ -20,6 +20,34 @@ class ClinicService {
         const dept = await db.department.findUnique({ where: { name: departmentName.trim() }, select: { queueOptions: { select: { option: true } } } });
         return getEffectiveOptions(dept ? dept.queueOptions.map(q => normalizeOption(q.option)) : []);
     }
+    async getPendingQueue(departmentName?: string) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const whereClause: any = {
+            createdAt: { gte: today, lt: tomorrow },
+            status: 'WAITING_CLINIC',
+        };
+
+        if (departmentName) {
+            const dept = await db.department.findUnique({ where: { name: departmentName.trim() } });
+            if (dept) {
+                whereClause.departmentId = dept.id;
+            }
+        }
+
+        return db.visit.findMany({
+            where: whereClause,
+            include: {
+                patient: true,
+                department: true,
+            },
+            orderBy: { ticketNumber: 'asc' },
+        });
+    }
+
     async getQueueOptionsByDepartment(names: string[]) {
         const trimmed = Array.from(new Set(names.map(n => n.trim()).filter(n => n.length > 0)));
         const depts = await db.department.findMany({ where: { name: { in: trimmed } }, select: { name: true, queueOptions: { select: { option: true } } } });

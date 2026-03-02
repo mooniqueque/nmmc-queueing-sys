@@ -1,35 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
+import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
+import { VisitWithPatient } from "@/app/(staffs)/triage/_types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Play, Clock, Users } from "@phosphor-icons/react";
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Play } from "@phosphor-icons/react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
-// Mock Data
-const NOW_SERVING = {
-    ticket: "P-024",
-    counter: "Counter 1",
-    department: "Priority Lane",
-};
-
-const SERVING_LIST = [
-    { service: "Priority-NEW", ticket: "PRIONEW-11" },
-    { service: "Priority-OLD", ticket: "PRIOOLD-2" },
-    { service: "Regular-NEW", ticket: "REGNEW-18" },
-    { service: "Malasakit-PHIC", ticket: "PHIC-14" },
-    { service: "Regular-OLD", ticket: "REGOLD-2" }, // Add more if needed
-];
-
-const UPCOMING_QUEUE = [
-    { ticket: "A-129", category: "Regular-NEW", type: "regular" },
-    { ticket: "P-027", category: "Child / Pedia", type: "priority" },
-    { ticket: "A-130", category: "Regular-OLD", type: "regular" },
-    { ticket: "ER-013", category: "ER-Ref", type: "urgent" },
-];
-
-export default function QueueMonitor() {
+export default function QueueMonitor({
+    departmentName,
+    initialQueue,
+}: {
+    departmentName: string;
+    initialQueue?: VisitWithPatient[];
+}) {
     const [currentTime, setCurrentTime] = useState(new Date());
+
+    // Live Queue Hook
+    const { activeQueue } = useClinicQueue(departmentName, initialQueue || []);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -47,6 +36,24 @@ export default function QueueMonitor() {
             day: "numeric",
         }).toUpperCase();
     };
+
+    // Calculate dynamically from the active array filtering for the target department
+    const departmentQueue = activeQueue.filter((v: VisitWithPatient) => v.department?.name === departmentName);
+
+    // Simplistic handling of what is "Now Serving" vs "Waitlist"
+    const currentTicket = departmentQueue.length > 0 ? `P-${departmentQueue[0].ticketNumber}` : "NONE";
+
+    // Map backend data to UI expected shapes for Monitor
+    const UPCOMING_QUEUE = departmentQueue.slice(1, 5).map((v: VisitWithPatient) => ({
+        ticket: `P-${v.ticketNumber}`,
+        category: v.priorityClass || "REGULAR",
+        type: v.priorityClass?.includes('FT') || v.priorityClass?.includes('ER') ? 'urgent' :
+            v.priorityClass?.includes('PRIO') || v.priorityClass?.includes('CHILD') || v.priorityClass?.includes('SR') ? 'priority' : 'regular'
+    }));
+
+    const SERVING_LIST = [
+        { service: departmentName, ticket: currentTicket },
+    ];
 
     // Helper for styling tickets based on type
     const getTicketStyle = (type: string) => {

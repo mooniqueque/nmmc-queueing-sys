@@ -1,6 +1,6 @@
 "use client";
 
-import { VisitWithPatient } from "@/app/triage/_types";
+import { VisitWithPatient } from "@/app/(staffs)/triage/_types";
 import { Department } from "@/types/models";
 import { useState } from "react";
 import { ClerkForm } from "./clerk-form";

@@ -4,15 +4,6 @@ import React, { useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
 import { SessionUser } from '@/lib/types/user';
 import {
@@ -21,47 +12,39 @@ import {
     XCircle
 } from '@phosphor-icons/react';
 
-const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
+
 
 function normalizeDepartmentKey(value: string) {
     return value.trim().toUpperCase();
 }
 
-// Removed since live data type VisitWithPatient is used instead
-
-// Live data logic below
-
 import { useClinicQueue } from '@/app/(admin)/_hooks/use-clinic-queue';
+import { VisitWithPatient } from '@/app/(staffs)/triage/_types';
 
-export default function CallerDashboard({
+export default function UserCallerDashboard({
     loggedInUser,
-    departments,
+    department,
     queueOptionsByDepartment,
     initialQueue = []
 }: {
     loggedInUser: SessionUser;
-    departments: string[];
+    department: string;
     queueOptionsByDepartment: Record<string, string[]>;
-    initialQueue?: any[];
+    initialQueue?: VisitWithPatient[];
 }) {
-    const availableDepartments = departments.length > 0 ? departments : ["ANIMAL BITE DEPT"];
     const [isAvailable, setIsAvailable] = useState(true);
-    const [department, setDepartment] = useState(availableDepartments[0] ?? "ANIMAL BITE DEPT");
 
-    // Live Queue Hook
+    // Live Queue Hook locked directly to the user's role department
     const { activeQueue } = useClinicQueue(department, initialQueue);
 
-    // Calculate current stats & waitlist dynamically
-    // A ticket is next if it's 'WAITING_CLINIC' and assigned to this `departmentId`
-    const departmentQueue = activeQueue.filter((v: any) => v.department?.name === department);
+    // Filter queue to make absolutely sure we only count tickets for THIS department
+    const departmentQueue = activeQueue.filter((v: VisitWithPatient) => v.department?.name === department);
 
     // Simplistic handling of what is "Now Serving" vs "Waitlist"
-    // Usually, "Now Serving" would be status: 'SERVING' and Waitlist is 'WAITING_CLINIC'.
-    // Here we just take the first from the waiting list as the "next to serve" or placeholder
     const currentTicket = departmentQueue.length > 0 ? `P-${departmentQueue[0].ticketNumber}` : "NONE";
 
     // Map backend data to UI expected shapes
-    const waitlist = departmentQueue.slice(1, 4).map((v: any) => ({
+    const waitlist = departmentQueue.slice(1, 4).map((v: VisitWithPatient) => ({
         ticket: `P-${v.ticketNumber}`,
         category: v.priorityClass || "REGULAR",
         time: new Date(v.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -69,13 +52,13 @@ export default function CallerDashboard({
 
     // Stats calculation based on live queue
     const stats = {
-        regular: departmentQueue.filter((v: any) => v.priorityClass?.includes('REG')).length.toString(),
-        pediatric: departmentQueue.filter((v: any) => v.priorityClass?.includes('CHILD')).length.toString(),
-        fastTrack: departmentQueue.filter((v: any) => v.priorityClass?.includes('FT')).length.toString(),
-        erRef: departmentQueue.filter((v: any) => v.priorityClass?.includes('ER')).length.toString(),
+        regular: departmentQueue.filter((v: VisitWithPatient) => v.priorityClass?.includes('REG')).length.toString(),
+        pediatric: departmentQueue.filter((v: VisitWithPatient) => v.priorityClass?.includes('CHILD')).length.toString(),
+        fastTrack: departmentQueue.filter((v: VisitWithPatient) => v.priorityClass?.includes('FT')).length.toString(),
+        erRef: departmentQueue.filter((v: VisitWithPatient) => v.priorityClass?.includes('ER')).length.toString(),
     };
 
-    const topButtons = queueOptionsByDepartment[normalizeDepartmentKey(department)] ?? DEFAULT_QUEUE_OPTIONS;
+    const topButtons = queueOptionsByDepartment[normalizeDepartmentKey(department)] ?? [];
 
     return (
         <div className="flex min-h-screen w-full bg-slate-50/50">
@@ -84,18 +67,17 @@ export default function CallerDashboard({
                 {/*HEADER*/}
                 <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
                     <div className="flex items-center gap-3">
-                        <SidebarTrigger />
                         <h1 className="text-xl font-bold text-emerald-900">Caller Dashboard</h1>
                     </div>
                     <div className='flex items-center gap-3'>
                         <div className="hidden sm:flex flex-col items-end mr-1">
-                            <span className="text-sm font-bold text-emerald-900">{loggedInUser.name}</span>
-                            <span className="text-xs text-slate-500 uppercase tracking-tighter">{loggedInUser.role}</span>
+                            <span className="text-sm font-bold text-emerald-900">{loggedInUser?.name || "Caller"}</span>
+                            <span className="text-xs text-slate-500 uppercase tracking-tighter">{loggedInUser?.role || "USER"}</span>
                         </div>
 
                         <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
                             <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
-                                {loggedInUser.name?.substring(0, 2).toUpperCase()}
+                                {loggedInUser?.name?.substring(0, 2).toUpperCase() || "CU"}
                             </AvatarFallback>
                         </Avatar>
                     </div>
@@ -110,38 +92,14 @@ export default function CallerDashboard({
 
                             {/*NOW SERVING*/}
                             <Card className="flex flex-col items-center justify-center p-19 py-20 shadow-sm border-0 bg-white relative overflow-hidden">
-                                <span className="text-emerald-500 font-bold tracking-widest text-sm uppercase mb-1"> Current Patient Ticket
-                                </span>
+                                <span className="text-emerald-500 font-bold tracking-widest text-sm uppercase mb-1"> Current Patient Ticket</span>
                                 <h1 className="text-9xl leading-none font-bold text-slate-900 tracking-tighter drop-shadow-sm mb-4">
                                     {currentTicket}
                                 </h1>
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button className="bg-emerald-900 text-white px-20 py-8 rounded-full text-xl font-bold tracking-wider shadow-lg shadow-emerald-700/20 mt-2 hover:bg-emerald-800 uppercase">
-                                            {department}
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl">
-                                        <DialogHeader>
-                                            <DialogTitle className="text-center text-xl font-bold text-emerald-950 uppercase tracking-widest">Select Department</DialogTitle>
-                                            <DialogDescription className="text-center text-slate-400">
-                                                Choose a department to switch the caller view.
-                                            </DialogDescription>
-                                        </DialogHeader>
-
-                                        {/* CLINIC GRID */}
-                                        <div className="grid grid-cols-2 gap-3 py-4">
-                                            {availableDepartments.map((departmentName) => (
-                                                <DepartmentButton
-                                                    key={departmentName}
-                                                    label={departmentName}
-                                                    current={department}
-                                                    onClick={() => setDepartment(departmentName)}
-                                                />
-                                            ))}
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
+                                {/* Strict Department Display (No Switcher Dialog) */}
+                                <Button className="bg-emerald-900 cursor-default text-white px-20 py-8 rounded-full text-xl font-bold tracking-wider shadow-lg shadow-emerald-700/20 mt-2 uppercase">
+                                    {department}
+                                </Button>
                             </Card>
 
                             <div>
@@ -177,7 +135,7 @@ export default function CallerDashboard({
                                 </div>
 
                                 <div className="flex flex-col gap-3">
-                                    {waitlist.map((item: any, index: number) => (
+                                    {waitlist.map((item: { ticket: string, category: string, time: string }, index: number) => (
                                         <WaitlistItem key={index} ticket={item.ticket} category={item.category} time={item.time} />
                                     ))}
                                 </div>
@@ -254,20 +212,6 @@ function TopButton({ label, hotkey, color = "bg-emerald-800" }: { label: string,
         <Button className={`h-24 flex flex-col items-start justify-center p-4 ${color} hover:opacity-90 text-left shadow-lg shadow-emerald-900/10 rounded-2xl`}>
             <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{hotkey}</span>
             <span className="text-xl font-black tracking-wide text-white">{label}</span>
-        </Button>
-    )
-}
-
-function DepartmentButton({ label, onClick, current }: { label: string, onClick: () => void, current: string }) {
-    const isActive = current === label;
-    return (
-        <Button
-            variant="outline"
-            onClick={onClick}
-            className={`h-24 flex flex-col items-center justify-center p-2 border-2 ${isActive ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-100 hover:border-emerald-200 hover:bg-slate-50 text-slate-600'}`}
-        >
-            <span className="font-bold text-center leading-tight">{label}</span>
-            {isActive && <span className="text-[10px] text-emerald-500 font-bold mt-1 uppercase tracking-wider">Active</span>}
         </Button>
     )
 }

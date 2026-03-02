@@ -1,6 +1,6 @@
 "use client";
 
-import { VisitWithPatient } from "@/app/triage/_types";
+import { VisitWithPatient } from "@/app/(staffs)/triage/_types";
 import { useClerkQueue } from "../_hooks/use-clerk-queue";
 
 interface ClerkQueueSidebarProps {

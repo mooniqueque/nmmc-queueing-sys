@@ -6,6 +6,7 @@ export const clinicRouter = Router();
 
 clinicRouter.use(requireAuth);
 clinicRouter.get('/departments', clinicController.getDepartments);
+clinicRouter.get('/pending', clinicController.getPendingQueue);
 clinicRouter.post('/departments', clinicController.createDepartment);
 clinicRouter.delete('/departments/:id', clinicController.deleteDepartment);
 clinicRouter.get('/queue-options', clinicController.getQueueOptions);

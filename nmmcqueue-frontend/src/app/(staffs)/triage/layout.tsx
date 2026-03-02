@@ -1,7 +1,5 @@
-import TriageSidebar from '@/components/triage/triage-sidebar';
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import StaffHeader from '@/components/ui/staff-header';
 import type { Metadata } from 'next';
-
 
 export const metadata: Metadata = {
     title: 'Triage Dashboard',
@@ -15,13 +13,12 @@ export default function UserLayout({
 }: {
     children: React.ReactNode
 }) {
-
     return (
-        <SidebarProvider>
-            <TriageSidebar />
-            <SidebarInset className="bg-slate-50/50">
+        <div className="flex flex-col min-h-screen bg-slate-50/50 w-full">
+            <StaffHeader title="Triage Dashboard" />
+            <div className="flex-1 w-full relative">
                 {children}
-            </SidebarInset>
-        </SidebarProvider>
+            </div>
+        </div>
     )
 }

@@ -6,6 +6,13 @@ class ClinicController {
         try { res.status(200).json({ success: true, data: await clinicService.getDepartments() }); }
         catch { res.status(500).json({ success: false, error: 'Failed to load departments' }); }
     }
+    async getPendingQueue(req: Request, res: Response) {
+        try {
+            const departmentName = req.query.departmentName as string;
+            res.status(200).json({ success: true, data: await clinicService.getPendingQueue(departmentName) });
+        }
+        catch (error) { res.status(500).json({ success: false, error: 'Failed to load pending queue' }); }
+    }
     async createDepartment(req: Request, res: Response) {
         try {
             if ((req as any).user?.role !== 'ADMIN') return res.status(401).json({ success: false, error: 'UNAUTHORIZED: Admin access required' });

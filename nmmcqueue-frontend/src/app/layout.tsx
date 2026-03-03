@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, Inter } from "next/font/google";
+import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 
 
@@ -34,7 +34,7 @@ export default function RootLayout({
     <html lang="en">
       <body
 
-        className={`${poppins.variable} ${inter.variable} font-sans antialiased`}
+        className={`${poppins.variable} ${inter.variable} font-sans text-black antialiased`}
       >
         {children}
       </body>

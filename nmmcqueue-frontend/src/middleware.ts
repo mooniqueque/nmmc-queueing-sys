@@ -23,7 +23,7 @@ export default async function middleware(request: NextRequest) {
     const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
 
     // Block unapproved users everywhere
-    if (session && session.user.isApproved === false) {
+    if (session && session.user.isApproved === false && path !== "/login") {
         return NextResponse.redirect(new URL("/login?error=unapproved", request.url));
     }
 

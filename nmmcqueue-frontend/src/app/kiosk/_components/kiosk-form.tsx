@@ -116,15 +116,19 @@ export function KioskForm() {
 
     return (
         <Card className="w-full max-w-4xl shadow-sm border-slate-300">
-            <CardHeader className="border-b bg-slate-50 flex flex-col items-center py-6">
-                <CardTitle className="text-2xl font-semibold uppercase tracking-wider text-slate-800">
+
+            {/*CARD HEADER*/}
+            <CardHeader className="border-b flex flex-col items-center py-5">
+                <CardTitle className="text-2xl font-extrabold uppercase tracking-wider text-emerald-800">
                     Patient Intake Form
                 </CardTitle>
-                <div className="text-sm font-mono text-slate-500 mt-2">
+                <div className="text-sm font-mono text-slate-500">
                     {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} | {currentTime.toLocaleTimeString()}
                 </div>
             </CardHeader>
-            <CardContent className="pt-6">
+
+            {/*CARD CONTENT*/}
+            <CardContent className="pt-3">
                 {message && (
                     <div className={`p-3 mb-6 border-l-4 text-sm ${message.type === 'success' ? 'bg-green-50 border-green-500 text-green-800' : 'bg-red-50 border-red-500 text-red-800'}`}>
                         {message.text}
@@ -170,7 +174,7 @@ export function KioskForm() {
 
                     {/* Section: Patient Demographics */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-slate-700 uppercase">2. Patient Demographics</h3>
+                        <h3 className="text-sm font-semibold text-slate-700 uppercase">2. Patient Basic Information</h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
@@ -239,6 +243,7 @@ export function KioskForm() {
                                     <option value="">Select Gender</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
+                                    <option value="Prefer not to say">Prefer not to say</option>
                                 </select>
                                 {errors.gender && <p className="text-xs text-red-500">{errors.gender.message}</p>}
                             </div>

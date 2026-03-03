@@ -12,7 +12,7 @@ importers:
         specifier: ^7.4.2
         version: 7.4.2
       '@prisma/client':
-        specifier: ^7.3.0
+        specifier: ^7.4.2
         version: 7.4.2(prisma@7.4.2(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
       better-auth:
         specifier: ^1.4.19
@@ -26,9 +26,6 @@ importers:
       express:
         specifier: ^4.19.2
         version: 4.22.1
-      mariadb:
-        specifier: ^3.5.1
-        version: 3.5.1(@types/geojson@7946.0.16)(@types/node@20.19.35)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -46,7 +43,7 @@ importers:
         specifier: ^20.12.7
         version: 20.19.35
       prisma:
-        specifier: ^7.3.0
+        specifier: ^7.4.2
         version: 7.4.2(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
       tsx:
         specifier: ^4.7.2
@@ -758,18 +755,6 @@ packages:
   mariadb@3.4.5:
     resolution: {integrity: sha512-gThTYkhIS5rRqkVr+Y0cIdzr+GRqJ9sA2Q34e0yzmyhMCwyApf3OKAC1jnF23aSlIOqJuyaUFUcj7O1qZslmmQ==}
     engines: {node: '>= 14'}
-
-  mariadb@3.5.1:
-    resolution: {integrity: sha512-ObKf/e7jU8pmwa5wTs1UwhLMrQYRBDwXPndej2Dv/rvbqsokJYlymubsNtpakVfjI+hd0bG3U6tiuVunDYoLtA==}
-    engines: {node: '>= 18'}
-    peerDependencies:
-      '@types/geojson': '>=7946.0.0'
-      '@types/node': '>=18'
-    peerDependenciesMeta:
-      '@types/geojson':
-        optional: true
-      '@types/node':
-        optional: true
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -1730,15 +1715,6 @@ snapshots:
       denque: 2.1.0
       iconv-lite: 0.6.3
       lru-cache: 10.4.3
-
-  mariadb@3.5.1(@types/geojson@7946.0.16)(@types/node@20.19.35):
-    dependencies:
-      denque: 2.1.0
-      iconv-lite: 0.7.2
-      lru-cache: 10.4.3
-    optionalDependencies:
-      '@types/geojson': 7946.0.16
-      '@types/node': 20.19.35
 
   math-intrinsics@1.1.0: {}
 

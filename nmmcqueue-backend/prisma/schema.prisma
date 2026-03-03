@@ -44,7 +44,6 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "session_userId_fkey")
-  @@index([expiresAt])
   @@map("session")
 }
 
@@ -80,33 +79,18 @@ model Verification {
 }
 
 model Department {
-  id           String       @id @default(cuid())
-  name         String       @unique
-  code         String       @unique
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  queueOptions LaneOption[]
-  visits       Visit[]
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  visits    Visit[]
 
   @@map("department")
 }
 
-model LaneOption {
-  id           String     @id @default(cuid())
-  departmentId String
-  option       String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-
-  @@unique([departmentId, option])
-  @@index([departmentId], map: "lane_option_departmentId_fkey")
-  @@map("lane_option")
-}
-
 model Patient {
   id           String   @id @default(cuid())
-  hospitalId   String?  @unique
   firstName    String
   lastName     String
   middleName   String?
@@ -114,12 +98,13 @@ model Patient {
   gender       String
   contactNo    String?
   address      String?
-  birthPlace   String?
-  religion     String?
-  civilStatus  String?
-  isRegistered Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  hospitalId   String?  @unique
+  birthPlace   String?
+  civilStatus  String?
+  isRegistered Boolean  @default(false)
+  religion     String?
   visits       Visit[]
 
   @@map("patient")
@@ -131,7 +116,6 @@ model Visit {
   departmentId    String?
   ticketNumber    Int
   status          String      @default("PENDING_TRIAGE")
-  priorityClass   String      @default("REGNEW")
   bloodPressure   String?
   heartRate       Int?
   respiratoryRate Int?
@@ -145,13 +129,13 @@ model Visit {
   chiefComplaint  String?     @db.Text
   medicalHistory  String?     @db.Text
   triageRemarks   String?     @db.Text
-  hasAppointment  Boolean     @default(false)
   disposition     String?
-  triagedAt       DateTime?
   triagedByUserId String?
   queueDate       DateTime    @default(now())
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  priorityClass   String      @default("REGNEW")
+  hasAppointment  Boolean     @default(false)
   department      Department? @relation(fields: [departmentId], references: [id])
   patient         Patient     @relation(fields: [patientId], references: [id])
   triagedByUser   User?       @relation("UserTriage", fields: [triagedByUserId], references: [id])
@@ -159,14 +143,5 @@ model Visit {
   @@index([departmentId], map: "visit_departmentId_fkey")
   @@index([patientId], map: "visit_patientId_fkey")
   @@index([triagedByUserId], map: "visit_triagedByUserId_fkey")
-  @@index([status, createdAt], map: "visit_status_createdAt_idx")
   @@map("visit")
-}
-
-model Sequence {
-  id    String @id @default(cuid())
-  name  String @unique
-  value Int    @default(0)
-
-  @@map("sequence")
 }

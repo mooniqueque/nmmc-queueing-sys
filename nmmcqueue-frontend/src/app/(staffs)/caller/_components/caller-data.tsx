@@ -1,7 +1,7 @@
 import { getQueueOptionsByDepartment } from "@/app/(admin)/admin-dashboard/_actions/queue-option-actions";
 import { VisitWithPatient } from "@/app/(staffs)/triage/_types";
 import { auth } from "@/lib/database/auth";
-import { SessionUser } from "@/lib/types/user";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -42,7 +42,6 @@ export default async function CallerData() {
 
     return (
         <UserCallerDashboard
-            loggedInUser={session?.user as unknown as SessionUser}
             department={userDepartment}
             queueOptionsByDepartment={queueOptionsByDepartment}
             initialQueue={initialQueueData}

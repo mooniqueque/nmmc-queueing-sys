@@ -9,7 +9,7 @@ interface ClerkLayoutProps {
 
 export function ClerkLayout({ sidebarSlot, contentSlot }: ClerkLayoutProps) {
     return (
-        <div className="flex h-[calc(100vh-5rem)] p-4 gap-6 bg-slate-50/50">
+        <div className="flex flex-col lg:flex-row h-full w-full p-6 gap-6 bg-slate-50/50">
             {/* CENTER COLUMN: THE WORKSPACE */}
             <div className="flex-1 overflow-y-auto pr-2">
                 {contentSlot}

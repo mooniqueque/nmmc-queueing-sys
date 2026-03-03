@@ -1,11 +1,9 @@
 'use client'
 import React, { useState } from 'react';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { SessionUser } from '@/lib/types/user';
 import {
     ArrowsClockwise,
     SkipForward,
@@ -22,12 +20,10 @@ import { useClinicQueue } from '@/app/(admin)/_hooks/use-clinic-queue';
 import { VisitWithPatient } from '@/app/(staffs)/triage/_types';
 
 export default function UserCallerDashboard({
-    loggedInUser,
     department,
     queueOptionsByDepartment,
     initialQueue = []
 }: {
-    loggedInUser: SessionUser;
     department: string;
     queueOptionsByDepartment: Record<string, string[]>;
     initialQueue?: VisitWithPatient[];
@@ -64,24 +60,7 @@ export default function UserCallerDashboard({
         <div className="flex min-h-screen w-full bg-slate-50/50">
             <div className="flex flex-1 flex-col">
 
-                {/*HEADER*/}
-                <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-xl font-bold text-emerald-900">Caller Dashboard</h1>
-                    </div>
-                    <div className='flex items-center gap-3'>
-                        <div className="hidden sm:flex flex-col items-end mr-1">
-                            <span className="text-sm font-bold text-emerald-900">{loggedInUser?.name || "Caller"}</span>
-                            <span className="text-xs text-slate-500 uppercase tracking-tighter">{loggedInUser?.role || "USER"}</span>
-                        </div>
 
-                        <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
-                            <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
-                                {loggedInUser?.name?.substring(0, 2).toUpperCase() || "CU"}
-                            </AvatarFallback>
-                        </Avatar>
-                    </div>
-                </header>
 
                 {/*MAIN CONTENT*/}
                 <main className="flex-1 p-6 space-y-6">

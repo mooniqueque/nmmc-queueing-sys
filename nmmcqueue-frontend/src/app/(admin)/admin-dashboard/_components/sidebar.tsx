@@ -53,10 +53,10 @@ export default function AdminSidebar() {
     ];
 
     const adminSettings = [
-        { label: 'Reset Services', href: '/admin-dashboard' },
+        { label: 'Reset Services', href: '/admin-resetserv' },
         { label: 'Department Settings', href: '/admin-departments' },
         { label: 'Manage Releasing', href: '/admin-releasing' },
-        { label: 'Monitor Settings', href: '/admin-monitor' },
+        { label: 'Monitor Settings', href: '/admin-monisetting' },
     ];
 
     return (
@@ -73,7 +73,7 @@ export default function AdminSidebar() {
                         />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-bold text-sm leading-tight text-emerald-950 ml-2"> Northern Mindanao Medical Center</span>
+                        <span className="font-bold text-sm leading-tight text-emerald-800 ml-2"> Northern Mindanao Medical Center</span>
                     </div>
                 </div>
 
@@ -83,7 +83,7 @@ export default function AdminSidebar() {
                         <SidebarMenu>
                             {mainSidebar.map((item) => (
                                 <SidebarMenuItem key={item.href}>
-                                    <SidebarMenuButton asChild className={`text-emerald-900 text-base px-3 h-auto w-full justify-start ${isActive(item.href) ? 'bg-emerald-200 font-bold' : 'font-medium hover:bg-emerald-200'}`}>
+                                    <SidebarMenuButton asChild className={`text-black text-base px-3 h-auto w-full justify-start ${isActive(item.href) ? 'bg-emerald-200 font-bold' : 'font-medium hover:bg-emerald-200'}`}>
                                         <Link href={item.href}>
                                             <item.Icon size={20} className="text-emerald-700" />
                                             <span>{item.label}</span>
@@ -96,13 +96,13 @@ export default function AdminSidebar() {
                 </SidebarGroup>
 
                 <SidebarGroup className="mt-4">
-                    <SidebarGroupLabel className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2">
+                    <SidebarGroupLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-4 mb-2">
                         Admin Settings
                     </SidebarGroupLabel>
                     <SidebarMenu>
                         {adminSettings.map((item) => (
                             <SidebarMenuItem key={item.href}>
-                                <SidebarMenuButton asChild className={`text-emerald-900 text-base px-3 h-auto w-full justify-start ${isActive(item.href) ? 'bg-emerald-200 font-bold' : 'font-medium hover:bg-emerald-200'}`}>
+                                <SidebarMenuButton asChild className={`text-black text-base px-3 h-auto w-full justify-start ${isActive(item.href) ? 'bg-emerald-200 font-bold' : 'font-medium hover:bg-emerald-200'}`}>
                                     <Link href={item.href}>
                                         <span>{item.label}</span>
                                     </Link>
@@ -119,7 +119,7 @@ export default function AdminSidebar() {
 
                     {/*CONTACT SUPP*/}
                     <SidebarMenuItem className="mb-2">
-                        <SidebarMenuButton className="text-emerald-900 font-medium hover:bg-emerald-200 text-base px-3 h-auto">
+                        <SidebarMenuButton className="text-black font-medium hover:bg-emerald-200 text-base px-3 h-auto">
                             <a href="#" className="flex items-left gap-2">
                                 <Headset size={20} className="mr-2" />
                                 <span> Contact Support </span>

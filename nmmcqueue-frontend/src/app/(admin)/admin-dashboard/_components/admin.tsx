@@ -146,12 +146,12 @@ export default function AdminDashboard({
             <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
                 <div className="flex items-center gap-3">
                     <SidebarTrigger />
-                    <h1 className="text-xl font-bold text-emerald-900">Admin Dashboard</h1>
+                    <h1 className="text-xl font-bold text-black">Admin Dashboard</h1>
                 </div>
                 <div className='flex items-center gap-3'>
                     <div className="hidden sm:flex sm:flex-col items-end mr-1">
-                        <span className="text-sm font-bold text-emerald-900">{loggedInUser.name}</span>
-                        <span className="text-xs text-slate-500 font-medium uppercase tracking-tighter">{loggedInUser.role}</span>
+                        <span className="text-sm font-bold text-black">{loggedInUser.name}</span>
+                        <span className="text-xs text-black font-medium uppercase tracking-tighter">{loggedInUser.role}</span>
                     </div>
                     <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
                         <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
@@ -208,7 +208,7 @@ export default function AdminDashboard({
                     <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="text-slate-600 border-slate-200">
+                                <Button variant="outline" className="text-black border-slate-200">
                                     <Funnel size={18} className="mr-2" /> {filterRole}
                                 </Button>
                             </DropdownMenuTrigger>
@@ -243,11 +243,11 @@ export default function AdminDashboard({
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-100">
-                                <TableHead className="w-[300px] font-semibold text-slate-600">Staff Info</TableHead>
-                                <TableHead className="font-semibold text-slate-600">Department</TableHead>
-                                <TableHead className="font-semibold text-slate-600">System Role</TableHead>
-                                <TableHead className="font-semibold text-slate-600">Status</TableHead>
-                                <TableHead className="font-semibold text-slate-600 text-right">Actions</TableHead>
+                                <TableHead className="w-[300px] font-semibold text-gray-700">Staff Info</TableHead>
+                                <TableHead className="font-semibold text-gray-700">Department</TableHead>
+                                <TableHead className="font-semibold text-gray-700">System Role</TableHead>
+                                <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                                <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -255,11 +255,11 @@ export default function AdminDashboard({
                                 <TableRow key={user.id} className="hover:bg-slate-50/50 transition-colors">
                                     <TableCell>
                                         <div className="flex flex-col py-1">
-                                            <span className="font-bold text-emerald-900 text-base">{user.name}</span>
-                                            <span className="text-xs text-slate-500">{user.email}</span>
+                                            <span className="font-bold text-black text-base">{user.name}</span>
+                                            <span className="text-xs text-black">{user.email}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="font-bold text-emerald-800">{user.department}</TableCell>
+                                    <TableCell className="font-bold text-black">{user.department}</TableCell>
                                     <TableCell>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>

@@ -18,11 +18,17 @@ class TriageService {
         await db.$transaction(async (tx) => {
             let patient;
             if (hospitalId) {
-                patient = await tx.patient.upsert({
-                    where: { hospitalId },
-                    update: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
-                    create: { hospitalId, firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
-                });
+                patient = await tx.patient.findUnique({ where: { hospitalId } });
+                if (patient) {
+                    patient = await tx.patient.update({
+                        where: { id: patient.id },
+                        data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
+                    });
+                } else {
+                    patient = await tx.patient.create({
+                        data: { hospitalId, firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
+                    });
+                }
             } else {
                 patient = await tx.patient.findFirst({ where: { firstName: rawData.firstName, lastName: rawData.lastName, dateOfBirth } });
                 if (patient) {

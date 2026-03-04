@@ -65,6 +65,12 @@ export default function AdminDashboard({
     const [viewPendingOnly, setViewPendingOnly] = useState(false);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
     const [isMounted, setIsMounted] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, filterRole, viewPendingOnly]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -91,7 +97,17 @@ export default function AdminDashboard({
         const matchesPending = viewPendingOnly ? !user.isApproved : true;
 
         return matchesSearch && matchesFilter && matchesPending;
+    }).sort((a, b) => {
+        //prioritze pending users
+        if (!a.isApproved && b.isApproved) return -1;
+        if (a.isApproved && !b.isApproved) return 1;
+        //sort alphabetically by name
+        return a.name.localeCompare(b.name);
     });
+    const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedUsers = filteredUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
 
     // 4. ACTION HANDLERS
     const handleApprove = async (userId: string) => {
@@ -251,7 +267,7 @@ export default function AdminDashboard({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredUsers.map((user) => (
+                            {paginatedUsers.map((user) => (
                                 <TableRow key={user.id} className="hover:bg-slate-50/50 transition-colors">
                                     <TableCell>
                                         <div className="flex flex-col py-1">
@@ -352,6 +368,31 @@ export default function AdminDashboard({
                             ))}
                         </TableBody>
                     </Table>
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 bg-slate-50/50">
+                            <span className='text-sm text-slate-500 font-medium'>
+                                Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
+                            </span>
+                            <div className='flex gap-2'>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                >Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+
+                    )}
                 </Card>
             </main>
         </div>

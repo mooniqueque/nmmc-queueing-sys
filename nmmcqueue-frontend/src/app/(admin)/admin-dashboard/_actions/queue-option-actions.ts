@@ -1,49 +1,38 @@
 "use server";
-import { API_URL, getAuthHeaders } from "@/lib/api";
+import * as callerApi from "@/lib/api/caller";
+import { getServerHeaders } from "@/lib/api/index";
 import { revalidatePath } from "next/cache";
 
 export async function getQueueOptions(departmentName: string) {
-    const res = await fetch(`${API_URL}/clinic/queue-options?departmentName=${encodeURIComponent(departmentName)}`, {
-        headers: await getAuthHeaders()
+    return callerApi.getQueueOptions(departmentName, {
+        headers: await getServerHeaders(),
     });
-    if (!res.ok) return ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
-    const json = await res.json();
-    return json.data;
 }
 
 export async function getQueueOptionsByDepartment(departmentNames: string[]) {
-    const res = await fetch(`${API_URL}/clinic/queue-options/batch`, {
-        method: "POST",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ departments: departmentNames })
+    return callerApi.getQueueOptionsByDepartment(departmentNames, {
+        headers: await getServerHeaders(),
     });
-    if (!res.ok) return {};
-    const json = await res.json();
-    return json.data;
 }
 
 export async function createQueueOption(departmentName: string, option: string) {
-    const res = await fetch(`${API_URL}/clinic/queue-options`, {
-        method: "POST",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ departmentName, option })
+    const result = await callerApi.createQueueOption(departmentName, option, {
+        headers: await getServerHeaders(),
     });
-    if (res.ok) {
+    if (result.success) {
         revalidatePath("/admin-departments");
         revalidatePath("/admin-caller");
     }
-    return res.json();
+    return result;
 }
 
 export async function deleteQueueOption(departmentName: string, option: string) {
-    const res = await fetch(`${API_URL}/clinic/queue-options`, {
-        method: "DELETE",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ departmentName, option })
+    const result = await callerApi.deleteQueueOption(departmentName, option, {
+        headers: await getServerHeaders(),
     });
-    if (res.ok) {
+    if (result.success) {
         revalidatePath("/admin-departments");
         revalidatePath("/admin-caller");
     }
-    return res.json();
+    return result;
 }

@@ -1,24 +1,25 @@
 "use server";
-import { API_URL, getAuthHeaders } from "@/lib/api";
+import { getServerHeaders } from "@/lib/api/index";
+import * as releasingApi from "@/lib/api/releasing";
 import { revalidatePath } from "next/cache";
 
 export async function getPendingQueue() {
-    const res = await fetch(`${API_URL}/clerk/pending`, {
-        headers: await getAuthHeaders(),
-        cache: "no-store"
+    return releasingApi.getPendingQueue({
+        headers: await getServerHeaders(),
     });
-    const json = await res.json();
-    return json;
 }
 
-export async function assignTicket(visitId: string, departmentId: string, priorityClass: string) {
-    const res = await fetch(`${API_URL}/clerk/${visitId}/assign`, {
-        method: "POST",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ departmentId, priorityClass })
-    });
-    if (res.ok) {
-        revalidatePath("/releasing", "page");
-    }
-    return res.json();
+export async function assignTicket(
+    visitId: string,
+    departmentId: string,
+    priorityClass: string
+) {
+    const result = await releasingApi.assignTicket(
+        visitId,
+        departmentId,
+        priorityClass,
+        { headers: await getServerHeaders() }
+    );
+    if (result.success) revalidatePath("/releasing", "page");
+    return result;
 }

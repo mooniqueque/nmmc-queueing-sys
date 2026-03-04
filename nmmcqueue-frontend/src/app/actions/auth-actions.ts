@@ -1,12 +1,12 @@
-"use server"
-import { API_URL, getAuthHeaders } from "@/lib/api";
+"use server";
+import * as authApi from "@/lib/api/auth";
+import { getServerHeaders } from "@/lib/api/index";
 import { revalidatePath } from "next/cache";
 
 export async function revokeAllSessions() {
-    const res = await fetch(`${API_URL}/auth/revoke-all-sessions`, {
-        method: "POST",
-        headers: await getAuthHeaders()
+    const result = await authApi.revokeAllSessions({
+        headers: await getServerHeaders(),
     });
-    if (res.ok) revalidatePath("/");
-    return res.json();
+    if (result.success) revalidatePath("/");
+    return result;
 }

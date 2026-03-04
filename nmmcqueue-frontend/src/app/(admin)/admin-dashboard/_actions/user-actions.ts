@@ -1,60 +1,48 @@
 "use server";
-import { API_URL, getAuthHeaders } from "@/lib/api";
+import * as authApi from "@/lib/api/auth";
+import { getServerHeaders } from "@/lib/api/index";
 import { revalidatePath } from "next/cache";
 
+export async function getAllUsers() {
+    return authApi.getAllUsers({ headers: await getServerHeaders() });
+}
+
 export async function approveUser(userId: string) {
-    const res = await fetch(`${API_URL}/users/${userId}/approve`, {
-        method: "POST",
-        headers: await getAuthHeaders()
+    const result = await authApi.approveUser(userId, {
+        headers: await getServerHeaders(),
     });
-    if (res.ok) revalidatePath("/admin-dashboard");
-    return res.json();
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
 }
 
 export async function rejectUser(userId: string) {
-    const res = await fetch(`${API_URL}/users/${userId}/reject`, {
-        method: "POST",
-        headers: await getAuthHeaders()
+    const result = await authApi.rejectUser(userId, {
+        headers: await getServerHeaders(),
     });
-    if (res.ok) revalidatePath("/admin-dashboard");
-    return res.json();
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
 }
 
 export async function adminCreateUser(data: Record<string, unknown>) {
-    const res = await fetch(`${API_URL}/users/create`, {
-        method: "POST",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify(data)
+    const result = await authApi.adminCreateUser(data, {
+        headers: await getServerHeaders(),
     });
-    if (res.ok) revalidatePath("/admin-dashboard");
-    return res.json();
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
 }
 
 export async function updateUserRole(userId: string, newRole: string) {
-    const res = await fetch(`${API_URL}/users/${userId}/role`, {
-        method: "PUT",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ role: newRole })
+    const result = await authApi.updateUserRole(userId, newRole, {
+        headers: await getServerHeaders(),
     });
-    if (res.ok) revalidatePath("/admin-dashboard");
-    return res.json();
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
 }
 
 export async function toggleUserStatus(userId: string, status: boolean) {
-    const res = await fetch(`${API_URL}/users/${userId}/status`, {
-        method: "PUT",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ status })
+    const result = await authApi.toggleUserStatus(userId, status, {
+        headers: await getServerHeaders(),
     });
-    if (res.ok) revalidatePath("/admin-dashboard");
-    return res.json();
-}
-
-export async function getAllUsers() {
-    const res = await fetch(`${API_URL}/users`, {
-        headers: await getAuthHeaders()
-    });
-    if (!res.ok) throw new Error("Unable to retrieve user list.");
-    const json = await res.json();
-    return json.data;
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
 }

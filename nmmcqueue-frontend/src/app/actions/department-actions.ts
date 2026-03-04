@@ -1,31 +1,24 @@
 "use server";
-import { API_URL, getAuthHeaders } from "@/lib/api";
+import * as callerApi from "@/lib/api/caller";
+import { getServerHeaders } from "@/lib/api/index";
 import { revalidatePath } from "next/cache";
 
 export async function getDepartments() {
-    const res = await fetch(`${API_URL}/clinic/departments`, {
-        headers: await getAuthHeaders()
-    });
-    if (!res.ok) return { success: false, data: [] };
-    const json = await res.json();
-    return json;
+    return callerApi.getDepartments({ headers: await getServerHeaders() });
 }
 
 export async function createDepartment(name: string, code: string) {
-    const res = await fetch(`${API_URL}/clinic/departments`, {
-        method: "POST",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ name, code })
+    const result = await callerApi.createDepartment(name, code, {
+        headers: await getServerHeaders(),
     });
-    if (res.ok) revalidatePath("/admin-departments");
-    return res.json();
+    if (result.success) revalidatePath("/admin-departments");
+    return result;
 }
 
 export async function deleteDepartment(id: string) {
-    const res = await fetch(`${API_URL}/clinic/departments/${id}`, {
-        method: "DELETE",
-        headers: await getAuthHeaders()
+    const result = await callerApi.deleteDepartment(id, {
+        headers: await getServerHeaders(),
     });
-    if (res.ok) revalidatePath("/admin-departments");
-    return res.json();
+    if (result.success) revalidatePath("/admin-departments");
+    return result;
 }

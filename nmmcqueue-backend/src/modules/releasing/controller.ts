@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { clerkService } from './service.js';
+import { releasingService } from './service.js';
 
-class ClerkController {
+class ReleasingController {
     async getPendingQueue(req: Request, res: Response) {
         try {
-            const queue = await clerkService.getPendingQueue();
+            const queue = await releasingService.getPendingQueue();
             res.status(200).json({ success: true, data: queue });
         } catch (error: any) {
             res.status(500).json({ success: false, error: error.message });
@@ -13,7 +13,7 @@ class ClerkController {
 
     async assignTicket(req: Request, res: Response) {
         try {
-            await clerkService.assignTicket(req.params.id, req.body);
+            await releasingService.assignTicket(req.params.id, req.body);
             res.status(200).json({ success: true, message: 'Ticket assigned and sent to clinic.' });
         } catch (error: any) {
             res.status(400).json({ success: false, error: error.message });
@@ -21,4 +21,4 @@ class ClerkController {
     }
 }
 
-export const clerkController = new ClerkController();
+export const releasingController = new ReleasingController();

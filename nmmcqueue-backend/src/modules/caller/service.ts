@@ -12,7 +12,7 @@ function orderOptions(values: string[]) {
 }
 function getEffectiveOptions(stored: string[]) { return stored.length > 0 ? orderOptions(stored) : [...DEFAULT_QUEUE_OPTIONS]; }
 
-class ClinicService {
+class CallerService {
     async getDepartments() { return await db.department.findMany({ orderBy: { name: 'asc' } }); }
     async createDepartment(name: string, code: string) { return await db.department.create({ data: { name: name.trim().toUpperCase(), code: code.trim().toUpperCase() } }); }
     async deleteDepartment(id: string) { await db.department.delete({ where: { id } }); }
@@ -82,4 +82,4 @@ class ClinicService {
     }
 }
 
-export const clinicService = new ClinicService();
+export const callerService = new CallerService();

@@ -2,7 +2,7 @@ import { db } from '../../config/database.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
 import { assignTicketSchema } from './schema.js';
 
-class ClerkService {
+class ReleasingService {
     async getPendingQueue() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -38,4 +38,4 @@ class ClerkService {
     }
 }
 
-export const clerkService = new ClerkService();
+export const releasingService = new ReleasingService();

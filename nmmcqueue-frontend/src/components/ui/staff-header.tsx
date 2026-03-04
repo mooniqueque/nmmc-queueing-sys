@@ -16,7 +16,7 @@ import { MdLogout, MdSettings, MdSupportAgent } from 'react-icons/md'
 export default function StaffHeader({ title }: { title: string }) {
     const { data } = authClient.useSession()
     const router = useRouter()
-    const loggedInUser = data?.user
+    const loggedInUser = data?.user as unknown as { name?: string, role?: string }
 
     const handleLogout = async () => {
         await authClient.signOut({

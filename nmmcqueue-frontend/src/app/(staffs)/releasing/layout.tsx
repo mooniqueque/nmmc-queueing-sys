@@ -16,7 +16,7 @@ export default function UserLayout({
     return (
         <div className="flex flex-col min-h-screen bg-slate-50/50 w-full">
             <StaffHeader title="Window Desk" />
-            <div className="flex-1 w-full relative">
+            <div className="flex-1 w-full relative overflow-hidden">
                 {children}
             </div>
         </div>

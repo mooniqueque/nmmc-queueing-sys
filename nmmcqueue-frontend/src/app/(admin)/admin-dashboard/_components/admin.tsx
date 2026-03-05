@@ -37,7 +37,9 @@ import {
     Phone,
     Trash,
     Users,
-    XCircle
+    XCircle,
+    ArrowsDownUp,
+    ArrowsDownUpIcon
 } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react';
@@ -75,6 +77,10 @@ export default function AdminDashboard({
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    //SORT FUNCTION
+    const [sortBy, setSortBy] = useState<'name'>('name');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
     // 2. DATA CALCULATIONS (Derived State)
     const analytics = {
@@ -137,6 +143,32 @@ export default function AdminDashboard({
             }
         } finally {
             setUpdatingUserId(null);
+        }
+    };
+
+    //FILTERED USERS
+    const sortedUsers = [...filteredUsers].sort((a, b) => {
+        let valA = '';
+        let valB = '';
+
+        switch (sortBy) {
+            case 'name':
+                valA = a.name.toLowerCase();
+                valB = b.name.toLowerCase();
+                break;
+        }
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    //TOGGLE HANDLER
+    const handleSort = (column: 'name') => {
+        if (sortBy == column) {
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortDirection('asc');
         }
     };
 
@@ -209,11 +241,11 @@ export default function AdminDashboard({
 
                 {/* 🔍 Controls Section */}
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-72">
-                            <MagnifyingGlass className="absolute left-3 top-2.5 text-slate-400" size={20} />
+                    <div className="flex items-center gap-2 w-full sm:w-auto px-5">
+                        <div className="relative w-full sm:w-100">
+                            <MagnifyingGlass className="absolute left-5 top-2 text-slate-400" size={20} />
                             <Input
-                                placeholder="Search by name, email, or dept..."
+                                placeholder="     Search by name, email, or dept..."
                                 className="pl-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -221,7 +253,7 @@ export default function AdminDashboard({
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
+                    <div className="flex items-center gap-4 w-full sm:w-auto overflow-x-auto mb-3 px-5 py-2">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="text-black border-slate-200">
@@ -233,6 +265,7 @@ export default function AdminDashboard({
                                     <DropdownMenuItem key={role} onClick={() => setFilterRole(role)}>
                                         {role}
                                     </DropdownMenuItem>
+
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>

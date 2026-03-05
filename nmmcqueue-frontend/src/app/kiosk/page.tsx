@@ -1,4 +1,4 @@
-import { KioskForm } from "./_components/kiosk-form";
+import { KioskForm } from "@/features/kiosk/components/kiosk-form";
 import ParticlesBackground from "@/components/ui/particles-background"
 
 export default function KioskPage() {

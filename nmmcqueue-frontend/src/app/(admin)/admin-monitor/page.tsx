@@ -1,4 +1,4 @@
-import QueueMonitor from "./_components/monitor";
+import QueueMonitor from "@/features/admin/components/monitor";
 
 export default async function MonitorPage({
     searchParams,
@@ -9,7 +9,7 @@ export default async function MonitorPage({
     const departmentName = typeof params?.departmentName === 'string' ? params.departmentName : "ANIMAL BITE DEPT";
 
     // We should also pre-fetch initial queue data here, similar to the caller.
-    const { getClinicQueues } = await import('@/app/(admin)/admin-dashboard/_actions/clinic-queue-actions');
+    const { getClinicQueues } = await import('@/features/admin/clinic-queue-actions');
     const res = await getClinicQueues(departmentName);
     const initialQueue = res.success ? res.data : [];
 

@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { HOSPITAL_ROLES } from "@/lib/constants/hospital"
+import { HOSPITAL_ROLES } from "@/types/constants"
 import { authClient } from "@/lib/database/auth-client"
 import { registrationSchema } from "@/features/auth/schemas"
 import { SignUpPayload } from "@/types/auth"

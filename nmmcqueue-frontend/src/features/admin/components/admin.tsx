@@ -20,7 +20,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { HOSPITAL_ROLES } from "@/lib/constants/hospital";
+import { HOSPITAL_ROLES } from "@/types/constants";
 import { SessionUser, UserData } from "@/types/auth";
 import { cn } from "@/lib/utils";
 import { Department } from "@/types/models";

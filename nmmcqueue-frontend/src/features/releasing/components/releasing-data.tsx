@@ -28,10 +28,7 @@ export default async function ReleasingData() {
 
     return (
         <div className='flex flex-1 flex-col h-full'>
-            <header className='bg-white sticky top-0 z-10 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
-                <div className="flex items-center gap-3">
-                    <h1 className="text-xl font-bold text-emerald-900">Ticket Releasing (Window)</h1>
-                </div>
+            <header className=''>
             </header>
             <ClerkEntry
                 initialQueue={pendingQueue}

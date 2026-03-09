@@ -44,7 +44,8 @@ export function TriageForm({
             firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Male",
             address: "", birthPlace: "", religion: "", civilStatus: "Single", hasAppointment: false,
             bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
-            hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false
+            hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
+            priorityClass: "REGNEW"
         }
     });
 
@@ -55,7 +56,8 @@ export function TriageForm({
                 firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Male",
                 address: "", birthPlace: "", religion: "", civilStatus: "Single", hasAppointment: false,
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
-                hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false
+                hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
+                priorityClass: "REGNEW"
             });
         } else if (selectedPatient) {
             methods.reset({
@@ -71,7 +73,8 @@ export function TriageForm({
                 civilStatus: selectedPatient.patient.civilStatus || "Single",
                 hasAppointment: selectedPatient.hasAppointment || false,
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
-                hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false
+                hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
+                priorityClass: "REGNEW"
             });
         } else {
             methods.reset();
@@ -159,6 +162,25 @@ export function TriageForm({
                                                     </SelectContent>
                                                 </Select>
                                             )}
+                                        />
+                                    </div>
+                                    <div className="w-48">
+                                        <Label className="text-xs font-bold text-slate-500 upercase mb-1 block">Patient Priority </Label>
+                                        <Controller
+                                            control={methods.control}
+                                            name="priorityClass"
+                                            render={({ field }) => (
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="REGULAR"> Regular </SelectItem>
+                                                        <SelectItem value="PRIORITY"> Priority </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            )
+                                            }
                                         />
                                     </div>
                                 </div>

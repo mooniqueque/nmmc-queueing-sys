@@ -131,6 +131,7 @@ model Visit {
   triageRemarks   String?     @db.Text
   disposition     String?
   triagedByUserId String?
+  triagedAt       DateTime?
   queueDate       DateTime    @default(now())
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -144,4 +145,12 @@ model Visit {
   @@index([patientId], map: "visit_patientId_fkey")
   @@index([triagedByUserId], map: "visit_triagedByUserId_fkey")
   @@map("visit")
+}
+
+model Sequence {
+  id    String @id @default(cuid())
+  name  String @unique
+  value Int    @default(0)
+
+  @@map("sequence")
 }

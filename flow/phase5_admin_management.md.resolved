@@ -1,0 +1,51 @@
+# Phase 5: Admin & Management Flow
+
+The **Admin Dashboard** is the "Control Tower" of the hospital. From here, admins manage the staff and fine-tune the queueing rules.
+
+---
+
+## 👥 1. User Management (The Gatekeeper)
+
+When a staff member signs up, they cannot log in until an Admin approves them.
+
+### File: [admin.tsx](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/admin/components/admin.tsx)
+
+#### **The Workflow**
+1.  **Approval List**: Admins see a table of all registered users.
+2.  **Toggle Approval**: When an Admin clicks "Approve", it calls a backend action:
+    - **Backend Action**: `approveUser(id)`
+    - **Logic**: Updates the [User](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/caller/components/user-caller-dashboard.tsx#22-158) table, setting `isApproved` to `true`.
+3.  **Role Assignment**: Admins can change a staff member's role (e.g., matching them to a specific department or promoting them to Admin).
+
+---
+
+## 🏢 2. Department & Queue Options
+
+Every hospital clinic is different. Some have "Fast Track," others don't. Admins configure this here.
+
+### File: [departments-data.tsx](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/admin/components/departments-data.tsx)
+
+#### **Purpose**
+This section allows the creation of new departments (like "RADIOLOGY") and the customization of their specific queue buttons.
+
+#### **Backend Interaction**
+- **File**: [caller/service.ts](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-backend/src/modules/caller/service.ts)
+- Admins can add or remove "Queue Options" (e.g., "Regular", "Senior"). These options then appear as buttons on the Caller dashboard for that department.
+
+---
+
+## 📊 3. Monitoring
+
+### File: [monitor.tsx](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/admin/components/monitor.tsx)
+
+Admins have a "Global View" of the entire hospital queue. They can see:
+- How many people are in Triage.
+- Which clinics are busy.
+- Total tickets served today.
+
+---
+
+## 💡 Why is it written this way?
+- **Security First**: The `isApproved` flag ensures that even if someone finds your signup page, they can't access sensitive patient data without manual verification.
+- **Dynamic Configuration**: By making "Queue Options" configurable in the database (instead of hard-coded), you can add new clinics or change rules without writing any new code!
+- **Unified Interface**: The Admin dashboard acts as a single landing page for managing the three pillars of the system: **Users**, **Data (Departments)**, and **Visibility (Monitor)**.

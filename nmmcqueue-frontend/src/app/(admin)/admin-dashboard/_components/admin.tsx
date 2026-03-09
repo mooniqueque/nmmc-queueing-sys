@@ -240,7 +240,7 @@ export default function AdminDashboard({
                 </div>
 
                 {/* 🔍 Controls Section */}
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl border shadow-sm">
+                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-2 rounded-xl border shadow-sm">
                     <div className="flex items-center gap-2 w-full sm:w-auto px-5">
                         <div className="relative w-full sm:w-100">
                             <MagnifyingGlass className="absolute left-5 top-2 text-slate-400" size={20} />

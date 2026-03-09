@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { FullPageSkeleton } from "@/components/ui/page-skeleton";
 import ParticlesBackground from "@/components/ui/particles-background";
 import { Suspense } from "react";
-import SignupData from "./_components/signup-data";
+import SignupData from "@/features/auth/components/signup-data";
 
 export default function SignupPage() {
   return (

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { DashboardSkeleton } from "@/components/ui/page-skeleton";
 import { Suspense } from "react";
-import ReleasingData from "./_components/releasing-data";
+import ReleasingData from "@/features/admin/components/releasing-data";
 
 export default function Page() {
     return (

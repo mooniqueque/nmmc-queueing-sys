@@ -1,9 +1,9 @@
 import cors from 'cors';
 import express from 'express';
 import { authRouter, userRouter } from './modules/auth/routes.js';
-import { clerkRouter } from './modules/clerk/routes.js';
-import { clinicRouter } from './modules/clinic/routes.js';
+import { callerRouter } from './modules/caller/routes.js';
 import { monitorRouter } from './modules/monitor/routes.js';
+import { releasingRouter } from './modules/releasing/routes.js';
 import { triageRouter } from './modules/triage/routes.js';
 
 export const app = express();
@@ -18,8 +18,8 @@ app.use(express.json());
 // Register API routes
 app.use('/api/monitor', monitorRouter);
 app.use('/api/triage', triageRouter);
-app.use('/api/clerk', clerkRouter);
-app.use('/api/clinic', clinicRouter);
+app.use('/api/releasing', releasingRouter);
+app.use('/api/caller', callerRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 

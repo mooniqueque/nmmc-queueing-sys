@@ -1,4 +1,4 @@
-import StaffHeader from '@/components/ui/staff-header';
+import StaffHeader from '@/components/layouts/staff-header';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

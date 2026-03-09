@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
-import { revokeAllSessions } from "../actions/auth-actions";
+import { revokeAllSessions } from "@/features/auth/actions";
 
 export default function AdminErrorBoundary({
     error,

@@ -1,195 +1,232 @@
 'use client';
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { StatsCard } from './stats-card';
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import React from 'react';
+import {
+    Activity,
+    AlertTriangle,
+    Clock,
+    Users,
+    TrendingUp,
+    HeartPulse,
+    UserCheck,
+    Stethoscope,
+    LucideIcon
+} from "lucide-react";
+import dynamic from 'next/dynamic';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SessionUser } from "@/types/auth";
+import { getBarChartOptions, getDonutChartOptions } from './triage-chart';
 
-// Helper components for missing UI elements (Checkbox, Textarea)
-// You might want to install these from shadcn/ui later: npx shadcn@latest add checkbox textarea
-const Checkbox = ({ id, label }: { id: string, label: string }) => (
-    <div className="flex items-center space-x-2">
-        <input
-            type="checkbox"
-            id={id}
-            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-        />
-        <label
-            htmlFor={id}
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-            {label}
-        </label>
-    </div>
-);
 
-const Textarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-    <textarea
-        {...props}
-        className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-    />
-);
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
+import { ApexOptions } from 'apexcharts';
 
-export default function TriageNurseForm() {
+export interface VolumeData {
+    time: string;
+    patients: number;
+}
+
+export interface CategoryData {
+    name: string;
+    value: number;
+    color: string;
+}
+
+export interface DestinationData {
+    name: string;
+    value: number;
+    color: string;
+}
+
+export interface TriageActivity {
+    id: string;
+    time: string;
+    patient: string;
+    type: 'Emergency' | 'Urgent' | 'Non-Urgent';
+}
+
+export interface TriageKPIs {
+    totalTriagedToday: number;
+    totalTriagedChangePct: number;
+    emergentCases: number;
+    avgTriageTimeMins: number;
+    avgTriageTimeChangeMins: number;
+    currentlyWaiting: number;
+}
+
+interface TriageNurseStatsProps {
+    volumeData?: VolumeData[];
+    categoryData?: CategoryData[];
+    destinationData?: DestinationData[];
+    recentActivities?: TriageActivity[];
+    kpis?: TriageKPIs;
+    totalPatients?: number;
+}
+
+const DEFAULT_VOLUME_DATA: VolumeData[] = [
+    { time: '08:00', patients: 12 }, { time: '09:00', patients: 25 },
+    { time: '10:00', patients: 32 }, { time: '11:00', patients: 28 },
+    { time: '12:00', patients: 15 }, { time: '13:00', patients: 22 },
+    { time: '14:00', patients: 30 }, { time: '15:00', patients: 18 },
+    { time: '16:00', patients: 10 },
+];
+
+const DEFAULT_CATEGORY_DATA: CategoryData[] = [
+    { name: 'Emergency', value: 8, color: '#ef4444' }, // red-500
+    { name: 'Urgent', value: 35, color: '#eab308' },  // yellow-500
+    { name: 'Non-Urgent', value: 65, color: '#10b981' }, // emerald-500
+];
+
+const DEFAULT_DESTINATION_DATA: DestinationData[] = [
+    { name: 'ER', value: 12, color: '#ef4444' },
+    { name: 'OPD - Internal Med', value: 45, color: '#3b82f6' },
+    { name: 'OPD - Pediatrics', value: 32, color: '#8b5cf6' },
+    { name: 'OPD - Surgery', value: 19, color: '#f97316' },
+];
+
+const DEFAULT_ACTIVITIES: TriageActivity[] = [
+    { id: 'TRG-0108', time: '10 mins ago', patient: 'J. Doe', type: 'Urgent' },
+    { id: 'TRG-0107', time: '15 mins ago', patient: 'M. Smith', type: 'Non-Urgent' },
+    { id: 'TRG-0106', time: '22 mins ago', patient: 'A. Johnson', type: 'Emergency' },
+    { id: 'TRG-0105', time: '30 mins ago', patient: 'R. Davis', type: 'Non-Urgent' },
+];
+
+const DEFAULT_KPIS: TriageKPIs = {
+    totalTriagedToday: 108,
+    totalTriagedChangePct: 12,
+    emergentCases: 8,
+    avgTriageTimeMins: 4.2,
+    avgTriageTimeChangeMins: -0.5,
+    currentlyWaiting: 15
+};
+
+const getActivityConfig = (type: TriageActivity['type']): { icon: LucideIcon, colorClass: string, badgeClass: string } => {
+    switch (type) {
+        case 'Emergency':
+            return { icon: Activity, colorClass: 'bg-red-100 text-red-600', badgeClass: 'bg-red-50 text-red-700 border border-red-200' };
+        case 'Urgent':
+            return { icon: AlertTriangle, colorClass: 'bg-yellow-100 text-yellow-600', badgeClass: 'bg-yellow-50 text-yellow-700 border border-yellow-200' };
+        case 'Non-Urgent':
+        default:
+            return { icon: UserCheck, colorClass: 'bg-emerald-100 text-emerald-600', badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200' };
+    }
+};
+
+
+export default function TriageNurseStats({
+    loggedInUser,
+    volumeData = DEFAULT_VOLUME_DATA,
+    categoryData = DEFAULT_CATEGORY_DATA,
+    destinationData = DEFAULT_DESTINATION_DATA,
+    recentActivities = DEFAULT_ACTIVITIES,
+    kpis = DEFAULT_KPIS,
+    totalPatients = 108
+}: TriageNurseStatsProps & {
+    loggedInUser?: SessionUser
+}) {
+    if (!loggedInUser) return null;
+    const barChartSeries = [{
+        name: 'Patients',
+        data: volumeData.map(d => d.patients)
+    }];
+    const donutChartSeries = categoryData.map(d => d.value);
+
     return (
-        <div className="p-6 bg-slate-50 min-h-screen flex justify-center">
-            <Card className="w-full max-w-5xl shadow-lg border-t-4 border-t-emerald-600">
-                <CardHeader className="bg-emerald-50/50 border-b border-emerald-100 pb-4">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle className="text-2xl font-bold text-emerald-900">TRIAGE ASSESSMENT FORM</CardTitle>
-                            <CardDescription className="text-emerald-700 font-medium mt-1">
-                                TO BE FILLED OUT BY TRIAGE OFFICER
-                            </CardDescription>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-sm font-semibold text-slate-500">Date: {new Date().toLocaleDateString()}</div>
-                            <div className="text-sm font-semibold text-slate-500">Time: {new Date().toLocaleTimeString()}</div>
-                        </div>
+        <div className="flex flex-1 flex-col">
+            {/*HEADER*/}
+            <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
+                <div className="flex items-center gap-3">
+                    <SidebarTrigger />
+                    <h1 className="text-xl font-bold text-black">Triage Statistics</h1>
+                </div>
+                <div className='flex items-center gap-3'>
+                    <div className="hidden sm:flex sm:flex-col items-end mr-1">
+                        <span className="text-sm font-bold text-black">{loggedInUser.name}</span>
+                        <span className="text-xs text-black font-medium uppercase tracking-tighter">{loggedInUser.role}</span>
                     </div>
-                </CardHeader>
+                    <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
+                        <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
+                            {loggedInUser.name?.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                </div>
+            </header>
 
-                <CardContent className="p-6 space-y-6">
-                    {/* SECTION 1: SYMPTOMS & INFECTIOUS STATUS */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                        {/* Symptoms */}
-                        <div className="md:col-span-8">
-                            <Label className="text-base font-bold text-slate-700 mb-3 block">Symptoms Present</Label>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                <Checkbox id="sym-fever" label="Fever" />
-                                <Checkbox id="sym-cough" label="Cough" />
-                                <Checkbox id="sym-colds" label="Colds" />
-                                <Checkbox id="sym-rashes" label="Rashes" />
+            <main className='p-6 space-y-6 bg-slate-50/50 px-10'>
+                {/* TOP KPI STATS ROW */}
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
+                    <StatsCard
+                        label="Total Triaged Today"
+                        value={kpis.totalTriagedToday.toString()}
+                        icon={<Users size={28} className="text-white" />}
+                        color="bg-emerald-600"
+                    />
+                    <StatsCard
+                        label="Currently Waiting"
+                        value={kpis.currentlyWaiting.toString()}
+                        icon={<Clock size={28} className="text-white" />}
+                        color="bg-amber-500"
+                    />
+                    <StatsCard
+                        label="Avg Triage Time (min)"
+                        value={kpis.avgTriageTimeMins.toString()}
+                        icon={<TrendingUp size={28} className="text-white" />}
+                        color="bg-blue-500"
+                    />
+                    <StatsCard
+                        label="Emergent Cases"
+                        value={kpis.emergentCases.toString()}
+                        icon={<AlertTriangle size={28} className="text-white" />}
+                        color="bg-red-500"
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    {/* Patient Volume Bar Chart */}
+                    <Card className="shadow-sm border-0 ring-1 ring-slate-200">
+                        <CardHeader>
+                            <CardTitle className="text-lg font-bold text-slate-800">Patient Volume Today</CardTitle>
+                            <CardDescription>Hourly breakdown of arriving patients</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-[300px] w-full mt-4">
+                                <Chart
+                                    options={getBarChartOptions(volumeData)}
+                                    series={barChartSeries}
+                                    type="bar"
+                                    height={300}
+                                    width="100%"
+                                />
                             </div>
-                        </div>
+                        </CardContent>
+                    </Card>
 
-                        {/* Infectious Check */}
-                        <div className="md:col-span-4 border-l pl-6 border-slate-200">
-                            <Label className="text-base font-bold text-slate-700 mb-3 block">Infectious?</Label>
-                            <div className="flex gap-6 mt-2">
-                                <div className="flex items-center space-x-2">
-                                    <input type="radio" name="infectious" id="inf-yes" className="text-emerald-600 focus:ring-emerald-500" />
-                                    <label htmlFor="inf-yes" className="font-medium text-red-600">YES</label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <input type="radio" name="infectious" id="inf-no" className="text-emerald-600 focus:ring-emerald-500" />
-                                    <label htmlFor="inf-no" className="font-medium text-emerald-700">NO</label>
-                                </div>
+                    {/* Triage Categories Donut Chart */}
+                    <Card className="shadow-sm border-0 ring-1 ring-slate-200">
+                        <CardHeader>
+                            <CardTitle className="text-lg font-bold text-slate-800">Triage Categories</CardTitle>
+                            <CardDescription>Distribution of patient urgency</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex justify-center items-center">
+                            <div className="h-[300px] w-full max-w-[400px] mt-4">
+                                <Chart
+                                    options={getDonutChartOptions(categoryData)}
+                                    series={donutChartSeries}
+                                    type="donut"
+                                    height={300}
+                                />
                             </div>
-                        </div>
-                    </div>
-
-                    <Separator className="bg-slate-200" />
-
-                    {/* SECTION 2: VITAL SIGNS */}
-                    <div>
-                        <Label className="text-base font-bold text-slate-800 mb-4 block uppercase tracking-wide">Vital Signs</Label>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="vs-bp" className="text-xs font-semibold text-slate-500 uppercase">BP (mmHg)</Label>
-                                <Input id="vs-bp" placeholder="120/80" className="font-mono text-center border-slate-300 focus:border-emerald-500" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="vs-hr" className="text-xs font-semibold text-slate-500 uppercase">HR (bpm)</Label>
-                                <Input id="vs-hr" placeholder="72" className="font-mono text-center border-slate-300 focus:border-emerald-500" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="vs-rr" className="text-xs font-semibold text-slate-500 uppercase">RR (cpm)</Label>
-                                <Input id="vs-rr" placeholder="16" className="font-mono text-center border-slate-300 focus:border-emerald-500" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="vs-temp" className="text-xs font-semibold text-slate-500 uppercase">Temp (°C)</Label>
-                                <Input id="vs-temp" placeholder="36.5" className="font-mono text-center border-slate-300 focus:border-emerald-500" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="vs-o2" className="text-xs font-semibold text-slate-500 uppercase">O2 Sat (%)</Label>
-                                <Input id="vs-o2" placeholder="98" className="font-mono text-center border-slate-300 focus:border-emerald-500" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <Separator className="bg-slate-200" />
-
-                    {/* SECTION 3: CLINICAL NOTES */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="reason" className="font-bold text-slate-700">Reason for Consultation</Label>
-                            <Textarea id="reason" placeholder="Enter chief complaint..." className="h-32 resize-none" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="history" className="font-bold text-slate-700">Pertinent History</Label>
-                            <Textarea id="history" placeholder="Enter medical history..." className="h-32 resize-none" />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="remarks" className="font-bold text-slate-700">Remarks / Initial Assessment</Label>
-                        <Textarea id="remarks" placeholder="Enter additional notes..." className="h-20 resize-y" />
-                    </div>
-
-                    <Separator className="bg-slate-200 my-4" />
-
-                    {/* SECTION 4: DISPOSITION & DESTINATION */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-6 rounded-lg border border-slate-200">
-                        {/* Disposition */}
-                        <div>
-                            <Label className="text-sm font-bold text-slate-500 uppercase mb-3 block">Triage Officer&apos;s Disposition</Label>
-                            <div className="space-y-3">
-                                <div className="flex items-center space-x-2 p-2 rounded hover:bg-red-50 cursor-pointer">
-                                    <input type="radio" name="disposition" id="disp-emergent" className="h-4 w-4 text-red-600 focus:ring-red-500" />
-                                    <label htmlFor="disp-emergent" className="font-bold text-red-700 cursor-pointer">EMERGENT (Immediate Attention)</label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-2 rounded hover:bg-yellow-50 cursor-pointer">
-                                    <input type="radio" name="disposition" id="disp-urgent" className="h-4 w-4 text-yellow-600 focus:ring-yellow-500" />
-                                    <label htmlFor="disp-urgent" className="font-bold text-yellow-700 cursor-pointer">URGENT (Within 30 mins)</label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-2 rounded hover:bg-emerald-50 cursor-pointer">
-                                    <input type="radio" name="disposition" id="disp-non-urgent" className="h-4 w-4 text-emerald-600 focus:ring-emerald-500" />
-                                    <label htmlFor="disp-non-urgent" className="font-bold text-emerald-700 cursor-pointer">NON-URGENT (Queue)</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Destination */}
-                        <div>
-                            <Label className="text-sm font-bold text-slate-500 uppercase mb-3 block">Patient Destination</Label>
-                            <div className="space-y-4">
-                                <div className="bg-white p-3 border rounded-lg shadow-sm">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <input type="radio" name="destination" id="dest-opd" className="h-4 w-4 text-emerald-600" defaultChecked />
-                                        <label htmlFor="dest-opd" className="font-bold text-emerald-900">To OPD Clinic</label>
-                                    </div>
-                                    <Input placeholder="Specify Clinic (e.g. IM, Pediatrics, Surgery)" className="mt-1" />
-                                </div>
-
-                                <div className="bg-red-50 p-3 border border-red-100 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <input type="radio" name="destination" id="dest-er" className="h-4 w-4 text-red-600" />
-                                        <label htmlFor="dest-er" className="font-bold text-red-700">To Emergency Room (ER)</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* SECTION 5: SIGNATURE */}
-                    <div className="pt-6 flex justify-end">
-                        <div className="w-full max-w-sm">
-                            <Label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Triage Officer&apos;s Name / Signature</Label>
-                            <Input placeholder="Enter Verify Name" className="font-medium text-lg border-b-2 border-t-0 border-x-0 rounded-none px-0 shadow-none border-slate-400 focus:border-emerald-600 focus:ring-0" />
-                            <div className="text-right text-xs text-slate-400 mt-1">Authorized Signature</div>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button variant="outline" className="border-slate-300 text-slate-600 w-32">Clear Form</Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700 w-40">Submit Triage</Button>
-                    </div>
-
-                </CardContent>
-            </Card>
+                        </CardContent>
+                    </Card>
+                </div>
+            </main>
         </div>
     );
 }
+

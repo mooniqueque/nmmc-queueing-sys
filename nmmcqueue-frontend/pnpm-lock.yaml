@@ -32,6 +32,9 @@ importers:
       '@tsparticles/slim':
         specifier: ^3.9.1
         version: 3.9.1
+      apexcharts:
+        specifier: ^5.10.3
+        version: 5.10.3
       better-auth:
         specifier: ^1.4.19
         version: 1.4.20(next@16.1.6(@babel/core@7.29.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -56,6 +59,9 @@ importers:
       react:
         specifier: 19.2.3
         version: 19.2.3
+      react-apexcharts:
+        specifier: ^2.1.0
+        version: 2.1.0(apexcharts@5.10.3)(react@19.2.3)
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
@@ -2013,6 +2019,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@yr/monotone-cubic-spline@1.0.3':
+    resolution: {integrity: sha512-FQXkOta0XBSUPHndIKON2Y9JeQz5ZeMqLYZVVK93FliNBFm7LNMIZmY6FrMEB9XPcDbE2bekMbZD6kzDkxwYjA==}
+
   accepts@2.0.0:
     resolution: {integrity: sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==}
     engines: {node: '>= 0.6'}
@@ -2060,6 +2069,9 @@ packages:
   ansis@4.2.0:
     resolution: {integrity: sha512-HqZ5rWlFjGiV0tDm3UxxgNRqsOTniqoKZu0pIAfh7TZQMGuZK+hH0drySty0si0QXj1ieop4+SkSfPZBPPkHig==}
     engines: {node: '>=14'}
+
+  apexcharts@5.10.3:
+    resolution: {integrity: sha512-wwvkSLsodNOc/rHo5MJsn3GPM4Krc5Gs0zKX4Lfzq4LohcTbyKylYUGEqJFmXXxGR7yLbZQz31sB5RTqT5mv1g==}
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
@@ -3734,6 +3746,12 @@ packages:
   raw-body@3.0.2:
     resolution: {integrity: sha512-K5zQjDllxWkf7Z5xJdV0/B0WTNqx6vxG70zJE4N0kBs4LovmEYWJzQGxC9bS9RAKu3bgM40lrd5zoLJ12MQ5BA==}
     engines: {node: '>= 0.10'}
+
+  react-apexcharts@2.1.0:
+    resolution: {integrity: sha512-xrmeTKRKHh3cvvLc8SasqFjlOgIqGpyHc81qjnRtcjUM0Fu7qEjgVRWGPokGFjqhwRZVgEym8zmuEyYr5LMYIg==}
+    peerDependencies:
+      apexcharts: '>=5.10.1'
+      react: '>=16.8.0'
 
   react-dom@19.2.3:
     resolution: {integrity: sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==}
@@ -6249,6 +6267,8 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
+  '@yr/monotone-cubic-spline@1.0.3': {}
+
   accepts@2.0.0:
     dependencies:
       mime-types: 3.0.2
@@ -6289,6 +6309,10 @@ snapshots:
       color-convert: 2.0.1
 
   ansis@4.2.0: {}
+
+  apexcharts@5.10.3:
+    dependencies:
+      '@yr/monotone-cubic-spline': 1.0.3
 
   argparse@2.0.1: {}
 
@@ -8088,6 +8112,12 @@ snapshots:
       http-errors: 2.0.1
       iconv-lite: 0.7.2
       unpipe: 1.0.0
+
+  react-apexcharts@2.1.0(apexcharts@5.10.3)(react@19.2.3):
+    dependencies:
+      apexcharts: 5.10.3
+      prop-types: 15.8.1
+      react: 19.2.3
 
   react-dom@19.2.3(react@19.2.3):
     dependencies:

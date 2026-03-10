@@ -1,6 +1,6 @@
 "use server";
 import * as callerApi from "@/features/caller/api";
-import { getServerHeaders } from "@/lib/api/index";
+import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
 
 export async function getDepartments() {

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export default async function middleware(request: NextRequest) {
     let session = null;
     try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL;
         const response = await fetch(`${backendUrl}/auth/get-session`, {
             headers: {
                 cookie: request.headers.get("cookie") || "",
@@ -40,17 +40,17 @@ export default async function middleware(request: NextRequest) {
         }
 
         // Triage Nurse routes
-        if (path.startsWith("/triage") && role !== "TRIAGE_NURSE" && role !== "ADMIN") {
+        if (path.startsWith("/triage") && role !== "TRIAGE_NURSE") {
             return NextResponse.redirect(new URL("/", request.url));
         }
 
         // Window Clerk routes
-        if (path.startsWith("/releasing") && role !== "WINDOW_CLERK" && role !== "ADMIN") {
+        if (path.startsWith("/releasing") && role !== "WINDOW_CLERK") {
             return NextResponse.redirect(new URL("/", request.url));
         }
 
         // Clinic Caller routes
-        if (path.startsWith("/caller") && role !== "CLINIC_CALLER" && role !== "ADMIN") {
+        if (path.startsWith("/caller") && role !== "CLINIC_CALLER") {
             return NextResponse.redirect(new URL("/", request.url));
         }
     }

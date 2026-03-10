@@ -1,13 +1,8 @@
 "use client";
 
-<<<<<<< HEAD:nmmcqueue-frontend/src/features/releasing/components/clerk-queue-sidebar.tsx
-import { VisitWithPatient } from "@/features/triage/types";
-import { useClerkQueue } from "../hooks";
-=======
 import { VisitWithPatient } from "@/app/(staffs)/triage/_types";
 import { useState } from "react";
-import { useClerkQueue } from "../_hooks/use-clerk-queue";
->>>>>>> origin/frontandback_styling:nmmcqueue-frontend/src/app/(staffs)/releasing/_components/clerk-queue-sidebar.tsx
+import { useReleasingQueue } from "../hooks";
 
 const QUEUE_TABS = [
     { key: "ALL", label: "All" },
@@ -17,24 +12,24 @@ const QUEUE_TABS = [
 
 type TabKey = (typeof QUEUE_TABS)[number]["key"];
 
-interface ClerkQueueSidebarProps {
+interface ReleasingQueueSidebarProps {
     initialQueue: VisitWithPatient[];
     selectedPatientId: string | undefined;
     onSelectPatient: (patient: VisitWithPatient | null) => void;
     onError: (err: string) => void;
 }
 
-export function ClerkQueueSidebar({
+export function ReleasingQueueSidebar({
     initialQueue,
     selectedPatientId,
     onSelectPatient,
     onError
-}: ClerkQueueSidebarProps) {
-    const { activeQueue } = useClerkQueue(initialQueue);
+}: ReleasingQueueSidebarProps) {
+    const { activeQueue } = useReleasingQueue(initialQueue);
     const [activeTab, setActiveTab] = useState<TabKey>("ALL");
 
     // Filter the queue based on the active tab
-    const filteredQueue = activeQueue.filter((visit) => {
+    const filteredQueue = activeQueue.filter((visit: VisitWithPatient) => {
         if (activeTab === "ALL") return true;
         return visit.priorityClass === activeTab;
     });
@@ -42,7 +37,7 @@ export function ClerkQueueSidebar({
     // Count per tab for the badges
     const countFor = (tab: TabKey) => {
         if (tab === "ALL") return activeQueue.length;
-        return activeQueue.filter(v => v.priorityClass === tab).length;
+        return activeQueue.filter((v: VisitWithPatient) => v.priorityClass === tab).length;
     };
 
     return (
@@ -75,7 +70,7 @@ export function ClerkQueueSidebar({
                 {filteredQueue.length === 0 ? (
                     <div className="text-center text-slate-400 py-12 text-sm font-medium">No patients in this category.</div>
                 ) : (
-                    filteredQueue.map((visit) => (
+                    filteredQueue.map((visit: VisitWithPatient) => (
                         <div
                             key={visit.id}
                             onClick={() => {

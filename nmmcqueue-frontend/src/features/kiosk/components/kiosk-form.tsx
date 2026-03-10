@@ -36,6 +36,7 @@ export function KioskForm() {
             dobMonth: "",
             dobDay: "",
             dobYear: "",
+            age: undefined,
             birthPlace: "",
             religion: "",
             hospitalId: ""

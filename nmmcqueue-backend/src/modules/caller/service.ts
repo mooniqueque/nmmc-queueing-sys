@@ -1,4 +1,5 @@
 import { db } from '../../config/database.js';
+import { emitQueueUpdate } from '../../lib/sse.js';
 
 const DEFAULT_QUEUE_OPTIONS = ['REGULAR', 'CHILD', 'ER-REF', 'FT', 'REFERRALS'];
 const normalizeOption = (v: string) => v.trim().toUpperCase();
@@ -28,13 +29,16 @@ class CallerService {
 
         const whereClause: any = {
             createdAt: { gte: today, lt: tomorrow },
-            status: 'WAITING_CLINIC',
+            status: { in: ['WAITING_CLINIC', 'IN_PROGRESS'] },
         };
 
         if (departmentName) {
-            const dept = await db.department.findUnique({ where: { name: departmentName.trim() } });
+            const dept = await db.department.findUnique({ where: { name: departmentName.trim().toUpperCase() } });
             if (dept) {
                 whereClause.departmentId = dept.id;
+            } else {
+                // If department not found, do not return all queues, return none
+                whereClause.departmentId = 'NON_EXISTENT';
             }
         }
 
@@ -79,6 +83,70 @@ class CallerService {
             await tx.laneOption.deleteMany({ where: { departmentId } });
             if (next.length > 0) await tx.laneOption.createMany({ data: next.map(option => ({ departmentId, option })), skipDuplicates: true });
         });
+    }
+
+    async callPatient(visitId: string) {
+        const visit = await db.visit.findUnique({ where: { id: visitId } });
+        if (!visit) throw new Error('Visit not found');
+        const updated = await db.visit.update({
+            where: { id: visitId },
+            data: { status: 'IN_PROGRESS' }
+        });
+        if (updated.departmentId) emitQueueUpdate(updated.departmentId);
+        return updated;
+    }
+
+    async servePatient(visitId: string) {
+        const visit = await db.visit.findUnique({ where: { id: visitId } });
+        if (!visit) throw new Error('Visit not found');
+        const updated = await db.visit.update({
+            where: { id: visitId },
+            data: { status: 'COMPLETED' }
+        });
+        if (updated.departmentId) emitQueueUpdate(updated.departmentId);
+        return updated;
+    }
+
+    async noShowPatient(visitId: string) {
+        const visit = await db.visit.findUnique({ where: { id: visitId } });
+        if (!visit) throw new Error('Visit not found');
+        const updated = await db.visit.update({
+            where: { id: visitId },
+            data: { status: 'NO_SHOW' }
+        });
+        if (updated.departmentId) emitQueueUpdate(updated.departmentId);
+        return updated;
+    }
+
+    async transferPatient(visitId: string, targetDepartmentId: string) {
+        const visit = await db.visit.findUnique({ where: { id: visitId } });
+        if (!visit) throw new Error('Visit not found');
+        
+        const updated = await db.visit.update({
+            where: { id: visitId },
+            data: { 
+                status: 'WAITING_CLINIC', 
+                departmentId: targetDepartmentId 
+            }
+        });
+        
+        if (visit.departmentId) emitQueueUpdate(visit.departmentId);
+        emitQueueUpdate(targetDepartmentId);
+        return updated;
+    }
+
+    async notifyPatient(visitId: string) {
+        const visit = await db.visit.findUnique({ 
+            where: { id: visitId },
+            include: { patient: true }
+        });
+        if (!visit) throw new Error('Visit not found');
+        
+        const contactNo = visit.patient.contactNo;
+        if (!contactNo) throw new Error('Patient has no contact number registered');
+
+        console.log(`[SMS MOCK] Sending SMS to ${contactNo}: "Please proceed to the clinic, it is almost your turn."`);
+        return { success: true, message: 'Notification sent successfully' };
     }
 }
 

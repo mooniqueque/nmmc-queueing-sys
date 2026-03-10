@@ -1,5 +1,5 @@
 "use server";
-import { getServerHeaders } from "@/lib/api/index";
+import { getServerHeaders } from "@/lib/api/server";
 import * as triageApi from "@/features/triage/api";
 import { revalidatePath } from "next/cache";
 

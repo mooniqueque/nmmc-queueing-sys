@@ -1,5 +1,5 @@
 "use server";
-import { getServerHeaders } from "@/lib/api/index";
+import { getServerHeaders } from "@/lib/api/server";
 import * as reportsApi from "@/features/reports/api";
 
 export async function fetchReportVisitsAPI(filters: Record<string, unknown>) {

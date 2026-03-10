@@ -3,6 +3,16 @@ import { emitQueueUpdate } from '../../lib/sse.js';
 import { ticketService } from '../tickets/service.js';
 import { kioskFormSchema, triageFormSchema } from './schema.js';
 
+function calculateAgeFromDate(dateOfBirth: Date): number {
+    const today = new Date();
+    let age = today.getFullYear() - dateOfBirth.getFullYear();
+    const m = today.getMonth() - dateOfBirth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
+        age--;
+    }
+    return age >= 0 ? age : 0;
+}
+
 class TriageService {
     async registerKioskPatient(payload: unknown) {
         const rawData = await kioskFormSchema.parseAsync(payload);
@@ -17,24 +27,25 @@ class TriageService {
 
         await db.$transaction(async (tx) => {
             let patient;
+            const computedAge = parseInt(rawData.age as any, 10) || calculateAgeFromDate(dateOfBirth);
             if (hospitalId) {
                 patient = await tx.patient.findUnique({ where: { hospitalId } });
                 if (patient) {
                     patient = await tx.patient.update({
                         where: { id: patient.id },
-                        data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
+                        data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
                     });
                 } else {
                     patient = await tx.patient.create({
-                        data: { hospitalId, firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
+                        data: { hospitalId, firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
                     });
                 }
             } else {
                 patient = await tx.patient.findFirst({ where: { firstName: rawData.firstName, lastName: rawData.lastName, dateOfBirth } });
                 if (patient) {
-                    patient = await tx.patient.update({ where: { id: patient.id }, data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus } });
+                    patient = await tx.patient.update({ where: { id: patient.id }, data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus } });
                 } else {
-                    patient = await tx.patient.create({ data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus } });
+                    patient = await tx.patient.create({ data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus } });
                 }
             }
 
@@ -61,9 +72,10 @@ class TriageService {
         };
         if (validData.isManualEntry) {
             if (!validData.firstName || !validData.lastName || !validData.dateOfBirth || !validData.gender) throw new Error('Missing required demographic fields for Walk-In.');
+            const computedAgeEntry = calculateAgeFromDate(new Date(validData.dateOfBirth));
             let patient = await db.patient.findFirst({ where: { firstName: validData.firstName, lastName: validData.lastName, dateOfBirth: new Date(validData.dateOfBirth) } });
             if (!patient) {
-                patient = await db.patient.create({ data: { firstName: validData.firstName!, middleName: validData.middleName, lastName: validData.lastName!, dateOfBirth: new Date(validData.dateOfBirth!), gender: validData.gender!, address: validData.address, birthPlace: validData.birthPlace, religion: validData.religion, civilStatus: validData.civilStatus } });
+                patient = await db.patient.create({ data: { firstName: validData.firstName!, middleName: validData.middleName, lastName: validData.lastName!, dateOfBirth: new Date(validData.dateOfBirth!), age: computedAgeEntry, gender: validData.gender!, address: validData.address, birthPlace: validData.birthPlace, religion: validData.religion, civilStatus: validData.civilStatus } });
             }
             await db.$transaction(async (tx) => {
                 const nextTicket = await ticketService.generateNextTicketNumber(tx);
@@ -73,8 +85,9 @@ class TriageService {
             if (!visitId) throw new Error('No Visit ID provided for queue patient.');
             const existingVisit = await db.visit.findUnique({ where: { id: visitId }, select: { patientId: true } });
             if (!existingVisit) throw new Error('Visit not found.');
+            const dob = validData.dateOfBirth ? new Date(validData.dateOfBirth) : undefined;
             await db.$transaction([
-                db.patient.update({ where: { id: existingVisit.patientId }, data: { firstName: validData.firstName, middleName: validData.middleName, lastName: validData.lastName, dateOfBirth: validData.dateOfBirth ? new Date(validData.dateOfBirth) : undefined, gender: validData.gender, address: validData.address, birthPlace: validData.birthPlace, religion: validData.religion, civilStatus: validData.civilStatus } }),
+                db.patient.update({ where: { id: existingVisit.patientId }, data: { firstName: validData.firstName, middleName: validData.middleName, lastName: validData.lastName, dateOfBirth: dob, age: dob ? calculateAgeFromDate(dob) : undefined, gender: validData.gender, address: validData.address, birthPlace: validData.birthPlace, religion: validData.religion, civilStatus: validData.civilStatus } }),
                 db.visit.update({ where: { id: visitId }, data: triageUpdates }),
             ]);
         }

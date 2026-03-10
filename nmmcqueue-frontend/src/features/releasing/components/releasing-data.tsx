@@ -3,7 +3,7 @@ import { getDepartments } from '@/features/admin/department-actions';
 import { Department } from "@/types/models";
 import { connection } from "next/server";
 import { getPendingQueue } from '../actions';
-import { ClerkEntry } from './clerk-entry';
+import { ReleasingEntry } from './releasing-entry';
 
 export default async function ReleasingData() {
     await connection();
@@ -30,7 +30,7 @@ export default async function ReleasingData() {
         <div className='flex flex-1 flex-col h-full'>
             <header className=''>
             </header>
-            <ClerkEntry
+            <ReleasingEntry
                 initialQueue={pendingQueue}
                 departments={departments}
                 queueOptionsByDepartment={queueOptionsByDepartment}

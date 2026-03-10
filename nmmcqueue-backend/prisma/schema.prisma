@@ -83,8 +83,9 @@ model Department {
   name      String   @unique
   code      String   @unique
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  visits    Visit[]
+  updatedAt    DateTime     @updatedAt
+  visits       Visit[]
+  queueOptions LaneOption[]
 
   @@map("department")
 }
@@ -95,6 +96,7 @@ model Patient {
   lastName     String
   middleName   String?
   dateOfBirth  DateTime
+  age          Int
   gender       String
   contactNo    String?
   address      String?
@@ -153,4 +155,15 @@ model Sequence {
   value Int    @default(0)
 
   @@map("sequence")
+}
+
+model LaneOption {
+  id           String     @id @default(cuid())
+  departmentId String
+  option       String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, option])
+  @@index([departmentId], map: "laneOption_departmentId_fkey")
+  @@map("lane_option")
 }

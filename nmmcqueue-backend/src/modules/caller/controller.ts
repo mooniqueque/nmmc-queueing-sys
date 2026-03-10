@@ -51,6 +51,48 @@ class CallerController {
             res.status(200).json({ success: true });
         } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
     }
+
+    async callPatient(req: Request, res: Response) {
+        try {
+            const visitId = req.params.visitId;
+            const data = await callerService.callPatient(visitId);
+            res.status(200).json({ success: true, data });
+        } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
+    }
+
+    async servePatient(req: Request, res: Response) {
+        try {
+            const visitId = req.params.visitId;
+            const data = await callerService.servePatient(visitId);
+            res.status(200).json({ success: true, data });
+        } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
+    }
+
+    async noShowPatient(req: Request, res: Response) {
+        try {
+            const visitId = req.params.visitId;
+            const data = await callerService.noShowPatient(visitId);
+            res.status(200).json({ success: true, data });
+        } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
+    }
+
+    async transferPatient(req: Request, res: Response) {
+        try {
+            const visitId = req.params.visitId;
+            const { targetDepartmentId } = req.body;
+            if (!targetDepartmentId) return res.status(400).json({ success: false, error: 'targetDepartmentId is required' });
+            const data = await callerService.transferPatient(visitId, targetDepartmentId);
+            res.status(200).json({ success: true, data });
+        } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
+    }
+
+    async notifyPatient(req: Request, res: Response) {
+        try {
+            const visitId = req.params.visitId;
+            const data = await callerService.notifyPatient(visitId);
+            res.status(200).json({ success: true, data });
+        } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
+    }
 }
 
 export const callerController = new CallerController();

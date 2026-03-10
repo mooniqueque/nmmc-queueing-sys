@@ -105,3 +105,55 @@ export async function getClinicQueues(
     if (!res.ok) return { success: false, data: [] };
     return res.json();
 }
+
+// ─── Operational Actions ──────────────────────────────────────────────
+export async function callPatient(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/call`, {
+        method: "POST",
+        credentials: "include",
+        ...options,
+    });
+    return res.json();
+}
+
+export async function servePatient(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/serve`, {
+        method: "POST",
+        credentials: "include",
+        ...options,
+    });
+    return res.json();
+}
+
+export async function noShowPatient(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/no-show`, {
+        method: "POST",
+        credentials: "include",
+        ...options,
+    });
+    return res.json();
+}
+
+export async function transferPatient(
+    visitId: string,
+    targetDepartmentId: string,
+    options?: RequestInit
+) {
+    const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/transfer`, {
+        method: "POST",
+        credentials: "include",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ targetDepartmentId }),
+    });
+    return res.json();
+}
+
+export async function notifyPatient(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/notify`, {
+        method: "POST",
+        credentials: "include",
+        ...options,
+    });
+    return res.json();
+}

@@ -8,6 +8,7 @@ export const kioskFormSchema = z.object({
     dobMonth: z.string().min(1, 'Month is required'),
     dobDay: z.string().min(1, 'Day is required'),
     dobYear: z.string().min(4, 'Year is required'),
+    age: z.coerce.number().optional(),
     gender: z.string().min(1, 'Gender is required'),
     address: z.string().min(1, 'Address is required'),
     birthPlace: z.string().min(1, 'Birth place is required'),

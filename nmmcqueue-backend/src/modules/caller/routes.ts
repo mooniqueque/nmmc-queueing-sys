@@ -13,3 +13,10 @@ callerRouter.get('/queue-options', callerController.getQueueOptions);
 callerRouter.post('/queue-options/batch', callerController.getQueueOptionsByDepartment);
 callerRouter.post('/queue-options', callerController.createQueueOption);
 callerRouter.delete('/queue-options', callerController.deleteQueueOption);
+
+// Caller operations
+callerRouter.post('/visit/:visitId/call', callerController.callPatient);
+callerRouter.post('/visit/:visitId/serve', callerController.servePatient);
+callerRouter.post('/visit/:visitId/no-show', callerController.noShowPatient);
+callerRouter.post('/visit/:visitId/transfer', callerController.transferPatient);
+callerRouter.post('/visit/:visitId/notify', callerController.notifyPatient);

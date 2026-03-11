@@ -1,0 +1,116 @@
+# Phase 1: Kiosk Patient Flow (Deep Dive)
+
+This document explains the **Patient Intake** process. This is the entry point for almost everyone using the system.
+
+## 🌟 The Scenario
+A patient walks into NMMC. They see a screen (the Kiosk) where they need to register their visit. They might be a **Returning Patient** (with a Hospital ID) or a **New Patient**.
+
+---
+
+## 🎨 1. The Frontend (The Interface)
+
+### File: [kiosk-form.tsx](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/kiosk/components/kiosk-form.tsx)
+
+#### **Purpose**
+This is a "Smart Form". It doesn't just collect text; it validates data in real-time, calculates age, and can search for existing records.
+
+#### **Key Syntax & Concepts**
+1.  **`"use client"`**: This tells Next.js that this component runs in the browser. Interactive things like forms and buttons require this.
+2.  **State Management (`useState`)**: 
+    - `isLoading`: Disables the button after clicking to prevent double-submission.
+    - `isSearching`: Shows a "Searching..." indicator when looking up a Hospital ID.
+    - `message`: Stores success or error messages to show the user.
+3.  **React Hook Form (`useForm`)**:
+    - The engine that handles the form. It tracks what you type in every box.
+    - `resolver: zodResolver(kioskFormSchema)`: This is the "Policeman". It checks the data against your rules (defined in [schemas.ts](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/triage/schemas.ts)) before allowing the form to submit.
+4.  **Real-Time Calculations (`useWatch` & [calculateAge](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/kiosk/components/kiosk-form.tsx#49-69))**:
+    - When you type in the Year, Month, or Day, `useWatch` detects the change and automatically updates the "Age" display without you having to click anything.
+
+---
+
+## 🚀 2. The Data Flow (Frontend to Backend)
+
+### The Submit Function
+When the user clicks "Submit Registration", the [onSubmit](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/auth/components/login-form.tsx#45-61) function is called:
+
+```typescript
+async function onSubmit(data: KioskFormValues) {
+    setIsLoading(true);
+    const result = await registerKioskPatient(data); // Call the "middleman"
+    setIsLoading(false);
+    // ... handle success/error
+}
+```
+
+### The "Middleman" (Server Action)
+**File**: [actions.ts](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/kiosk/actions.ts)
+- It uses **Server Actions** (`"use server"`). This is a modern Next.js feature that lets the frontend call a backend function directly like a regular JavaScript function.
+
+### The API Client
+**File**: [api.ts](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/triage/api.ts)
+- This is where the actual HTTP request is built:
+```typescript
+const res = await fetch(`${API_URL}/triage/kiosk/register`, {
+    method: "POST",
+    body: JSON.stringify(data),
+});
+```
+- It sends the data to the backend server (the Express app).
+
+---
+
+## 🧠 3. The Backend (The Brain)
+
+### The Route
+**File**: [routes.ts](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-backend/src/modules/triage/routes.ts)
+- The backend at `/api/triage/kiosk/register` passes the work to `triageController.registerKiosk`.
+
+### The Controller
+**File**: [controller.ts](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-backend/src/modules/triage/controller.ts)
+- Its only job is to receive the request (`req.body`) and send a response back (`res.json`). It asks the **Service** to do the heavy lifting.
+
+### The Service (Business Logic)
+**File**: [service.ts](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-backend/src/modules/triage/service.ts) -> [registerKioskPatient](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/triage/api.ts#9-18)
+
+This is where the most important logic lives:
+1.  **Zod Validation (Security)**: Even though the frontend validated the data, the backend does it again. Why? Because a malicious hacker could bypass the frontend and send a direct request.
+2.  **Database Transaction (`db.$transaction`)**: This ensures that either *everything* works, or *nothing* happens. We don't want a patient created without a visit record.
+3.  **Find or Create Patient**:
+    - If `hospitalId` is provided, find that patient and update their info.
+    - If not, check if a patient with the same name and DOB exists.
+4.  **Queue Guard**: It checks if the patient is already in today's queue to prevent duplicates.
+5.  **Ticket Generation**: It calls `ticketService.generateNextTicketNumber` to get a fresh number (e.g., 101, 102).
+6.  **Visit Creation**: It creates a new record in the `Visit` table with status `KIOSK_SUBMITTED`.
+
+---
+
+## 🗄️ 4. The Database (The Memory)
+
+### Tables Involved (Prisma Schema)
+- **[Patient](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/triage/api.ts#9-18)**: Stores permanent info (Name, Birthdate, Gender).
+- **`Visit`**: Stores temporary info for today (Ticket Number, Status, Time in).
+
+### Data Flow Diagram
+```mermaid
+sequenceDiagram
+    participant P as Patient (Frontend)
+    participant B as Backend (Express)
+    participant D as Database (MySQL)
+    
+    P->>P: Fill Form (Zod Validation)
+    P->>B: POST /api/triage/kiosk/register
+    B->>B: Backend Validation (Zod)
+    B->>D: Find or Create Patient
+    B->>D: Create Visit (Status: KIOSK_SUBMITTED)
+    D-->>B: Success
+    B->>B: Emit SSE (Queue Update)
+    B-->>P: JSON { success: true }
+    P->>P: Show Success Message & Reset Form
+```
+
+---
+
+## 💡 Why is it written this way?
+- **Separation of Concerns**: The Frontend doesn't know about the database. The Controller doesn't know about the business logic. This makes it easier to fix one part without breaking the others.
+- **Transactions**: Using `$transaction` prevents "orphaned" data (having a patient record but no visit record).
+- **Zod Everywhere**: Having schemas on both sides ensures data integrity and saves time by catching errors early.

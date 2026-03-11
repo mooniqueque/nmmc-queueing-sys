@@ -3,23 +3,23 @@
 import { VisitWithPatient } from "@/features/triage/types";
 import { Department } from "@/types/models";
 import { useState } from "react";
-import { ClerkForm } from "./clerk-form";
-import { ClerkLayout } from "./clerk-layout";
-import { ClerkQueueSidebar } from "./clerk-queue-sidebar";
+import { ReleasingForm } from "./releasing-form";
+import { ReleasingLayout } from "./releasing-layout";
+import { ReleasingQueueSidebar } from "./releasing-queue-sidebar";
 
-interface ClerkEntryProps {
+interface ReleasingEntryProps {
     initialQueue: VisitWithPatient[];
     departments: Department[];
     queueOptionsByDepartment: Record<string, string[]>;
 }
 
-export function ClerkEntry({ initialQueue, departments, queueOptionsByDepartment }: ClerkEntryProps) {
+export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepartment }: ReleasingEntryProps) {
     const [selectedPatient, setSelectedPatient] = useState<VisitWithPatient | null>(null);
 
     return (
-        <ClerkLayout
+        <ReleasingLayout
             sidebarSlot={
-                <ClerkQueueSidebar
+                <ReleasingQueueSidebar
                     initialQueue={initialQueue}
                     selectedPatientId={selectedPatient?.id}
                     onSelectPatient={setSelectedPatient}
@@ -27,7 +27,7 @@ export function ClerkEntry({ initialQueue, departments, queueOptionsByDepartment
                 />
             }
             contentSlot={
-                <ClerkForm
+                <ReleasingForm
                     selectedPatient={selectedPatient}
                     setSelectedPatient={setSelectedPatient}
                     departments={departments}

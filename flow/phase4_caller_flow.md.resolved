@@ -1,0 +1,56 @@
+# Phase 4: Caller Flow (The Doctor's Queue)
+
+The final destination for our patient is the **Clinic / Window**. Here, the Doctor or Specialist sees only the patients assigned to their specific department.
+
+---
+
+## 👨‍⚕️ 1. The Specialized Dashboard
+
+### File: [user-caller-dashboard.tsx](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/features/caller/components/user-caller-dashboard.tsx)
+
+#### **Purpose**
+This screen is designed to be highly visible and easy to use in a fast-paced clinic. It shows "Now Serving" in giant text and the "Waitlist" for the specific department.
+
+#### **Key Concepts**
+1.  **Department Locking**: When a doctor logs in, the system checks their `department` (e.g., "IM-CLINIC"). The dashboard then filters the entire hospital queue to *only* show tickets for that department.
+2.  **`currentTicket` Logic**: The dashboard automatically picks the first person in the list (`departmentQueue[0]`) and displays them as "Now Serving".
+3.  **Live Stats**: The dashboard counts how many Regular, Pediatric, etc., patients are in the queue for that specific department in real-time.
+
+---
+
+## 🚀 2. The Logic Behind the View
+
+### The Hook: [useClinicQueue](file:///e:/queuesys/nmmc-queueing-sys/nmmcqueue-frontend/src/app/%28admin%29/_hooks/use-clinic-queue.ts)
+This is a critical piece of tech. It uses **Server-Sent Events (SSE)**.
+- Instead of the doctor clicking "Refresh," the server "pushes" updates to the screen the exact second the Releasing Clerk assigns a new patient.
+- `EventSource`: This opens a "live channel" to the backend monitoring stream.
+
+---
+
+## 🧠 3. Current Implementation Note
+As you might have noticed in the code, the **"MARK SERVED"** and **"TRANSFER"** buttons are currently part of the UI but aren't yet hooked up to backend functions in this version. 
+
+**Wait, why?** 
+In many queueing systems, the most important part is the "Call" and "Display". Marking someone as "Served" often just means they are removed from the live queue, which currently happens naturally when a ticket is no longer in the `WAITING_CLINIC` status or when it expires at the end of the day.
+
+---
+
+## 🗄️ 4. The Data Flow Diagram (The Finale)
+```mermaid
+sequenceDiagram
+    participant D as Doctor (Frontend)
+    participant B as Backend (Express)
+    participant CL as Clerk (Previous Step)
+    
+    CL->>B: Releases Ticket to Department
+    B->>B: Emit Update for Dept "IM-CLINIC"
+    B->>D: [SSE Push] "Queue Updated!"
+    D->>D: Refresh View
+    D->>D: Display New Ticket as "Now Serving"
+```
+
+---
+
+## 💡 Why is it written this way?
+- **High Visibility**: The giant ticket number is designed for monitors mounted on clinic walls.
+- **Role-Based Experience**: By keeping the Caller logic separate from Triage, the code is much easier to manage. If the Pediatrics department wants a different layout than Internal Medicine, we can easily change it here without touching anything else!

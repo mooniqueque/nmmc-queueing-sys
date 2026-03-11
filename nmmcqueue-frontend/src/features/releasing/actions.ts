@@ -1,5 +1,5 @@
 "use server";
-import { getServerHeaders } from "@/lib/api/index";
+import { getServerHeaders } from "@/lib/api/server";
 import * as releasingApi from "@/features/releasing/api";
 import { revalidatePath } from "next/cache";
 

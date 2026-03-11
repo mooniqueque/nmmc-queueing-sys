@@ -2,12 +2,12 @@
 
 import { ReactNode } from "react";
 
-interface ClerkLayoutProps {
+interface ReleasingLayoutProps {
     sidebarSlot: ReactNode;
     contentSlot: ReactNode;
 }
 
-export function ClerkLayout({ sidebarSlot, contentSlot }: ClerkLayoutProps) {
+export function ReleasingLayout({ sidebarSlot, contentSlot }: ReleasingLayoutProps) {
     return (
         <div className="flex flex-col lg:flex-row h-full w-full p-6 gap-6 bg-slate-50/50 overflow-hidden">
             {/* CENTER COLUMN: THE WORKSPACE (scrolls independently) */}

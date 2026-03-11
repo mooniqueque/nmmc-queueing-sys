@@ -6,7 +6,7 @@
 pnpm install
 ```
 
-```create .env 
+```create .env
 DATABASE_URL="mysql://root:[PASSWORD]:3306/nmmcqueueing"
 FRONTEND_URL="http://localhost:3000"
 BACKEND_URL="http://localhost:3001"
@@ -19,9 +19,16 @@ BETTER_AUTH_URL="http://localhost:3001/api/auth"
 ```bash
 pnpm dev
 ```
+
 ```bash
 npm i --save-dev @types/node 
 ```
+
+```
+pnpm i -D tsx
+tsx prisma/seed.ts
+```
+
 ```bash
 pnpm dlx prisma db push
 ```
@@ -37,8 +44,6 @@ pnpm dlx prisma generate
 ```bash
 pnpm dlx prisma db seed
 ```
-
-
 
 # nmmcqueue-frontend
 

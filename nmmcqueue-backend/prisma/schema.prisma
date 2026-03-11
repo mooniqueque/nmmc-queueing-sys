@@ -96,6 +96,7 @@ model Patient {
   lastName     String
   middleName   String?
   dateOfBirth  DateTime
+  age          Int
   gender       String
   contactNo    String?
   address      String?
@@ -109,17 +110,6 @@ model Patient {
   visits       Visit[]
 
   @@map("patient")
-}
-
-model LaneOption {
-  id           String     @id @default(cuid())
-  option       String
-  departmentId String
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-
-  @@unique([departmentId, option])
-  @@index([departmentId])
-  @@map("lane_option")
 }
 
 model Visit {
@@ -165,4 +155,15 @@ model Sequence {
   value Int    @default(0)
 
   @@map("sequence")
+}
+
+model LaneOption {
+  id           String     @id @default(cuid())
+  departmentId String
+  option       String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, option])
+  @@index([departmentId], map: "laneOption_departmentId_fkey")
+  @@map("lane_option")
 }

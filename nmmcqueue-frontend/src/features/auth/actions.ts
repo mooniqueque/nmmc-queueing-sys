@@ -1,6 +1,6 @@
 "use server";
 import * as authApi from "@/features/auth/api";
-import { getServerHeaders } from "@/lib/api/index";
+import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
 
 export async function revokeAllSessions() {

@@ -8,6 +8,7 @@ export const kioskFormSchema = z.object({
     dobMonth: z.string().min(1, "Month is required"),
     dobDay: z.string().min(1, "Day is required"),
     dobYear: z.string().length(4, "Valid year is required"),
+    age: z.coerce.number().optional(),
     gender: z.enum(["Male", "Female", "Prefer not to Say"], {
         message: "Please select a gender",
     }),

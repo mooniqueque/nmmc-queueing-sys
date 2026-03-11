@@ -18,6 +18,8 @@ function normalizeDepartmentKey(value: string) {
 
 import { useClinicQueue } from '@/app/(admin)/_hooks/use-clinic-queue';
 import { VisitWithPatient } from '@/features/triage/types';
+import { toast } from 'sonner';
+import { callPatient, servePatient, noShowPatient, notifyPatient } from '../api';
 
 export default function UserCallerDashboard({
     department,
@@ -29,22 +31,83 @@ export default function UserCallerDashboard({
     initialQueue?: VisitWithPatient[];
 }) {
     const [isAvailable, setIsAvailable] = useState(true);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // Live Queue Hook locked directly to the user's role department
     const { activeQueue } = useClinicQueue(department, initialQueue);
 
     // Filter queue to make absolutely sure we only count tickets for THIS department
-    const departmentQueue = activeQueue.filter((v: VisitWithPatient) => v.department?.name === department);
+    const departmentQueue = activeQueue.filter((v: VisitWithPatient) => 
+        v.department?.name?.toUpperCase() === department.toUpperCase()
+    );
 
     // Simplistic handling of what is "Now Serving" vs "Waitlist"
-    const currentTicket = departmentQueue.length > 0 ? `P-${departmentQueue[0].ticketNumber}` : "NONE";
+    const inProgressVisit = departmentQueue.find(v => v.status === 'IN_PROGRESS');
+    const waitingList = departmentQueue.filter(v => v.status === 'WAITING_CLINIC');
+    const nextVisit = waitingList.length > 0 ? waitingList[0] : null;
 
-    // Map backend data to UI expected shapes
-    const waitlist = departmentQueue.slice(1, 4).map((v: VisitWithPatient) => ({
+    const currentTicket = inProgressVisit 
+        ? `P-${inProgressVisit.ticketNumber}` 
+        : (nextVisit ? `Next: P-${nextVisit.ticketNumber}` : "NONE");
+
+    const waitlist = waitingList.slice(0, 3).map((v: VisitWithPatient) => ({
         ticket: `P-${v.ticketNumber}`,
         category: v.priorityClass || "REGULAR",
         time: new Date(v.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }));
+
+    // Action Handlers
+    const handleCallNext = async () => {
+        if (!nextVisit) return toast.info("No more patients in the waiting list.");
+        if (inProgressVisit) return toast.error("Please Mark Served or No Show the current patient first.");
+        
+        setIsProcessing(true);
+        try {
+            await callPatient(nextVisit.id);
+            toast.success(`Called patient P-${nextVisit.ticketNumber}`);
+        } catch {
+            toast.error("Failed to call patient");
+        }
+        setIsProcessing(false);
+    };
+
+    const handleServe = async () => {
+        if (!inProgressVisit) return toast.error("No active patient to serve.");
+        setIsProcessing(true);
+        try {
+            await servePatient(inProgressVisit.id);
+            toast.success("Patient marked as served.");
+        } catch {
+            toast.error("Failed to mark patient as served");
+        }
+        setIsProcessing(false);
+    };
+
+    const handleNoShow = async () => {
+        const targetVisit = inProgressVisit || nextVisit;
+        if (!targetVisit) return toast.error("No patient selected to mark as No Show.");
+        setIsProcessing(true);
+        try {
+            await noShowPatient(targetVisit.id);
+            toast.error(`Patient P-${targetVisit.ticketNumber} marked as NO SHOW`);
+        } catch {
+            toast.error("Failed to process No Show");
+        }
+        setIsProcessing(false);
+    };
+
+    const handleNotify = async () => {
+        const targetVisit = inProgressVisit || nextVisit;
+        if (!targetVisit) return toast.error("No patient selected to notify.");
+        setIsProcessing(true);
+        try {
+            await notifyPatient(targetVisit.id);
+            toast.success("SMS Notification simulated / sent.");
+        } catch {
+            toast.error("Failed to send notification.");
+        }
+        setIsProcessing(false);
+    };
 
     // Stats calculation based on live queue
     const stats = {
@@ -97,9 +160,13 @@ export default function UserCallerDashboard({
 
                             {/*BOTTOM BUTTONS*/}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <BotButton label="MARK SERVED" hotkey="Press S" />
-                                <BotButton label="TRANSFER QUEUE" hotkey="Press Q" />
-                                <BotButton label="NO SHOWS" hotkey="Press N" />
+                                {inProgressVisit ? (
+                                    <BotButton onClick={handleServe} disabled={isProcessing} label="MARK SERVED" hotkey="Press S" />
+                                ) : (
+                                    <BotButton onClick={handleCallNext} disabled={isProcessing || !nextVisit} label="CALL NEXT" hotkey="Press C" />
+                                )}
+                                <BotButton onClick={handleNotify} disabled={isProcessing} label="NOTIFY / RE-CALL" hotkey="Press R" />
+                                <BotButton onClick={handleNoShow} disabled={isProcessing} label="NO SHOW" hotkey="Press N" />
                                 <BotButton label="PRINT TICKET" hotkey="Press P" />
                             </div>
                         </div>
@@ -144,9 +211,9 @@ export default function UserCallerDashboard({
                                     </div>
                                     <Switch checked={isAvailable} onCheckedChange={setIsAvailable} />
                                 </div>
-                                <ActionButton icon={<XCircle />} label="No Show" color="text-red-500" />
+                                <ActionButton icon={<XCircle />} onClick={handleNoShow} disabled={isProcessing} label="No Show" color="text-red-500" />
                                 <ActionButton icon={<SkipForward />} label="Switch Window" color="text-slate-500" />
-                                <ActionButton icon={<ArrowsClockwise />} label="Re-Call Number" color="text-slate-500" />
+                                <ActionButton icon={<ArrowsClockwise />} onClick={handleNotify} disabled={isProcessing} label="Re-Call Number" color="text-slate-500" />
                             </div>
                         </div>
                     </div>
@@ -177,9 +244,9 @@ function WaitlistItem({ ticket, category, time }: { ticket: string, category: st
     )
 }
 
-function ActionButton({ icon, label, color }: { icon: React.ReactNode, label: string, color: string }) {
+function ActionButton({ icon, label, color, onClick, disabled }: { icon: React.ReactNode, label: string, color: string, onClick?: () => void, disabled?: boolean }) {
     return (
-        <Button variant="outline" className="h-15 flex items-center justify-start gap-6 px-7 bg-white border-0 shadow-sm hover:bg-slate-50">
+        <Button variant="outline" onClick={onClick} disabled={disabled} className="h-15 flex items-center justify-start gap-6 px-7 bg-white border-0 shadow-sm hover:bg-slate-50">
             <span className={`text-xl ${color}`}>{icon}</span>
             <span className="font-extrabold text-slate-700">{label}</span>
         </Button>
@@ -195,10 +262,10 @@ function TopButton({ label, hotkey, color = "bg-emerald-800" }: { label: string,
     )
 }
 
-function BotButton({ label, hotkey }: { label: string, hotkey: string }) {
+function BotButton({ label, hotkey, onClick, disabled }: { label: string, hotkey?: string, onClick?: () => void, disabled?: boolean }) {
     return (
-        <Button variant="secondary" className="h-20 flex flex-col items-start justify-center px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{hotkey}</span>
+        <Button variant="secondary" onClick={onClick} disabled={disabled} className="h-20 flex flex-col items-start justify-center px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl">
+            {hotkey && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{hotkey}</span>}
             <span className="text-xl font-bold text-slate-800">{label}</span>
         </Button>
     )

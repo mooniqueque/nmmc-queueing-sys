@@ -13,7 +13,7 @@ export default async function CallerData() {
     let session = null;
     let queueOptionsByDepartment = {};
     let initialQueueData: VisitWithPatient[] = [];
-    let userDepartment = "ANIMAL BITE DEPT"; // Fallback
+    let userDepartment = ""; // Fallback
 
     try {
         session = await auth.api.getSession({ headers: await headers() });

@@ -9,7 +9,7 @@ import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useState, useTransition } from "react";
 import { assignTicket } from "../actions";
 
-interface ClerkFormProps {
+interface ReleasingFormProps {
     selectedPatient: VisitWithPatient | null;
     setSelectedPatient: (patient: VisitWithPatient | null) => void;
     departments: Department[];
@@ -18,12 +18,12 @@ interface ClerkFormProps {
 
 const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
 
-export function ClerkForm({
+export function ReleasingForm({
     selectedPatient,
     setSelectedPatient,
     departments = [],
     queueOptionsByDepartment = {}
-}: ClerkFormProps) {
+}: ReleasingFormProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
     const [selectedQueueOption, setSelectedQueueOption] = useState("");

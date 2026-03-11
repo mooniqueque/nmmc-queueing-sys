@@ -26,6 +26,58 @@ async function main() {
         await prisma.account.deleteMany();
         await prisma.verification.deleteMany();
         await prisma.user.deleteMany();
+        // DO NOT delete departments entirely as there might be legitimate user-made ones, 
+        // but we will ensure our seeded ones exist.
+
+        console.log("✅ Users data cleared");
+
+        // DEFINITIONS
+        const callers = [
+            { name: "Andreanna Gorres", email: "andreanna@nmmc.gov.ph", dept: "Animal Bite Department", empId: "EMP002" },
+            { name: "Maria Clara", email: "maria@nmmc.gov.ph", dept: "Family Medicine", empId: "EMP005" },
+            { name: "Basilio Santos", email: "basilio@nmmc.gov.ph", dept: "Internal Medicine", empId: "EMP007" },
+            { name: "Elias Aguinaldo", email: "elias@nmmc.gov.ph", dept: "Pediatrics", empId: "EMP009" },
+            { name: "Rosa Santos", email: "rosa@nmmc.gov.ph", dept: "Obstetrics & Gynecology", empId: "EMP015" },
+        ];
+
+        const clerks = [
+            { name: "Aljo Nicolo Andina", email: "aljo@nmmc.gov.ph", dept: "X-RAY Department", empId: "EMP003" },
+            { name: "Juan Dela Cruz", email: "juan@nmmc.gov.ph", dept: "Family Medicine", empId: "EMP006" },
+            { name: "Crispin Santos", email: "crispin@nmmc.gov.ph", dept: "Dental Clinic", empId: "EMP008" },
+            { name: "Ibarra Rizal", email: "ibarra@nmmc.gov.ph", dept: "Laboratory", empId: "EMP010" },
+            { name: "Lorenzo Santos", email: "lorenzo@nmmc.gov.ph", dept: "Pharmacy", empId: "EMP016" },
+        ];
+
+        const pendingUsers = [
+            { name: "Karl Valmores", email: "karl@nmmc.gov.ph", dept: "Surgery", role: "TRIAGE_NURSE", empId: "EMP004" },
+            { name: "Sisa Kapitan", email: "sisa@nmmc.gov.ph", dept: "Pediatrics", role: "TRIAGE_NURSE", empId: "EMP011" },
+            { name: "Cecilio Santos", email: "cecilio@nmmc.gov.ph", dept: "Cardiology", role: "CLINIC_CALLER", empId: "EMP012" },
+            { name: "Placido Marquez", email: "placido@nmmc.gov.ph", dept: "Nephrology", role: "WINDOW_CLERK", empId: "EMP013" },
+            { name: "Herminia Ortiz", email: "herminia@nmmc.gov.ph", dept: "ENT", role: "TRIAGE_NURSE", empId: "EMP014" },
+            { name: "Silverio Santos", email: "silverio@nmmc.gov.ph", dept: "Ophthalmology", role: "CLINIC_CALLER", empId: "EMP017" },
+        ];
+
+        // 1.5 Seed Departments
+        console.log("🏥 Synchronizing Departments...");
+        const allDepts = Array.from(new Set([
+            "Administration",
+            ...callers.map(c => c.dept),
+            ...clerks.map(c => c.dept),
+            ...pendingUsers.map(u => u.dept)
+        ]));
+
+        for (const deptString of allDepts) {
+            const name = deptString.trim().toUpperCase();
+            // Generate a simple code if one doesn't exist, e.g. INTERNAL MEDICINE -> INT
+            const code = name.replace(/[^A-Z]/g, '').substring(0, 4) || name.substring(0, 4);
+            
+            await prisma.department.upsert({
+                where: { name },
+                update: {},
+                create: { name, code }
+            });
+        }
+        console.log(`✅ ${allDepts.length} departments synchronized`);
 
         console.log("✅ Database cleared");
 
@@ -52,13 +104,6 @@ async function main() {
 
         // 3. Seed Approved Clinic Callers
         console.log("📞 Creating clinic callers...");
-        const callers = [
-            { name: "Andreanna Gorres", email: "andreanna@nmmc.gov.ph", dept: "Animal Bite Department", empId: "EMP002" },
-            { name: "Maria Clara", email: "maria@nmmc.gov.ph", dept: "Family Medicine", empId: "EMP005" },
-            { name: "Basilio Santos", email: "basilio@nmmc.gov.ph", dept: "Internal Medicine", empId: "EMP007" },
-            { name: "Elias Aguinaldo", email: "elias@nmmc.gov.ph", dept: "Pediatrics", empId: "EMP009" },
-            { name: "Rosa Santos", email: "rosa@nmmc.gov.ph", dept: "Obstetrics & Gynecology", empId: "EMP015" },
-        ];
 
         for (const caller of callers) {
             await auth.api.signUpEmail({
@@ -83,13 +128,6 @@ async function main() {
 
         // 4. Seed Approved Window Clerks
         console.log("🪟 Creating window clerks...");
-        const clerks = [
-            { name: "Aljo Nicolo Andina", email: "aljo@nmmc.gov.ph", dept: "X-RAY Department", empId: "EMP003" },
-            { name: "Juan Dela Cruz", email: "juan@nmmc.gov.ph", dept: "Family Medicine", empId: "EMP006" },
-            { name: "Crispin Santos", email: "crispin@nmmc.gov.ph", dept: "Dental Clinic", empId: "EMP008" },
-            { name: "Ibarra Rizal", email: "ibarra@nmmc.gov.ph", dept: "Laboratory", empId: "EMP010" },
-            { name: "Lorenzo Santos", email: "lorenzo@nmmc.gov.ph", dept: "Pharmacy", empId: "EMP016" },
-        ];
 
         for (const clerk of clerks) {
             await auth.api.signUpEmail({
@@ -114,14 +152,6 @@ async function main() {
 
         // 5. Seed Pending Users (awaiting approval)
         console.log("⏳ Creating pending users...");
-        const pendingUsers = [
-            { name: "Karl Valmores", email: "karl@nmmc.gov.ph", dept: "Surgery", role: "TRIAGE_NURSE", empId: "EMP004" },
-            { name: "Sisa Kapitan", email: "sisa@nmmc.gov.ph", dept: "Pediatrics", role: "TRIAGE_NURSE", empId: "EMP011" },
-            { name: "Cecilio Santos", email: "cecilio@nmmc.gov.ph", dept: "Cardiology", role: "CLINIC_CALLER", empId: "EMP012" },
-            { name: "Placido Marquez", email: "placido@nmmc.gov.ph", dept: "Nephrology", role: "WINDOW_CLERK", empId: "EMP013" },
-            { name: "Herminia Ortiz", email: "herminia@nmmc.gov.ph", dept: "ENT", role: "TRIAGE_NURSE", empId: "EMP014" },
-            { name: "Silverio Santos", email: "silverio@nmmc.gov.ph", dept: "Ophthalmology", role: "CLINIC_CALLER", empId: "EMP017" },
-        ];
 
         for (const pendingUser of pendingUsers) {
             await auth.api.signUpEmail({
@@ -166,7 +196,6 @@ async function main() {
         await prisma.$disconnect();
     }
 }
-
 main().catch((error: unknown) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Fatal error during seeding:", errorMessage);

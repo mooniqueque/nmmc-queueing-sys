@@ -4,7 +4,7 @@ import { VisitWithPatient } from "@/features/triage/types";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-export function useClerkQueue(initialQueue: VisitWithPatient[]) {
+export function useReleasingQueue(initialQueue: VisitWithPatient[]) {
     const router = useRouter();
     const activeQueue = initialQueue.filter(v => v.status === "WAITING_WINDOW");
     const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);

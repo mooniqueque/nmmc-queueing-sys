@@ -86,7 +86,6 @@ model Department {
   updatedAt    DateTime     @updatedAt
   visits       Visit[]
   queueOptions LaneOption[]
-  queueOptions LaneOption[]
 
   @@map("department")
 }

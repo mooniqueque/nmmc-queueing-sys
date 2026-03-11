@@ -24,6 +24,7 @@ export interface Patient {
     firstName: string;
     lastName: string;
     middleName: string | null;
+    contactNo?: string | null;
     dateOfBirth: Date | string;
     age: number;
     gender: string;

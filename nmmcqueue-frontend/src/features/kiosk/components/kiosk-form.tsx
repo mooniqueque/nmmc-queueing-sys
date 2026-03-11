@@ -11,17 +11,13 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { getPatientByHospitalId, registerKioskPatient } from "../actions";
 import { kioskFormSchema, KioskFormValues } from "../schemas";
+import { useCurrentTime } from "@/hooks/use-current-time";
 
 export function KioskForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-    const [currentTime, setCurrentTime] = useState(new Date());
-
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
+    const currentTime = useCurrentTime();
 
     const { register, handleSubmit, setValue, getValues, reset, control, formState: { errors } } = useForm<z.input<typeof kioskFormSchema>, unknown, KioskFormValues>({
         resolver: zodResolver(kioskFormSchema),
@@ -33,6 +29,7 @@ export function KioskForm() {
             middleName: "",
             lastName: "",
             address: "",
+            contactNo: "",
             dobMonth: "",
             dobDay: "",
             dobYear: "",
@@ -93,6 +90,7 @@ export function KioskForm() {
             setValue("dobYear", String(dobDate.getFullYear()));
             setValue("gender", result.data.gender as "Male" | "Female");
             setValue("address", result.data.address || "");
+            setValue("contactNo", result.data.contactNo || "");
             setValue("birthPlace", result.data.birthPlace || "");
             setValue("religion", result.data.religion || "");
             setValue("civilStatus", result.data.civilStatus as "Single" | "Married" | "Widowed" | "Divorced" | "Separated");
@@ -124,7 +122,7 @@ export function KioskForm() {
                     Patient Intake Form
                 </CardTitle>
                 <div className="text-sm font-mono text-slate-500">
-                    {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} | {currentTime.toLocaleTimeString()}
+                    {currentTime ? `${currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} | ${currentTime.toLocaleTimeString()}` : '\u00A0'}
                 </div>
             </CardHeader>
 
@@ -198,6 +196,12 @@ export function KioskForm() {
                             <Label htmlFor="address">Complete Address *</Label>
                             <Input id="address" className="bg-white" {...register("address")} />
                             {errors.address && <p className="text-xs text-red-500">{errors.address.message}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="contactNo">Mobile / Contact Number</Label>
+                            <Input id="contactNo" placeholder="e.g. 09123456789" className="bg-white" {...register("contactNo")} />
+                            {errors.contactNo && <p className="text-xs text-red-500">{errors.contactNo.message}</p>}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

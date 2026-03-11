@@ -46,6 +46,7 @@ import { useEffect, useState } from 'react';
 import { approveUser, rejectUser, toggleUserStatus, updateUserRole } from "../user-actions";
 import { AddUserDialog } from "./add-user-dialog";
 import { StatsCard } from "./stats-card";
+import { useIsMounted } from "@/hooks/use-is-mounted";
 
 /**
  * COORDINATOR COMPONENT: AdminDashboard
@@ -66,17 +67,13 @@ export default function AdminDashboard({
     const [filterRole, setFilterRole] = useState('All Users');
     const [viewPendingOnly, setViewPendingOnly] = useState(false);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-    const [isMounted, setIsMounted] = useState(false);
+    const isMounted = useIsMounted();
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, filterRole, viewPendingOnly]);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
 
     //SORT FUNCTION
     const [sortBy, setSortBy] = useState<'name'>('name');

@@ -7,7 +7,8 @@ import { Switch } from '@/components/ui/switch';
 import {
     ArrowsClockwise,
     SkipForward,
-    XCircle
+    XCircle,
+    DeviceMobile
 } from '@phosphor-icons/react';
 
 
@@ -138,6 +139,13 @@ export default function UserCallerDashboard({
                                 <h1 className="text-9xl leading-none font-bold text-slate-900 tracking-tighter drop-shadow-sm mb-4">
                                     {currentTicket}
                                 </h1>
+                                {inProgressVisit?.patient?.contactNo && (
+                                    <span className="text-slate-500 font-medium tracking-wide text-lg mb-2 flex items-center gap-2">
+                                        <DeviceMobile size={24} className="text-slate-400" />
+                                        {inProgressVisit.patient.contactNo}
+                                    </span>
+                                )}
+                                
                                 {/* Strict Department Display (No Switcher Dialog) */}
                                 <Button className="bg-emerald-900 cursor-default text-white px-20 py-8 rounded-full text-xl font-bold tracking-wider shadow-lg shadow-emerald-700/20 mt-2 uppercase">
                                     {department}

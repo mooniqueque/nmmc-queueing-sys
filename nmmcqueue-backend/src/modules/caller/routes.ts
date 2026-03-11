@@ -1,22 +1,21 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/rbac.js';
+import { requireAuth, requireRole } from '../../middleware/rbac.js';
 import { callerController } from './controller.js';
 
 export const callerRouter = Router();
 
-callerRouter.use(requireAuth);
-callerRouter.get('/departments', callerController.getDepartments);
-callerRouter.get('/pending', callerController.getPendingQueue);
-callerRouter.post('/departments', callerController.createDepartment);
-callerRouter.delete('/departments/:id', callerController.deleteDepartment);
-callerRouter.get('/queue-options', callerController.getQueueOptions);
-callerRouter.post('/queue-options/batch', callerController.getQueueOptionsByDepartment);
-callerRouter.post('/queue-options', callerController.createQueueOption);
-callerRouter.delete('/queue-options', callerController.deleteQueueOption);
+// Caller needs to see its own pending queue (requires auth)
+callerRouter.get('/pending', requireAuth, callerController.getPendingQueue);
 
-// Caller operations
-callerRouter.post('/visit/:visitId/call', callerController.callPatient);
-callerRouter.post('/visit/:visitId/serve', callerController.servePatient);
-callerRouter.post('/visit/:visitId/no-show', callerController.noShowPatient);
-callerRouter.post('/visit/:visitId/transfer', callerController.transferPatient);
-callerRouter.post('/visit/:visitId/notify', callerController.notifyPatient);
+// Admin-only management routes (mutations)
+callerRouter.post('/departments', requireRole(['ADMIN']), callerController.createDepartment);
+callerRouter.delete('/departments/:id', requireRole(['ADMIN']), callerController.deleteDepartment);
+callerRouter.post('/queue-options', requireRole(['ADMIN']), callerController.createQueueOption);
+callerRouter.delete('/queue-options', requireRole(['ADMIN']), callerController.deleteQueueOption);
+
+// Caller operational routes (only CLINIC_CALLER can perform these actions)
+callerRouter.post('/visit/:visitId/call', requireRole(['CLINIC_CALLER']), callerController.callPatient);
+callerRouter.post('/visit/:visitId/serve', requireRole(['CLINIC_CALLER']), callerController.servePatient);
+callerRouter.post('/visit/:visitId/no-show', requireRole(['CLINIC_CALLER']), callerController.noShowPatient);
+callerRouter.post('/visit/:visitId/transfer', requireRole(['CLINIC_CALLER']), callerController.transferPatient);
+callerRouter.post('/visit/:visitId/notify', requireRole(['CLINIC_CALLER']), callerController.notifyPatient);

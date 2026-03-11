@@ -33,19 +33,19 @@ class TriageService {
                 if (patient) {
                     patient = await tx.patient.update({
                         where: { id: patient.id },
-                        data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
+                        data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, contactNo: rawData.contactNo, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
                     });
                 } else {
                     patient = await tx.patient.create({
-                        data: { hospitalId, firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
+                        data: { hospitalId, firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, contactNo: rawData.contactNo, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus },
                     });
                 }
             } else {
                 patient = await tx.patient.findFirst({ where: { firstName: rawData.firstName, lastName: rawData.lastName, dateOfBirth } });
                 if (patient) {
-                    patient = await tx.patient.update({ where: { id: patient.id }, data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus } });
+                    patient = await tx.patient.update({ where: { id: patient.id }, data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, contactNo: rawData.contactNo, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus } });
                 } else {
-                    patient = await tx.patient.create({ data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus } });
+                    patient = await tx.patient.create({ data: { firstName: rawData.firstName, lastName: rawData.lastName, middleName: rawData.middleName || null, dateOfBirth, age: computedAge, gender: rawData.gender, contactNo: rawData.contactNo, address: rawData.address, birthPlace: rawData.birthPlace, religion: rawData.religion, civilStatus: rawData.civilStatus } });
                 }
             }
 
@@ -91,6 +91,8 @@ class TriageService {
                 db.visit.update({ where: { id: visitId }, data: triageUpdates }),
             ]);
         }
+        // Notify all SSE listeners that the queue has changed (Releasing window needs this)
+        emitQueueUpdate();
     }
 
     async getPendingQueue() {

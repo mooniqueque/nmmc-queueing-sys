@@ -8,12 +8,12 @@ import { ReleasingQueueTable } from "./releasing-queue-table";
 import { ReleasingAssignPanel } from "./releasing-assign-panel";
 
 // ─── Auto-categorization logic ────────────────────────────────
-type QueueCategory = "ALL" | "URGENT" | "PRIORITY" | "REGULAR";
+type QueueCategory = "ALL" | "PRIORITY" | "REGULAR";
 
-function categorizeVisit(visit: VisitWithPatient): Exclude<QueueCategory, "ALL"> {
-    // URGENT: infectious cases, ER referral disposition
-    if (visit.isInfectious) return "URGENT";
-    if (visit.disposition?.toUpperCase().includes("ER")) return "URGENT";
+export function categorizeVisit(visit: VisitWithPatient): Exclude<QueueCategory, "ALL"> {
+    // Treat previously "URGENT" items as PRIORITY
+    if (visit.isInfectious) return "PRIORITY";
+    if (visit.disposition?.toUpperCase().includes("ER")) return "PRIORITY";
 
     // PRIORITY: has appointment, children (<12), seniors (>=60)
     if (visit.hasAppointment) return "PRIORITY";
@@ -22,7 +22,7 @@ function categorizeVisit(visit: VisitWithPatient): Exclude<QueueCategory, "ALL">
     return "REGULAR";
 }
 
-function getCategoryBadges(visit: VisitWithPatient): string[] {
+export function getCategoryBadges(visit: VisitWithPatient): string[] {
     const badges: string[] = [];
     if (visit.isInfectious) badges.push("INFECTIOUS");
     if (visit.disposition?.toUpperCase().includes("ER")) badges.push("ER-REF");
@@ -43,6 +43,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const { activeQueue } = useReleasingQueue(initialQueue);
     const [selectedPatient, setSelectedPatient] = useState<VisitWithPatient | null>(null);
     const [activeTab, setActiveTab] = useState<QueueCategory>("ALL");
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Categorize each visit
     const categorized = activeQueue.map(visit => ({
@@ -51,22 +52,32 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         badges: getCategoryBadges(visit),
     }));
 
-    // Counts
+    // Filter by Search Query
+    const searchFiltered = categorized.filter(c => {
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+            c.visit.ticketNumber.toString().includes(q) ||
+            c.visit.patient.firstName.toLowerCase().includes(q) ||
+            c.visit.patient.lastName.toLowerCase().includes(q)
+        );
+    });
+
+    // Counts (based on search filtered)
     const counts = {
-        ALL: categorized.length,
-        URGENT: categorized.filter(c => c.category === "URGENT").length,
-        PRIORITY: categorized.filter(c => c.category === "PRIORITY").length,
-        REGULAR: categorized.filter(c => c.category === "REGULAR").length,
+        ALL: searchFiltered.length,
+        PRIORITY: searchFiltered.filter(c => c.category === "PRIORITY").length,
+        REGULAR: searchFiltered.filter(c => c.category === "REGULAR").length,
     };
 
-    // Filter
+    // Filter by Tab
     const filtered = activeTab === "ALL"
-        ? categorized
-        : categorized.filter(c => c.category === activeTab);
+        ? searchFiltered
+        : searchFiltered.filter(c => c.category === activeTab);
 
-    // Sort: within each view, URGENT first, then PRIORITY, then REGULAR, then by ticket number
+    // Sort: within each view, PRIORITY first, then REGULAR, then by ticket number
     const sorted = [...filtered].sort((a, b) => {
-        const order: Record<string, number> = { URGENT: 0, PRIORITY: 1, REGULAR: 2 };
+        const order: Record<string, number> = { PRIORITY: 0, REGULAR: 1 };
         const catDiff = (order[a.category] ?? 2) - (order[b.category] ?? 2);
         if (catDiff !== 0) return catDiff;
         return a.visit.ticketNumber - b.visit.ticketNumber;
@@ -77,22 +88,25 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     };
 
     return (
-        <div className="flex flex-col h-full w-full overflow-hidden bg-slate-50/50">
-            {/* Queue Table (top section — grows to fill available space) */}
-            <div className={`flex-1 min-h-0 flex flex-col ${selectedPatient ? "max-h-[55%]" : ""}`}>
+        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-50/50 p-6 lg:p-8 gap-6">
+            {/* Left Box: Queue Table */}
+            <div className={`flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${selectedPatient ? "lg:w-[60%] xl:w-[65%]" : "w-full"}`}>
                 <ReleasingQueueTable
                     items={sorted}
                     counts={counts}
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
                     selectedPatientId={selectedPatient?.id}
                     onSelectPatient={setSelectedPatient}
+                    isPanelOpen={!!selectedPatient}
                 />
             </div>
 
-            {/* Assignment Panel (bottom section — appears when selected) */}
+            {/* Right Box: Floating Assignment Side-Panel */}
             {selectedPatient && (
-                <div className="shrink-0 border-t-2 border-emerald-200">
+                <div className="flex flex-col w-full lg:w-[40%] xl:w-[35%] animate-in slide-in-from-right-8 fade-in duration-500">
                     <ReleasingAssignPanel
                         selectedPatient={selectedPatient}
                         departments={departments}

@@ -41,6 +41,8 @@ export interface Visit {
     status: string;
     ticketNumber: number;
     hasAppointment: boolean;
+    isReferred: boolean;
+    referredFromId?: string;
     bloodPressure?: string;
     heartRate?: number;
     respiratoryRate?: number;

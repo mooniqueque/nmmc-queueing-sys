@@ -117,6 +117,15 @@ export async function transferPatient(
     return res.json();
 }
 
+export async function restorePatient(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/restore`, {
+        method: "POST",
+        credentials: "include",
+        ...options,
+    });
+    return res.json();
+}
+
 export async function notifyPatient(visitId: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/notify`, {
         method: "POST",

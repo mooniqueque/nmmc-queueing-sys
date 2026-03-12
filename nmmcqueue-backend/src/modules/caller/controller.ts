@@ -89,6 +89,13 @@ class CallerController {
             res.status(200).json({ success: true, data });
         } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
     }
+    async restorePatient(req: Request, res: Response) {
+        try {
+            const visitId = req.params.visitId;
+            const data = await callerService.restorePatient(visitId);
+            res.status(200).json({ success: true, data });
+        } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
+    }
 }
 
 export const callerController = new CallerController();

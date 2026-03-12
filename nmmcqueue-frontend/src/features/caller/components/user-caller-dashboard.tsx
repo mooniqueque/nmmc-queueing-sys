@@ -2,30 +2,40 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
 import { VisitWithPatient } from "@/features/triage/types";
 import { toast } from "sonner";
-import { callPatient, servePatient, noShowPatient, notifyPatient } from "../api";
+import { callPatient, servePatient, noShowPatient, restorePatient } from "../api";
 import { 
-    Clock, Users, SpeakerHigh, UserMinus, CheckCircle, Hash, WarningCircle, Phone, Heartbeat, Thermometer, Info
+    Clock, Users, SpeakerHigh, UserMinus, CheckCircle, Hash, Phone, Heartbeat, Thermometer, Info, ArrowUpRight, ArrowSquareOut
 } from "@phosphor-icons/react";
+import { getDepartments } from "@/features/shared/api";
+import { Department } from "@/types/models";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useEffect } from "react";
+import { transferPatient } from "../api";
 
-function normalizeDepartmentKey(value: string) {
-    return value.trim().toUpperCase();
-}
 
 export default function UserCallerDashboard({
     department,
-    queueOptionsByDepartment,
     initialQueue = []
 }: {
     department: string;
-    queueOptionsByDepartment: Record<string, string[]>;
     initialQueue?: VisitWithPatient[];
 }) {
-    const [isAvailable, setIsAvailable] = useState(true);
+    const isAvailable = true;
     const [isProcessing, setIsProcessing] = useState(false);
+    const [activeTab, setActiveTab] = useState<"pending" | "noshow" | "referrals">("pending");
+    const [allDepartments, setAllDepartments] = useState<Department[]>([]);
+    const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+    const [targetDeptId, setTargetDeptId] = useState<string>("");
+
+    useEffect(() => {
+        getDepartments().then(res => {
+            if (res.success) setAllDepartments(res.data);
+        });
+    }, []);
 
     // Live Queue Hook locked directly to the user's role department
     const { activeQueue } = useClinicQueue(department, initialQueue);
@@ -37,8 +47,10 @@ export default function UserCallerDashboard({
 
     // Simplistic handling of what is "Now Serving" vs "Waitlist"
     const inProgressVisit = departmentQueue.find(v => v.status === "IN_PROGRESS");
-    const waitingList = departmentQueue.filter(v => v.status === "WAITING_CLINIC");
-    const nextVisit = waitingList.length > 0 ? waitingList[0] : null;
+    const waitingList = departmentQueue.filter(v => v.status === "WAITING_CLINIC" && !v.isReferred);
+    const referralList = departmentQueue.filter(v => v.status === "WAITING_CLINIC" && v.isReferred);
+    const noShowList = departmentQueue.filter(v => v.status === "NO_SHOW");
+    const nextVisit = waitingList.length > 0 ? waitingList[0] : (referralList.length > 0 ? referralList[0] : null);
 
     // Action Handlers
     const handleCallNext = async () => {
@@ -83,26 +95,40 @@ export default function UserCallerDashboard({
         }
     };
 
-    const handleNotify = async () => {
+    const handleReferral = async () => {
         const targetVisit = inProgressVisit || nextVisit;
-        if (!targetVisit) return toast.error("No patient selected to notify.");
+        if (!targetVisit) return toast.error("No patient selected for referral.");
+        if (!targetDeptId) return toast.error("Please select a target department.");
+
         setIsProcessing(true);
         try {
-            await notifyPatient(targetVisit.id);
-            toast.success("SMS Notification sent successfully.");
+            const res = await transferPatient(targetVisit.id, targetDeptId);
+            if (res.success) {
+                toast.success(`Patient referred successfully.`);
+                setIsReferralModalOpen(false);
+                setTargetDeptId("");
+            } else {
+                toast.error(res.error || "Failed to refer patient.");
+            }
         } catch {
-            toast.error("Failed to send notification.");
+            toast.error("An error occurred during referral.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+    
+    const handleRestore = async (visitId: string) => {
+        setIsProcessing(true);
+        try {
+            await restorePatient(visitId);
+            toast.success("Patient restored to active queue.");
+        } catch {
+            toast.error("Failed to restore patient.");
         } finally {
             setIsProcessing(false);
         }
     };
 
-    // Stats
-    const stats = {
-        totalWaiting: waitingList.length,
-        priority: waitingList.filter(v => v.priorityClass && v.priorityClass !== "REGULAR").length,
-        regular: waitingList.filter(v => !v.priorityClass || v.priorityClass === "REGULAR").length,
-    };
 
     return (
         <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-50/50 p-6 lg:p-8 gap-6">
@@ -112,81 +138,178 @@ export default function UserCallerDashboard({
                 {/* Header */}
                 <div className="px-6 py-5 border-b border-slate-100 bg-slate-900 text-white flex justify-between items-center shrink-0">
                     <div>
-                        <h2 className="text-[18px] font-black tracking-tight">{department} Queue</h2>
+                        <h2 className="text-[18px] font-black tracking-tight">{department}</h2>
                         <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                            <span className="text-emerald-400 font-black">{stats.totalWaiting}</span> patients waiting
+                            <span className="text-emerald-400 font-black">{waitingList.length}</span> Active • <span className="text-rose-400 font-black">{noShowList.length}</span> No Shows
                         </p>
                     </div>
-                    {/* Status Toggle */}
+                    {/* Status Display */}
                     <div className="flex flex-col items-end gap-1.5">
                         <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700">
-                            <div className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-emerald-500 shadow-[0_0_8px_theme(colors.emerald.500)]' : 'bg-rose-500 shadow-[0_0_8px_theme(colors.rose.500)]'}`} />
+                            <div className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-emerald-500 shadow-[0_0_8px_var(--color-emerald-500)]' : 'bg-rose-500 shadow-[0_0_8px_var(--color-rose-500)]'}`} />
                             <span className="text-[11px] font-extrabold tracking-widest uppercase text-slate-300">
-                                {isAvailable ? 'Accepting' : 'Paused'}
+                                {isAvailable ? 'Online' : 'Offline'}
                             </span>
                         </div>
                     </div>
                 </div>
 
+                {/* Tabs */}
+                <div className="flex px-4 pt-4 border-b border-slate-100 bg-white gap-2">
+                    <button
+                        onClick={() => setActiveTab("pending")}
+                        className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative ${
+                            activeTab === "pending" ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+                        }`}
+                    >
+                        Active ({waitingList.length})
+                        {activeTab === "pending" && (
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-900 rounded-t-full" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("referrals")}
+                        className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative ${
+                            activeTab === "referrals" ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+                        }`}
+                    >
+                        Referrals ({referralList.length})
+                        {activeTab === "referrals" && (
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-t-full" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("noshow")}
+                        className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative ${
+                            activeTab === "noshow" ? "text-slate-900" : "text-slate-400 hover:text-slate-600"
+                        }`}
+                    >
+                        No Shows ({noShowList.length})
+                        {activeTab === "noshow" && (
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500 rounded-t-full" />
+                        )}
+                    </button>
+                </div>
+
                 {/* List Body */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50">
-                    {waitingList.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-                            <CheckCircle size={48} className="mb-4 text-emerald-500/20" weight="duotone" />
-                            <p className="text-lg font-bold text-slate-600">Queue is Clear</p>
-                            <p className="text-sm font-medium text-slate-400 mt-1">No patients waiting for this clinic.</p>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col">
-                            {waitingList.map((visit, index) => {
-                                const isNext = index === 0 && !inProgressVisit;
-                                const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
-                                const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
+                    {activeTab === "pending" ? (
+                        waitingList.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+                                <CheckCircle size={48} className="mb-4 text-emerald-500/20" weight="duotone" />
+                                <p className="text-lg font-bold text-slate-600">Queue is Clear</p>
+                                <p className="text-sm font-medium text-slate-400 mt-1">No patients waiting for this clinic.</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col">
+                                {waitingList.map((visit, index) => {
+                                    const isNext = index === 0 && !inProgressVisit;
+                                    const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
+                                    const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
 
-                                return (
-                                    <div 
-                                        key={visit.id} 
-                                        className={`p-5 border-b border-slate-200/60 relative transition-all ${
-                                            isNext ? "bg-white shadow-[inset_4px_0_0_#10b981]" : "bg-transparent opacity-80 hover:bg-white hover:opacity-100"
-                                        }`}
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-[17px] font-black ${isNext ? "text-emerald-600" : "text-slate-500"}`}>
-                                                    #{visit.ticketNumber.toString().padStart(3, '0')}
-                                                </span>
-                                                {isNext && (
-                                                    <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
-                                                        Next to Call
+                                    return (
+                                        <div 
+                                            key={visit.id} 
+                                            className={`p-5 border-b border-slate-200/60 relative transition-all ${
+                                                isNext ? "bg-white shadow-[inset_4px_0_0_#10b981]" : "bg-transparent opacity-80 hover:bg-white hover:opacity-100"
+                                            }`}
+                                        >
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-[17px] font-black ${isNext ? "text-emerald-600" : "text-slate-500"}`}>
+                                                        #{visit.ticketNumber.toString().padStart(3, '0')}
                                                     </span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100/80 border border-slate-200 text-slate-500 text-[11px] font-bold">
-                                                <Clock size={12} weight="bold" /> {waitStr}
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="flex justify-between items-end">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-[14px] text-slate-800 leading-tight">
-                                                    {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
-                                                </span>
-                                                <div className="flex gap-2 items-center mt-1">
-                                                    <span className="text-[11px] font-bold text-slate-400">
-                                                        {visit.patient.gender.charAt(0)}, {visit.patient.age}y
-                                                    </span>
-                                                    {visit.priorityClass && visit.priorityClass !== "REGULAR" && (
-                                                        <span className="bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded">
-                                                            {visit.priorityClass}
+                                                    {isNext && (
+                                                        <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                                                            Next
                                                         </span>
                                                     )}
                                                 </div>
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100/80 border border-slate-200 text-slate-500 text-[11px] font-bold">
+                                                    <Clock size={12} weight="bold" /> {waitStr}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex justify-between items-end">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-[14px] text-slate-800 leading-tight">
+                                                        {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
+                                    );
+                                })}
+                            </div>
+                        )
+                    ) : activeTab === "referrals" ? (
+                        referralList.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+                                <ArrowUpRight size={48} className="mb-4 text-emerald-500/20" weight="duotone" />
+                                <p className="text-lg font-bold text-slate-600">No Referrals</p>
+                                <p className="text-sm font-medium text-slate-400 mt-1">No incoming referrals right now.</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col">
+                                {referralList.map((visit, index) => {
+                                    const isNext = index === 0 && !inProgressVisit && waitingList.length === 0;
+                                    return (
+                                        <div 
+                                            key={visit.id} 
+                                            className={`p-5 border-b border-slate-200/60 relative transition-all ${
+                                                isNext ? "bg-white shadow-[inset_4px_0_0_#10b981]" : "bg-transparent opacity-80 hover:bg-white"
+                                            }`}
+                                        >
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className={`text-[17px] font-black ${isNext ? "text-emerald-600" : "text-slate-500"}`}>
+                                                    #{visit.ticketNumber.toString().padStart(3, '0')}
+                                                </span>
+                                                <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-emerald-100">
+                                                    Referred from: {visit.referredFrom?.name || "N/A"}
+                                                </span>
+                                            </div>
+                                            <span className="font-bold text-[14px] text-slate-800">
+                                                {visit.patient.lastName}, {visit.patient.firstName}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )
+                    ) : (
+                        noShowList.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+                                <UserMinus size={48} className="mb-4 text-slate-200" weight="duotone" />
+                                <p className="text-lg font-bold text-slate-400">No Show list empty</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col">
+                                {noShowList.map((visit) => (
+                                    <div 
+                                        key={visit.id} 
+                                        className="p-5 border-b border-slate-200/60 bg-white/50 hover:bg-white transition-all group"
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-[17px] font-black text-rose-400">
+                                                #{visit.ticketNumber.toString().padStart(3, '0')}
+                                            </span>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleRestore(visit.id)}
+                                                disabled={isProcessing}
+                                                className="h-8 px-3 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest"
+                                            >
+                                                Restore
+                                            </Button>
+                                        </div>
+                                        <span className="font-bold text-[14px] text-slate-600 group-hover:text-slate-900 transition-colors">
+                                            {visit.patient.lastName}, {visit.patient.firstName}
+                                        </span>
                                     </div>
-                                );
-                            })}
-                        </div>
+                                ))}
+                            </div>
+                        )
                     )}
                 </div>
             </div>
@@ -325,11 +448,11 @@ export default function UserCallerDashboard({
                                 <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar justify-start">
                                     <Button 
                                         variant="outline" 
-                                        onClick={handleNotify}
+                                        onClick={() => setIsReferralModalOpen(true)}
                                         disabled={isProcessing}
-                                        className="h-14 px-5 border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white rounded-xl font-bold uppercase tracking-widest text-[12px] shrink-0"
+                                        className="h-14 px-5 border-slate-700 bg-slate-800 text-emerald-400 hover:bg-slate-700 hover:text-emerald-300 rounded-xl font-bold uppercase tracking-widest text-[12px] shrink-0"
                                     >
-                                        <SpeakerHigh size={18} weight="bold" className="mr-2" /> Notify SMS
+                                        <ArrowSquareOut size={18} weight="bold" className="mr-2" /> Referral
                                     </Button>
 
                                     <Button 
@@ -369,6 +492,55 @@ export default function UserCallerDashboard({
                     </>
                 )}
             </div>
+
+            {/* Referral Modal */}
+            <Dialog open={isReferralModalOpen} onOpenChange={setIsReferralModalOpen}>
+                <DialogContent className="sm:max-w-[425px] rounded-3xl p-8">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Refer Patient</DialogTitle>
+                        <p className="text-slate-500 font-medium text-sm mt-1">
+                            Choose the department you want to refer this patient to.
+                        </p>
+                    </DialogHeader>
+                    
+                    <div className="py-6">
+                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Select Department</label>
+                        <Select onValueChange={setTargetDeptId} value={targetDeptId}>
+                            <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50 font-bold focus:ring-emerald-500">
+                                <SelectValue placeholder="Choose target department..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                {allDepartments
+                                    .filter(d => d.name.toUpperCase() !== department.toUpperCase())
+                                    .map(dept => (
+                                        <SelectItem key={dept.id} value={dept.id} className="font-bold text-slate-700 p-3 rounded-lg focus:bg-emerald-50 focus:text-emerald-900 group">
+                                            {dept.name}
+                                        </SelectItem>
+                                    ))
+                                }
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <DialogFooter className="flex gap-3 pt-4 sm:justify-start">
+                        <Button
+                            className="flex-1 h-12 rounded-xl bg-emerald-500 hover:bg-emerald-400 font-black uppercase tracking-widest"
+                            onClick={handleReferral}
+                            disabled={isProcessing || !targetDeptId}
+                        >
+                            {isProcessing ? "Processing..." : "Confirm Referral"}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="h-12 rounded-xl border-slate-200 font-bold px-6"
+                            onClick={() => setIsReferralModalOpen(false)}
+                            disabled={isProcessing}
+                        >
+                            Cancel
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

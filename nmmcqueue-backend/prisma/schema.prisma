@@ -85,6 +85,7 @@ model Department {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   visits       Visit[]
+  referredVisits Visit[]    @relation("DepartmentReferrals")
   queueOptions LaneOption[]
 
   @@map("department")
@@ -139,6 +140,9 @@ model Visit {
   updatedAt       DateTime    @updatedAt
   priorityClass   String      @default("REGNEW")
   hasAppointment  Boolean     @default(false)
+  isReferred      Boolean     @default(false)
+  referredFromId  String?
+  referredFrom    Department? @relation("DepartmentReferrals", fields: [referredFromId], references: [id])
   department      Department? @relation(fields: [departmentId], references: [id])
   patient         Patient     @relation(fields: [patientId], references: [id])
   triagedByUser   User?       @relation("UserTriage", fields: [triagedByUserId], references: [id])

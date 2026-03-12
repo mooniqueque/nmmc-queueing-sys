@@ -6,6 +6,7 @@ export const callerRouter = Router();
 
 // Caller needs to see its own pending queue (requires auth)
 callerRouter.get('/pending', requireAuth, callerController.getPendingQueue);
+callerRouter.get('/departments', requireAuth, callerController.getDepartments);
 
 // Admin-only management routes (mutations)
 callerRouter.post('/departments', requireRole(['ADMIN']), callerController.createDepartment);
@@ -18,4 +19,5 @@ callerRouter.post('/visit/:visitId/call', requireRole(['CLINIC_CALLER']), caller
 callerRouter.post('/visit/:visitId/serve', requireRole(['CLINIC_CALLER']), callerController.servePatient);
 callerRouter.post('/visit/:visitId/no-show', requireRole(['CLINIC_CALLER']), callerController.noShowPatient);
 callerRouter.post('/visit/:visitId/transfer', requireRole(['CLINIC_CALLER']), callerController.transferPatient);
+callerRouter.post('/visit/:visitId/restore', requireRole(['CLINIC_CALLER']), callerController.restorePatient);
 callerRouter.post('/visit/:visitId/notify', requireRole(['CLINIC_CALLER']), callerController.notifyPatient);

@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +11,7 @@ import { z } from "zod";
 import { submitTriageForm } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
 import { VisitWithPatient } from "../types";
+import { ClipboardText, CaretDoubleRight, PaperPlaneRight, WarningCircle } from "@phosphor-icons/react";
 
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
@@ -102,102 +102,142 @@ export function TriageForm({
     };
 
     return (
-        <Card className="shadow-lg border-t-4 border-t-emerald-600">
-            <CardHeader className="bg-emerald-50/50 border-b border-emerald-100 pb-4">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <CardTitle className="text-2xl font-bold text-emerald-900">TRIAGE ASSESSMENT FORM</CardTitle>
-                        <CardDescription className="text-emerald-700 font-medium mt-1">
-                            TO BE FILLED OUT BY TRIAGE OFFICER
-                        </CardDescription>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+            {/* Header Block */}
+            <div className="bg-slate-50 border-b border-slate-200 pt-8 px-8 pb-6 flex justify-between items-end relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-1">
+                        <ClipboardText size={32} weight="duotone" className="text-emerald-600" />
+                        <h2 className="text-3xl font-black text-slate-800 tracking-tight">Triage Assessment Form</h2>
                     </div>
-
-                    <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg border border-slate-200">
-                        <Switch
-                            id="manual-entry"
-                            checked={isManualEntry}
-                            onCheckedChange={(checked) => {
-                                setSubmitError("");
-                                setSubmitSuccess(false);
-                                setIsManualEntry(checked);
-                                if (checked) setSelectedPatient(null);
-                            }}
-                        />
-                        <Label htmlFor="manual-entry" className="font-bold text-slate-700 cursor-pointer">
-                            Walk-in / Manual Entry
-                        </Label>
-                    </div>
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest ml-11">
+                        To be filled out by Triage Officer
+                    </p>
                 </div>
-            </CardHeader>
 
-            <CardContent className="p-6">
+                <div className="relative z-10 flex items-center space-x-3 bg-white px-5 py-3 rounded-full shadow-sm border border-slate-200 transition-all hover:shadow-md">
+                    <Switch
+                        id="manual-entry"
+                        checked={isManualEntry}
+                        onCheckedChange={(checked) => {
+                            setSubmitError("");
+                            setSubmitSuccess(false);
+                            setIsManualEntry(checked);
+                            if (checked) setSelectedPatient(null);
+                        }}
+                        className="data-[state=checked]:bg-emerald-600 shadow-inner"
+                    />
+                    <Label htmlFor="manual-entry" className="font-bold text-[15px] text-slate-700 cursor-pointer select-none">
+                        Walk-in / Manual Entry
+                    </Label>
+                </div>
+            </div>
+
+            <div className="p-8">
                 {(!isManualEntry && !selectedPatient) ? (
-                    <div className="h-64 flex items-center justify-center text-slate-400 font-medium border-2 border-dashed border-slate-200 rounded-lg">
-                        Please select a patient from the queue or switch to Manual Entry.
+                    <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-[20px] border border-slate-200 border-dashed">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mb-6">
+                            <CaretDoubleRight size={32} weight="duotone" className="text-slate-300" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-600 mb-2">Select a Patient</h3>
+                        <p className="text-sm font-medium">Click a patient from the Waiting List on the right, or toggle Manual Entry above.</p>
                     </div>
                 ) : (
                     <FormProvider {...methods}>
-                        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-8">
+                        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-0 relative">
+                            {/* The inner sections handle their own top margins for a masonry/stack effect */}
                             <DemographicsSection isManualEntry={isManualEntry} hasSelectedPatient={!!selectedPatient} />
                             <VitalsSection />
                             <SymptomsSection />
                             <ClinicalNotesSection />
 
-                            <div className="flex items-center justify-between border-t pt-6">
-                                <div className="flex gap-4">
-                                    <div className="w-48">
-                                        <Label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Acuity / Disposition</Label>
+                            {/* Submission Footer */}
+                            <div className="mt-12 bg-slate-800 rounded-2xl p-6 flex items-center justify-between shadow-xl shadow-slate-900/10">
+                                <div className="flex gap-6">
+                                    <div className="w-56">
+                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
+                                            Acuity / Disposition
+                                        </Label>
                                         <Controller
                                             control={methods.control}
                                             name="disposition"
                                             render={({ field }) => (
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger className={field.value === "EMERGENT" ? "border-red-500 text-red-700 font-bold bg-red-50" : field.value === "URGENT" ? "border-amber-500 text-amber-700 font-bold bg-amber-50" : ""}>
+                                                    <SelectTrigger className={`h-14 rounded-xl border-slate-600 bg-slate-700/50 text-base font-bold transition-all ${
+                                                        field.value === "EMERGENT" ? "text-rose-400 border-rose-500/50 ring-2 ring-rose-500/20" : 
+                                                        field.value === "URGENT" ? "text-amber-400 border-amber-500/50 ring-2 ring-amber-500/20" : 
+                                                        "text-white"
+                                                    }`}>
                                                         <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="NON-URGENT">Non-Urgent</SelectItem>
-                                                        <SelectItem value="URGENT">Urgent</SelectItem>
-                                                        <SelectItem value="EMERGENT">Emergent (Critical)</SelectItem>
+                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-700 bg-slate-800 text-slate-200">
+                                                        <SelectItem value="NON-URGENT" className="font-bold py-3 focus:bg-slate-700">Non-Urgent</SelectItem>
+                                                        <SelectItem value="URGENT" className="font-bold py-3 text-amber-400 focus:bg-slate-700">Urgent</SelectItem>
+                                                        <SelectItem value="EMERGENT" className="font-bold py-3 text-rose-400 focus:bg-slate-700">Emergent (Critical)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
                                         />
                                     </div>
-                                    <div className="w-48">
-                                        <Label className="text-xs font-bold text-slate-500 upercase mb-1 block">Patient Priority </Label>
+                                    <div className="w-56">
+                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
+                                            Patient Priority 
+                                        </Label>
                                         <Controller
                                             control={methods.control}
                                             name="priorityClass"
                                             render={({ field }) => (
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className={`h-14 rounded-xl border-slate-600 bg-slate-700/50 text-base font-bold transition-all ${
+                                                        field.value === "PRIORITY" ? "text-emerald-400 border-emerald-500/50 ring-2 ring-emerald-500/20" : "text-white"
+                                                    }`}>
                                                         <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="REGULAR"> Regular </SelectItem>
-                                                        <SelectItem value="PRIORITY"> Priority </SelectItem>
+                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-700 bg-slate-800 text-slate-200">
+                                                        <SelectItem value="REGULAR" className="font-bold py-3 focus:bg-slate-700">Regular</SelectItem>
+                                                        <SelectItem value="PRIORITY" className="font-bold py-3 text-emerald-400 focus:bg-slate-700">Priority</SelectItem>
                                                     </SelectContent>
                                                 </Select>
-                                            )
-                                            }
+                                            )}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col items-end">
-                                    {submitError && <span className="text-red-500 text-sm font-bold mb-2">{submitError}</span>}
-                                    {submitSuccess && <span className="text-emerald-500 text-sm font-bold mb-2">Triage Completed!</span>}
+                                <div className="flex flex-col items-end justify-center">
+                                    {submitError && (
+                                        <span className="flex items-center gap-1.5 text-rose-400 text-sm font-bold mb-3 absolute -top-8 right-0 bg-rose-50 px-4 py-2 rounded-lg border border-rose-200">
+                                            <WarningCircle size={16} weight="bold" /> {submitError}
+                                        </span>
+                                    )}
+                                    {submitSuccess && (
+                                        <span className="flex items-center gap-1.5 text-emerald-600 text-sm font-bold mb-3 absolute -top-8 right-0 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-200">
+                                            Triage Assessment Completed!
+                                        </span>
+                                    )}
 
-                                    <Button type="submit" disabled={isPending} className="bg-emerald-600 hover:bg-emerald-700 w-48 font-bold text-lg h-12 shadow-md">
-                                        {isPending ? "Submitting..." : "SUBMIT TO QUEUE"}
+                                    <Button 
+                                        type="submit" 
+                                        disabled={isPending} 
+                                        className={`h-14 px-8 text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-xl ${
+                                            isPending || submitSuccess
+                                                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                                : "bg-emerald-500 hover:bg-emerald-400 text-white hover:-translate-y-1 hover:shadow-emerald-500/25"
+                                        }`}
+                                    >
+                                        {isPending ? "Submitting..." : (
+                                            <span className="flex items-center gap-2">
+                                                Send to Releasing <PaperPlaneRight size={20} weight="fill" />
+                                            </span>
+                                        )}
                                     </Button>
                                 </div>
                             </div>
                         </form>
                     </FormProvider>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

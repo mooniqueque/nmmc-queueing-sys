@@ -7,7 +7,7 @@ export const triageRouter = Router();
 triageRouter.post('/kiosk/register', triageController.registerKiosk);
 triageRouter.get('/kiosk/patient/:id', triageController.getPatientByHospitalId);
 // Protected Routes (Triage Nurse / Admin)
-triageRouter.use(requireRole(['TRIAGE_NURSE', 'ADMIN']));
+triageRouter.use(requireRole(['TRIAGE_NURSE']));
 triageRouter.get('/pending', triageController.getPendingQueue);
 triageRouter.post('/submit', triageController.submitTriage);
 triageRouter.post('/:id/no-show', triageController.markNoShow);

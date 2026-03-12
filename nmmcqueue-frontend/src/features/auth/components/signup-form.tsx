@@ -28,7 +28,9 @@ import { registrationSchema } from "@/features/auth/schemas"
 import { SignUpPayload } from "@/types/auth"
 import { cn } from "@/lib/utils"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { CircleNotch, Eye, EyeClosed } from "@phosphor-icons/react"
+import { CircleNotch, Eye, EyeClosed, Check, CaretUpDown } from "@phosphor-icons/react"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { z } from "zod"
@@ -53,6 +55,7 @@ export function SignupForm({
 }: SignupFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [openDept, setOpenDept] = useState(false)
 
   const form = useForm<RegistrationValues>({
     resolver: zodResolver(registrationSchema),
@@ -187,20 +190,55 @@ export function SignupForm({
                   name="department"
                   control={form.control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger id="department" className="bg-slate-50/50">
-                        <SelectValue placeholder="Choose your department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departments.length > 0 ? (
-                          departments.map(dept => (
-                            <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="none" disabled>No departments found</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={openDept} onOpenChange={setOpenDept}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openDept}
+                          className="w-full justify-between font-normal bg-slate-50 border-slate-200 hover:bg-slate-100 relative"
+                        >
+                          <span className="truncate pr-5">
+                            {field.value
+                              ? departments.find((dept) => dept.name === field.value)?.name
+                              : "Search department..."}
+                          </span>
+                          <CaretUpDown weight="bold" className="ml-2 h-4 w-4 shrink-0 opacity-50 absolute right-3" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0 z-50" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search department..." className="h-9" />
+                          <CommandList className="max-h-[240px] overflow-y-auto">
+                            <CommandEmpty>No department found.</CommandEmpty>
+                            <CommandGroup>
+                              {departments.map((dept) => (
+                                <CommandItem
+                                  key={dept.id}
+                                  value={dept.name}
+                                  onSelect={(currentValue) => {
+                                    const actualValue = departments.find(
+                                      (d) => d.name.toLowerCase() === currentValue.toLowerCase()
+                                    )?.name || currentValue;
+                                    field.onChange(actualValue === field.value ? "" : actualValue);
+                                    setOpenDept(false);
+                                  }}
+                                >
+                                  {dept.name}
+                                  <Check
+                                    weight="bold"
+                                    className={cn(
+                                      "ml-auto h-4 w-4",
+                                      field.value === dept.name ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   )}
                 />
                 <FieldError errors={[errors.department]} />

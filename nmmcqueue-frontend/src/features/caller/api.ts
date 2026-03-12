@@ -2,17 +2,13 @@
  * Caller (Clinic Caller) API Client
  *
  * Typed fetch wrappers for the /api/caller backend module.
- * Handles departments, queue options, and clinic pending queues.
+ * Handles caller-specific operations and admin management mutations.
+ *
+ * For shared read-only data (departments, queue-options), use @/features/shared/api
  */
 import { API_URL } from "@/lib/api";
 
-// ─── Departments ──────────────────────────────────────────────
-export async function getDepartments(options?: RequestInit) {
-    const res = await fetch(`${API_URL}/caller/departments`, options);
-    if (!res.ok) return { success: false, data: [] };
-    return res.json();
-}
-
+// ─── Admin Management (Mutations) ─────────────────────────────
 export async function createDepartment(
     name: string,
     code: string,
@@ -33,35 +29,6 @@ export async function deleteDepartment(id: string, options?: RequestInit) {
         ...options,
     });
     return res.json();
-}
-
-// ─── Queue Options ────────────────────────────────────────────
-export async function getQueueOptions(
-    departmentName: string,
-    options?: RequestInit
-) {
-    const res = await fetch(
-        `${API_URL}/caller/queue-options?departmentName=${encodeURIComponent(departmentName)}`,
-        options
-    );
-    if (!res.ok) return ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
-    const json = await res.json();
-    return json.data;
-}
-
-export async function getQueueOptionsByDepartment(
-    departmentNames: string[],
-    options?: RequestInit
-) {
-    const res = await fetch(`${API_URL}/caller/queue-options/batch`, {
-        method: "POST",
-        ...options,
-        headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify({ departments: departmentNames }),
-    });
-    if (!res.ok) return {};
-    const json = await res.json();
-    return json.data;
 }
 
 export async function createQueueOption(
@@ -92,7 +59,7 @@ export async function deleteQueueOption(
     return res.json();
 }
 
-// ─── Clinic Queues ────────────────────────────────────────────
+// ─── Clinic Queues (Caller-specific) ──────────────────────────
 export async function getClinicQueues(
     departmentName?: string,
     options?: RequestInit
@@ -106,7 +73,8 @@ export async function getClinicQueues(
     return res.json();
 }
 
-// ─── Operational Actions ──────────────────────────────────────────────
+// ─── Operational Actions ──────────────────────────────────────
+
 export async function callPatient(visitId: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/call`, {
         method: "POST",
@@ -145,6 +113,15 @@ export async function transferPatient(
         ...options,
         headers: { "Content-Type": "application/json", ...options?.headers },
         body: JSON.stringify({ targetDepartmentId }),
+    });
+    return res.json();
+}
+
+export async function restorePatient(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/restore`, {
+        method: "POST",
+        credentials: "include",
+        ...options,
     });
     return res.json();
 }

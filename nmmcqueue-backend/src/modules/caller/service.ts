@@ -29,7 +29,7 @@ class CallerService {
 
         const whereClause: any = {
             createdAt: { gte: today, lt: tomorrow },
-            status: { in: ['WAITING_CLINIC', 'IN_PROGRESS'] },
+            status: { in: ['WAITING_CLINIC', 'IN_PROGRESS', 'NO_SHOW'] },
         };
 
         if (departmentName) {
@@ -47,6 +47,7 @@ class CallerService {
             include: {
                 patient: true,
                 department: true,
+                referredFrom: true,
             },
             orderBy: { ticketNumber: 'asc' },
         });
@@ -121,12 +122,15 @@ class CallerService {
     async transferPatient(visitId: string, targetDepartmentId: string) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
+        if (visit.departmentId === targetDepartmentId) throw new Error('Patient is already in this department');
         
         const updated = await db.visit.update({
             where: { id: visitId },
             data: { 
                 status: 'WAITING_CLINIC', 
-                departmentId: targetDepartmentId 
+                departmentId: targetDepartmentId,
+                isReferred: true,
+                referredFromId: visit.departmentId
             }
         });
         
@@ -147,6 +151,16 @@ class CallerService {
 
         console.log(`[SMS MOCK] Sending SMS to ${contactNo}: "Please proceed to the clinic, it is almost your turn."`);
         return { success: true, message: 'Notification sent successfully' };
+    }
+    async restorePatient(visitId: string) {
+        const visit = await db.visit.findUnique({ where: { id: visitId } });
+        if (!visit) throw new Error('Visit not found');
+        const updated = await db.visit.update({
+            where: { id: visitId },
+            data: { status: 'WAITING_CLINIC' }
+        });
+        if (updated.departmentId) emitQueueUpdate(updated.departmentId);
+        return updated;
     }
 }
 

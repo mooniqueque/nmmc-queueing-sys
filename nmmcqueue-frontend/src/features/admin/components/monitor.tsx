@@ -7,6 +7,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useCurrentTime } from "@/hooks/use-current-time";
 
 export default function QueueMonitor({
     departmentName,
@@ -15,15 +16,10 @@ export default function QueueMonitor({
     departmentName: string;
     initialQueue?: VisitWithPatient[];
 }) {
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const currentTime = useCurrentTime();
 
     // Live Queue Hook
     const { activeQueue } = useClinicQueue(departmentName, initialQueue || []);
-
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
 
     const formatTime = (date: Date) => {
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -105,10 +101,10 @@ export default function QueueMonitor({
                 </div>
                 <div className="text-right">
                     <div className="text-4xl font-black text-emerald-800 tabular-nums tracking-tight leading-none">
-                        {formatTime(currentTime)}
+                        {currentTime ? formatTime(currentTime) : '\xC2\xA0'}
                     </div>
                     <div className="text-sm font-bold text-emerald-600 uppercase tracking-wider mt-1">
-                        {formatDate(currentTime)}
+                        {currentTime ? formatDate(currentTime) : '\xC2\xA0'}
                     </div>
                 </div>
             </header>

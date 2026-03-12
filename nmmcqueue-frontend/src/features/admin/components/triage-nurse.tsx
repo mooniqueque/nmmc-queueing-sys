@@ -2,8 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsCard } from './stats-card';
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import React from 'react';
 import {
     Activity,
@@ -11,9 +9,7 @@ import {
     Clock,
     Users,
     TrendingUp,
-    HeartPulse,
     UserCheck,
-    Stethoscope,
     LucideIcon
 } from "lucide-react";
 import dynamic from 'next/dynamic';
@@ -21,43 +17,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SessionUser } from "@/types/auth";
 import { getBarChartOptions, getDonutChartOptions } from './triage-chart';
+import { VolumeData, CategoryData, DestinationData, TriageActivity, TriageKPIs } from '../types';
 
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
-import { ApexOptions } from 'apexcharts';
-
-export interface VolumeData {
-    time: string;
-    patients: number;
-}
-
-export interface CategoryData {
-    name: string;
-    value: number;
-    color: string;
-}
-
-export interface DestinationData {
-    name: string;
-    value: number;
-    color: string;
-}
-
-export interface TriageActivity {
-    id: string;
-    time: string;
-    patient: string;
-    type: 'Emergency' | 'Urgent' | 'Non-Urgent';
-}
-
-export interface TriageKPIs {
-    totalTriagedToday: number;
-    totalTriagedChangePct: number;
-    emergentCases: number;
-    avgTriageTimeMins: number;
-    avgTriageTimeChangeMins: number;
-    currentlyWaiting: number;
-}
 
 interface TriageNurseStatsProps {
     volumeData?: VolumeData[];

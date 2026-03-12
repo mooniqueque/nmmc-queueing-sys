@@ -1,9 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { markNoShow, removeQueue, restoreNoShow } from "../actions";
 import { useTriageQueue } from "../hooks";
 import { VisitWithPatient } from "../types";
+import { CheckCircle, Clock, ClockCounterClockwise, Trash, UserMinus, MagnifyingGlass, Funnel, ArrowClockwise } from "@phosphor-icons/react";
+import { Input } from "@/components/ui/input";
 
 interface TriageQueueSidebarProps {
     initialQueue: VisitWithPatient[];
@@ -11,6 +13,7 @@ interface TriageQueueSidebarProps {
     selectedPatientId: string | undefined;
     onSelectPatient: (patient: VisitWithPatient | null) => void;
     onError: (err: string) => void;
+    isPanelOpen?: boolean;
 }
 
 export function TriageQueueSidebar({
@@ -18,10 +21,12 @@ export function TriageQueueSidebar({
     isManualEntry,
     selectedPatientId,
     onSelectPatient,
-    onError
+    onError,
+    isPanelOpen
 }: TriageQueueSidebarProps) {
     const { activeQueue, noShowQueue, activeTab, setActiveTab } = useTriageQueue(initialQueue);
     const [isPending, startTransition] = useTransition();
+    const [searchQuery, setSearchQuery] = useState("");
 
     const handleNoShow = (visitId: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -50,109 +55,234 @@ export function TriageQueueSidebar({
         });
     }
 
+    // Filter active queue by search
+    const filteredActiveQueue = activeQueue.filter(v => {
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+            v.ticketNumber.toString().includes(q) ||
+            v.patient.firstName.toLowerCase().includes(q) ||
+            v.patient.lastName.toLowerCase().includes(q)
+        );
+    });
+
+    const isDis = isManualEntry;
+
     return (
-        <div className="w-80 flex flex-col bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden shrink-0">
-            <div className="p-4 bg-emerald-900 border-b border-emerald-800 flex justify-between items-center shrink-0">
-                <h2 className="font-bold text-white tracking-wide">WAITING FOR TRIAGE</h2>
+        <div className="flex flex-col h-full bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+            
+            {/* Split Top Header - Matches Releasing closely */}
+            <div className="bg-white shrink-0">
+                {/* Header 1: Title and global search */}
+                <div className="border-b border-slate-100 flex flex-col xl:flex-row justify-between items-start xl:items-center px-6 lg:px-8 py-5 gap-4">
+                    <div>
+                        <h2 className="text-[20px] font-black text-slate-900 tracking-tight">Pending Triage Queue</h2>
+                        <p className="text-sm text-slate-500 font-medium">
+                            Currently <strong className="text-emerald-600 mx-1">{activeQueue.length}</strong> patients waiting
+                        </p>
+                    </div>
+                
+                    <div className="flex items-center gap-3 w-full xl:w-auto">
+                        <div className="relative w-full xl:w-72">
+                            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} weight="bold" />
+                            <Input 
+                                placeholder="Search by patient name or ticket no..." 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 h-10 w-full bg-slate-50/50 border-slate-200 text-[13px] font-semibold rounded-xl focus-visible:ring-emerald-500"
+                            />
+                        </div>
+                        <button className="h-10 w-10 shrink-0 flex items-center justify-center border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors shadow-sm">
+                            <ArrowClockwise size={16} weight="bold" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Header 2: Pill Tabs */}
+                <div className="border-b border-slate-100 px-6 lg:px-8 py-3 flex gap-2">
+                    <div className="flex p-1 bg-slate-100/80 rounded-full border border-slate-200/50">
+                        <button
+                            onClick={() => setActiveTab("ACTIVE")}
+                            className={`relative flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold rounded-full transition-all duration-300 ${
+                                activeTab === "ACTIVE" 
+                                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20" 
+                                    : "text-slate-500 hover:text-emerald-600 bg-transparent"
+                            }`}
+                        >
+                            <span>Active</span>
+                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] leading-none transition-colors ${
+                                activeTab === "ACTIVE" ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600"
+                            }`}>
+                                {activeQueue.length}
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("NO_SHOW")}
+                            className={`relative flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold rounded-full transition-all duration-300 ${
+                                activeTab === "NO_SHOW" 
+                                    ? "bg-slate-800 text-white shadow-md shadow-black/10" 
+                                    : "text-slate-500 hover:text-slate-800 bg-transparent"
+                            }`}
+                        >
+                            <span>No Show</span>
+                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] leading-none transition-colors ${
+                                activeTab === "NO_SHOW" ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600"
+                            }`}>
+                                {noShowQueue.length}
+                            </span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex bg-emerald-800 shrink-0">
-                <button
-                    onClick={() => setActiveTab("ACTIVE")}
-                    className={`flex-1 py-3 text-xs font-bold transition-colors ${activeTab === "ACTIVE" ? "bg-emerald-700 text-white border-b-2 border-emerald-300" : "text-emerald-300 hover:text-white"}`}
-                >
-                    ACTIVE ({activeQueue.length})
-                </button>
-                <button
-                    onClick={() => setActiveTab("NO_SHOW")}
-                    className={`flex-1 py-3 text-xs font-bold transition-colors border-l border-emerald-900 ${activeTab === "NO_SHOW" ? "bg-slate-700 text-white border-b-2 border-slate-300" : "text-emerald-300 hover:text-white"}`}
-                >
-                    NO SHOW ({noShowQueue.length})
-                </button>
+            {/* Table Header */}
+            <div className={`grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px_100px]" : "grid-cols-[70px_1fr_120px_120px]"} gap-6 px-6 lg:px-8 py-4 bg-white text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0 border-b border-slate-100`}>
+                <div>#Queue</div>
+                <div>Patient Name</div>
+                <div className="text-right">Actions</div>
+                <div className="text-right">Wait Time</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 space-y-2 pointer-events-auto bg-slate-50 relative">
+            {/* List Body */}
+            <div className="flex-1 overflow-y-auto bg-slate-50/50 relative custom-scrollbar">
                 {isPending && (
-                    <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                        <span className="text-sm font-bold text-emerald-700 animate-pulse bg-white px-4 py-2 rounded-lg shadow-md">Updating Queue...</span>
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                        <span className="text-sm font-bold text-emerald-600 animate-pulse bg-white px-5 py-2.5 rounded-xl shadow-lg border border-emerald-100">
+                            Updating Queue...
+                        </span>
                     </div>
                 )}
 
                 {activeTab === "ACTIVE" ? (
-                    activeQueue.length === 0 ? (
-                        <div className="text-center text-slate-400 py-12 text-sm font-medium">No active patients in queue.</div>
+                    filteredActiveQueue.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400 p-12 text-center">
+                            <CheckCircle size={48} className="mb-4 opacity-20" weight="duotone" />
+                            <p className="text-lg font-medium">Queue is empty</p>
+                            <p className="text-xs mt-2 text-slate-500">No active patients waiting for triage.</p>
+                        </div>
                     ) : (
-                        activeQueue.map((visit) => (
-                            <div
-                                key={visit.id}
-                                onClick={() => {
-                                    if (!isManualEntry) {
-                                        onError("");
-                                        onSelectPatient(visit);
-                                    }
-                                }}
-                                className={`p-3 rounded-lg border cursor-pointer transition-all shadow-sm flex flex-col gap-2 ${isManualEntry
-                                    ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200"
-                                    : selectedPatientId === visit.id
-                                        ? "bg-emerald-100 border-emerald-400 ring-2 ring-emerald-500/20"
-                                        : "bg-white border-slate-200 hover:border-emerald-300 hover:shadow-md"
-                                    }`}
-                            >
-                                <div className="flex justify-between items-start">
-                                    <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">
-                                        {visit.patient.lastName}, {visit.patient.firstName}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs text-slate-500 font-medium">
-                                    <span>Queued: {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                </div>
-                                <div className="flex gap-2 mt-1">
-                                    <button
-                                        disabled={isPending}
-                                        onClick={(e) => handleNoShow(visit.id, e)}
-                                        className="flex-1 px-2 py-1.5 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded text-[10px] font-bold uppercase transition-colors"
+                        <div className="flex flex-col">
+                            {filteredActiveQueue.map((visit) => {
+                                const isSelected = selectedPatientId === visit.id;
+
+                                // Wait time calc
+                                const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
+                                const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins} mins`;
+                                const isWaitingLong = waitMins > 10;
+                                const isWaitingExtreme = waitMins > 30;
+
+                                const waitColorClasses = isWaitingExtreme 
+                                    ? "bg-red-100/80 text-red-600 border border-red-200 shadow-sm"
+                                    : isWaitingLong 
+                                        ? "bg-amber-100/80 text-amber-700 border border-amber-200 shadow-sm" 
+                                        : "bg-slate-100 text-slate-500 border border-slate-200/50";
+
+                                return (
+                                    <div
+                                        key={visit.id}
+                                        onClick={() => {
+                                            if (!isDis) {
+                                                onError("");
+                                                onSelectPatient(visit);
+                                            }
+                                        }}
+                                        className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px_100px]" : "grid-cols-[70px_1fr_120px_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-px group ${
+                                            isDis
+                                                ? "opacity-50 hover:-translate-y-0 cursor-not-allowed bg-slate-50/50 border-slate-200"
+                                                : isSelected
+                                                    ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
+                                                    : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
+                                            }`}
                                     >
-                                        No Show
-                                    </button>
-                                    <button
-                                        disabled={isPending}
-                                        onClick={(e) => handleRemove(visit.id, e)}
-                                        className="flex-1 px-2 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-[10px] font-bold uppercase transition-colors"
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            </div>
-                        ))
+                                        {/* Ticket */}
+                                        <div className={`text-[15px] font-black transition-colors ${isSelected ? 'text-emerald-600' : 'text-emerald-500/80'}`}>
+                                            #{visit.ticketNumber.toString().padStart(3, '0')}
+                                        </div>
+
+                                        {/* Name & Demographics */}
+                                        <div className="min-w-0 pr-4 flex flex-col justify-center">
+                                            <div className={`font-black text-[14px] leading-tight truncate ${isSelected ? 'text-emerald-950' : 'text-slate-800'}`}>
+                                                {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
+                                            </div>
+                                            <div className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                                {visit.patient.gender.substring(0, 1)}, {visit.patient.age}y 
+                                                <span className="opacity-50 mx-0.5">•</span> 
+                                                <span className="italic">Queued: {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons (Hover to reveal, unless disabled) */}
+                                        {!isDis && (
+                                            <div className={`flex items-center justify-end gap-2 transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden group-hover:opacity-100 group-hover:h-auto group-focus-within:opacity-100 group-focus-within:h-auto'}`}>
+                                                <button
+                                                    disabled={isPending}
+                                                    onClick={(e) => handleNoShow(visit.id, e)}
+                                                    className="p-2 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 border border-amber-200/50 rounded-lg transition-colors"
+                                                    title="Mark as No Show"
+                                                >
+                                                    <UserMinus size={16} weight="bold" />
+                                                </button>
+                                                <button
+                                                    disabled={isPending}
+                                                    onClick={(e) => handleRemove(visit.id, e)}
+                                                    className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 border border-rose-200/50 rounded-lg transition-colors"
+                                                    title="Remove completely"
+                                                >
+                                                    <Trash size={16} weight="bold" />
+                                                </button>
+                                            </div>
+                                        )}
+                                        {isDis && <div />} {/* Empty spacer */}
+
+                                        {/* Wait Time Indicator */}
+                                        <div className="flex items-center justify-end">
+                                            <div className={`flex items-center justify-center gap-1.5 font-bold px-2.5 py-1 rounded-full text-[11px] w-full max-w-[90px] ${waitColorClasses}`}>
+                                                <Clock size={12} weight="bold" className="shrink-0" />
+                                                {waitStr}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     )
                 ) : (
                     noShowQueue.length === 0 ? (
-                        <div className="text-center text-slate-400 py-12 text-sm font-medium">No missed patients today.</div>
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400 p-12 text-center">
+                            <CheckCircle size={48} className="mb-4 opacity-20" weight="duotone" />
+                            <p className="text-lg font-medium">No missed patients</p>
+                        </div>
                     ) : (
-                        noShowQueue.map((visit) => (
-                            <div
-                                key={visit.id}
-                                className="p-3 rounded-lg border bg-slate-100 border-slate-300 shadow-sm flex flex-col gap-2"
-                            >
-                                <div className="flex justify-between items-start">
-                                    <span className="font-bold text-slate-700 uppercase tracking-tight text-sm">
-                                        {visit.patient.lastName}, {visit.patient.firstName}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs text-slate-500 font-medium pb-1 border-b border-slate-200">
-                                    <span className="text-amber-700 font-bold">MARKED NO SHOW</span>
-                                    <span>{new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                </div>
-                                <button
-                                    disabled={isPending}
-                                    onClick={(e) => handleRestore(visit.id, e)}
-                                    className="w-full mt-1 px-2 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded text-[10px] font-bold uppercase transition-colors"
+                        <div className="flex flex-col">
+                            {noShowQueue.map((visit) => (
+                                <div
+                                    key={visit.id}
+                                    className="w-full text-left grid grid-cols-[70px_1fr_180px] gap-6 items-center px-6 lg:px-8 py-4 min-h-[72px] border-b border-slate-100 bg-white"
                                 >
-                                    Restore to Active Queue
-                                </button>
-                            </div>
-                        ))
+                                    <div className="text-[15px] font-black text-slate-400">
+                                        #{visit.ticketNumber.toString().padStart(3, '0')}
+                                    </div>
+                                    <div className="min-w-0 pr-4 flex flex-col justify-center">
+                                        <div className="font-black text-[14px] leading-tight truncate text-slate-500 line-through">
+                                            {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
+                                        </div>
+                                        <div className="text-[11px] font-bold text-slate-400 mt-0.5">
+                                            Marked No-Show at {new Date(visit.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <button
+                                            disabled={isPending}
+                                            onClick={(e) => handleRestore(visit.id, e)}
+                                            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white hover:bg-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                                        >
+                                            <ClockCounterClockwise size={14} weight="bold" />
+                                            Restore
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )
                 )}
             </div>

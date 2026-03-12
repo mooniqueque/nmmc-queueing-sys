@@ -19,7 +19,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { UserPlus } from '@phosphor-icons/react';
+import { UserPlus, CaretUpDown, Check } from '@phosphor-icons/react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useState } from 'react';
 
@@ -34,6 +37,7 @@ import { adminCreateUser } from '../user-actions';
 export function AddUserDialog({ departments = [] }: { departments?: Department[] }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
+    const [openDept, setOpenDept] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -132,24 +136,55 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="dept" className="text-right">Dept</Label>
                         <div className="col-span-3">
-                            <Select
-                                value={formData.department}
-                                onValueChange={(val) => setFormData({ ...formData, department: val })}
-                                required
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select department" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {departments.length > 0 ? (
-                                        departments.map(dept => (
-                                            <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
-                                        ))
-                                    ) : (
-                                        <SelectItem value="none" disabled>No departments found</SelectItem>
-                                    )}
-                                </SelectContent>
-                            </Select>
+                            <Popover open={openDept} onOpenChange={setOpenDept}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={openDept}
+                                        className="w-full justify-between font-normal bg-white border-slate-200 hover:bg-slate-50 relative"
+                                    >
+                                        <span className="truncate pr-5">
+                                            {formData.department
+                                                ? departments.find((dept) => dept.name === formData.department)?.name
+                                                : "Search department..."}
+                                        </span>
+                                        <CaretUpDown weight="bold" className="ml-2 h-4 w-4 shrink-0 opacity-50 absolute right-3" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[300px] p-0 z-50" align="start">
+                                    <Command>
+                                        <CommandInput placeholder="Search department..." className="h-9" />
+                                        <CommandList className="max-h-[240px] overflow-y-auto">
+                                            <CommandEmpty>No department found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {departments.map((dept) => (
+                                                    <CommandItem
+                                                        key={dept.id}
+                                                        value={dept.name}
+                                                        onSelect={(currentValue) => {
+                                                            const actualValue = departments.find(
+                                                                (d) => d.name.toLowerCase() === currentValue.toLowerCase()
+                                                            )?.name || currentValue;
+                                                            setFormData({ ...formData, department: actualValue === formData.department ? "" : actualValue });
+                                                            setOpenDept(false);
+                                                        }}
+                                                    >
+                                                        {dept.name}
+                                                        <Check
+                                                            weight="bold"
+                                                            className={cn(
+                                                                "ml-auto h-4 w-4",
+                                                                formData.department === dept.name ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     </div>
                     <DialogFooter>

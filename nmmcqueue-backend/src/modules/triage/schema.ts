@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const kioskFormSchema = z.object({
     hospitalId: z.string().optional(),
+    contactNo: z.string().min(10, 'Contact number should be at least 10 digits').optional(),
     firstName: z.string().min(1, 'First name is required'),
     middleName: z.string().optional(),
     lastName: z.string().min(1, 'Last name is required'),

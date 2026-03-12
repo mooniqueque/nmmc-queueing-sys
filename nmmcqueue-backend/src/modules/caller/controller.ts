@@ -15,7 +15,6 @@ class CallerController {
     }
     async createDepartment(req: Request, res: Response) {
         try {
-            if ((req as any).user?.role !== 'ADMIN') return res.status(401).json({ success: false, error: 'UNAUTHORIZED: Admin access required' });
             res.status(200).json({ success: true, data: await callerService.createDepartment(req.body.name, req.body.code) });
         } catch (error: any) {
             if (error.code === 'P2002') return res.status(400).json({ success: false, error: 'A department with this name or code already exists.' });
@@ -24,7 +23,6 @@ class CallerController {
     }
     async deleteDepartment(req: Request, res: Response) {
         try {
-            if ((req as any).user?.role !== 'ADMIN') return res.status(401).json({ success: false, error: 'UNAUTHORIZED: Admin access required' });
             await callerService.deleteDepartment(req.params.id);
             res.status(200).json({ success: true });
         } catch { res.status(500).json({ success: false, error: "Could not delete. It might be linked to active visits." }); }
@@ -39,14 +37,12 @@ class CallerController {
     }
     async createQueueOption(req: Request, res: Response) {
         try {
-            if ((req as any).user?.role !== 'ADMIN') return res.status(401).json({ success: false, error: 'UNAUTHORIZED: Admin access required' });
             await callerService.createQueueOption(req.body.departmentName, req.body.option);
             res.status(200).json({ success: true });
         } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
     }
     async deleteQueueOption(req: Request, res: Response) {
         try {
-            if ((req as any).user?.role !== 'ADMIN') return res.status(401).json({ success: false, error: 'UNAUTHORIZED: Admin access required' });
             await callerService.deleteQueueOption(req.body.departmentName, req.body.option);
             res.status(200).json({ success: true });
         } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
@@ -90,6 +86,13 @@ class CallerController {
         try {
             const visitId = req.params.visitId;
             const data = await callerService.notifyPatient(visitId);
+            res.status(200).json({ success: true, data });
+        } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
+    }
+    async restorePatient(req: Request, res: Response) {
+        try {
+            const visitId = req.params.visitId;
+            const data = await callerService.restorePatient(visitId);
             res.status(200).json({ success: true, data });
         } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
     }

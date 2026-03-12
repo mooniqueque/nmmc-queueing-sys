@@ -1,10 +1,11 @@
 "use server";
 import * as callerApi from "@/features/caller/api";
+import * as sharedApi from "@/features/shared/api";
 import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
 
 export async function getDepartments() {
-    return callerApi.getDepartments({ headers: await getServerHeaders() });
+    return sharedApi.getDepartments({ headers: await getServerHeaders() });
 }
 
 export async function createDepartment(name: string, code: string) {

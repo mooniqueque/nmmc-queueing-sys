@@ -1,5 +1,5 @@
 import { ApexOptions } from 'apexcharts';
-import { VolumeData, CategoryData } from './triage-nurse';
+import { VolumeData, CategoryData } from '../types';
 
 export const getBarChartOptions = (volumeData: VolumeData[]): ApexOptions => ({
     chart: {

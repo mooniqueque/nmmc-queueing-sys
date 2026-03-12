@@ -2,12 +2,6 @@
 
 import {
     ArrowSquareOut,
-    Funnel,
-    MagnifyingGlass,
-    Ticket,
-    Users,
-    ClockCounterClockwise,
-    CheckCircle,
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -15,11 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { StatsCard } from './stats-card';
 import { SessionUser } from '@/types/auth';
 import { Department } from '@/types/models';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 
 const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
 
@@ -40,15 +31,6 @@ export default function ReleasingDashboard({
     const [selectedDepartment, setSelectedDepartment] = useState('');
     const [ticketsToRelease, setTicketsToRelease] = useState('');
     const [selectedQueueOption, setSelectedQueueOption] = useState('');
-
-    // MOCK DATA: Replace this with real data from your backend later
-    const kpis = {
-        totalTicketsReleased: 124,
-        totalWaitingPatients: 42,
-        peakWaitingDepartment: "Animal Bite",
-        resolvedTickets: 89
-    };
-
 
     // Filter departments based on search query
     const filteredDepartments = departments.filter(dept =>
@@ -85,73 +67,141 @@ export default function ReleasingDashboard({
                 </div>
             </header>
 
-            {/* TOP KPI STATS ROW */}
             <main className='flex-1 p-6 space-y-6 bg-slate-50/50 px-10 overflow-y-auto'>
-                <Tabs defaultValue="releasing" className="w-full">
-                    {/* The Tab Buttons */}
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h2 className="text-2xl font-semibold text-emerald-800">Releasing Dashboard</h2>
-                            <p className="text-sm text-muted-foreground">Manage tickets and view department analytics</p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-semibold text-emerald-800">Releasing Dashboard</h2>
+                        <p className="text-sm text-muted-foreground">Manage tickets and view department analytics</p>
+                    </div>
+                </div>
+
+                {/* TWO COLUMN LAYOUT - USING PREMIUM REPORTS STYLING! */}
+                <div className="flex gap-6 h-[calc(100vh-200px)] mt-4">
+
+                    {/* LEFT SIDE - DEPARTMENT CARDS */}
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <div className="mb-4">
+                            <h3 className="font-medium text-sm text-emerald-700">All Departments</h3>
                         </div>
-                        <TabsList className="bg-emerald-100/50 p-1">
-                            <TabsTrigger value="releasing" className="data-[state=active]:bg-white data-[state=active]:text-emerald-900 data-[state=active]:shadow-sm">
-                                🎫 Ticket Releasing
-                            </TabsTrigger>
-                            <TabsTrigger value="statistics" className="data-[state=active]:bg-white data-[state=active]:text-emerald-900 data-[state=active]:shadow-sm">
-                                📊 Department Statistics
-                            </TabsTrigger>
-                        </TabsList>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 overflow-y-auto pr-2 pb-10 content-start auto-rows-max">
+                            {filteredDepartments.length === 0 ? (
+                                <div className="col-span-1 lg:col-span-2 text-center text-slate-500 mt-10 italic">
+                                    No departments found matching your search.
+                                </div>
+                            ) : (
+                                filteredDepartments.map((dept) => {
+                                    return (
+                                        // NOTICE THIS CLASSNAME: border-0 ring-1 ring-slate-100 matches the Reports Page!
+                                        <Card
+                                            key={dept.id}
+                                            className={`w-full overflow-hidden cursor-pointer transition-all border-0 shadow-sm ${selectedDepartment === dept.name
+                                                ? 'ring-2 ring-emerald-600 bg-emerald-50/30'
+                                                : 'ring-1 ring-slate-100 hover:ring-2 hover:ring-emerald-200 bg-white'
+                                                }`}
+                                            onClick={() => setSelectedDepartment(dept.name)}
+                                        >
+                                            <div className="flex items-center gap-3 p-3">
+                                                <div className="w-1.5 h-10 rounded-full bg-emerald-600 shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-semibold text-sm text-emerald-900 truncate">{dept.name}</div>
+                                                    <div className="text-xs text-slate-500">Tickets Released: 01</div>
+                                                </div>
+                                                <div className="shrink-0">
+                                                    <Button variant="ghost" size="icon" className="bg-emerald-50 hover:bg-emerald-100 h-8 w-8">
+                                                        <ArrowSquareOut className="text-emerald-700" size={16} />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )
+                                })
+                            )}
+                        </div>
                     </div>
 
-                    {/* TAB 1: RELEASING WINDOW (Your previous code) */}
-                    <TabsContent value="releasing" className="space-y-6 m-0 focus-visible:outline-none">
+                    {/* RIGHT SIDE - INPUT CARD */}
+                    <div className="w-80 shrink-0">
+                        {/* NOTICE THIS CLASSNAME: border-0 ring-1 ring-slate-100 matches the Reports Page! */}
+                        <Card className="shadow-sm border-0 ring-1 ring-slate-100 px-2 py-2 sticky top-0 bg-white">
+                            <CardHeader className="border-b border-slate-100/60 pb-4">
+                                <CardTitle className="text-lg text-emerald-900">Release Tickets</CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-6 space-y-6">
+                                {/* SELECTED DEPARTMENT DISPLAY */}
+                                <div>
+                                    <label className="text-sm font-semibold text-slate-700 block mb-2">Selected Department</label>
+                                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md">
+                                        <p className="text-sm font-medium text-emerald-900">
+                                            {selectedDepartment || 'No department selected'}
+                                        </p>
+                                    </div>
+                                </div>
 
-                        {/* TOP KPI STATS ROW */}
-                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6'>
-                            <StatsCard
-                                label="Total Tickets Today"
-                                value={kpis.totalTicketsReleased.toString()}
-                                icon={<Ticket size={28} weight="fill" className="text-white" />}
-                                color="bg-emerald-600"
-                            />
-                            <StatsCard
-                                label="Outstanding Waiting"
-                                value={kpis.totalWaitingPatients.toString()}
-                                icon={<Users size={28} weight="fill" className="text-white" />}
-                                color="bg-amber-500"
-                            />
-                            <StatsCard
-                                label="Highest Volume Dept"
-                                value={kpis.peakWaitingDepartment}
-                                icon={<ClockCounterClockwise size={28} weight="bold" className="text-white" />}
-                                color="bg-blue-500"
-                            />
-                            <StatsCard
-                                label="Completed Visits"
-                                value={kpis.resolvedTickets.toString()}
-                                icon={<CheckCircle size={28} weight="fill" className="text-white" />}
-                                color="bg-emerald-400"
-                            />
-                        </div>
+                                {/* QUEUE OPTIONS */}
+                                {selectedDepartment && queueOptions.length > 0 && (
+                                    <div>
+                                        <label className="text-sm font-semibold text-slate-700 block mb-2">Queue Option</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {queueOptions.map((option) => (
+                                                <Button
+                                                    key={option}
+                                                    type="button"
+                                                    variant={selectedQueueOption === option ? "default" : "outline"}
+                                                    className={`text-xs font-bold ${selectedQueueOption === option
+                                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                        : 'border-slate-300 hover:bg-slate-50'
+                                                        }`}
+                                                    onClick={() => setSelectedQueueOption(option)}
+                                                >
+                                                    {option}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
-                        {/* We will add the department cards back here soon! */}
-                        <div className="bg-white p-10 border rounded-xl text-center text-slate-500">
-                            Department Cards Grid Goes Here
-                        </div>
-                    </TabsContent>
+                                {/* NUMBER INPUT */}
+                                <div>
+                                    <label htmlFor="tickets" className="text-sm font-semibold text-slate-700 block mb-2">
+                                        Number of Tickets to Release
+                                    </label>
+                                    <Input
+                                        id="tickets"
+                                        type="number"
+                                        placeholder="Enter number..."
+                                        value={ticketsToRelease}
+                                        onChange={(e) => setTicketsToRelease(e.target.value)}
+                                        className="bg-white border-slate-200"
+                                        min="0"
+                                    />
+                                    <p className="text-xs text-slate-500 mt-1">Enter the number of tickets to release for this department</p>
+                                </div>
 
-                    {/* TAB 2: STATISTICS DASHBOARD */}
-                    <TabsContent value="statistics" className="space-y-6 m-0 focus-visible:outline-none">
-                        <div className="bg-white p-6 border rounded-xl shadow-sm">
-                            <h3 className="text-lg font-bold text-emerald-900 mb-4">Select a Department to View Stats</h3>
-                            {/* We will add the dropdown and charts here soon! */}
-                        </div>
-                    </TabsContent>
-                </Tabs>
+                                {/* SUBMIT BUTTON */}
+                                <Button
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md"
+                                    disabled={!selectedDepartment || !ticketsToRelease || !selectedQueueOption}
+                                >
+                                    Release Tickets
+                                </Button>
+
+                                {/* RESET BUTTON */}
+                                <Button
+                                    variant="outline"
+                                    className="w-full border-slate-200"
+                                    onClick={() => {
+                                        setSelectedDepartment('')
+                                        setTicketsToRelease('')
+                                        setSelectedQueueOption('')
+                                    }}
+                                >
+                                    Clear
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
             </main>
-
-
         </div >
     )
 }

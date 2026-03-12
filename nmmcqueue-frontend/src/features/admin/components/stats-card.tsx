@@ -23,7 +23,7 @@ export function StatsCard({ label, value, icon, color }: StatsCardProps) {
                 </div>
                 <div className="flex flex-col gap-1">
                     <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wider leading-none">{label}</p>
-                    <h3 className="text-3xl font-extrabold text-black leading-none">{value}</h3>
+                    <h3 className="text-xl font-extrabold text-black leading-none">{value}</h3>
                 </div>
             </div>
         </Card>

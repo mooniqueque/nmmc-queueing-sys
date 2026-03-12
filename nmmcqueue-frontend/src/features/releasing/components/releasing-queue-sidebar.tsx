@@ -1,19 +1,8 @@
 "use client";
 
-<<<<<<< HEAD:nmmcqueue-frontend/src/features/releasing/components/clerk-queue-sidebar.tsx
-<<<<<<< HEAD:nmmcqueue-frontend/src/app/(staffs)/releasing/_components/clerk-queue-sidebar.tsx
-import { VisitWithPatient } from "@/app/(staffs)/triage/_types";
-import { useState } from "react";
-import { useClerkQueue } from "../_hooks/use-clerk-queue";
-=======
-import { VisitWithPatient } from "@/features/triage/types";
-import { useClerkQueue } from "../hooks";
->>>>>>> origin/newname:nmmcqueue-frontend/src/features/releasing/components/clerk-queue-sidebar.tsx
-=======
 import { VisitWithPatient } from "@/app/(staffs)/triage/_types";
 import { useState } from "react";
 import { useReleasingQueue } from "../hooks";
->>>>>>> origin/newname:nmmcqueue-frontend/src/features/releasing/components/releasing-queue-sidebar.tsx
 
 const QUEUE_TABS = [
     { key: "ALL", label: "All" },

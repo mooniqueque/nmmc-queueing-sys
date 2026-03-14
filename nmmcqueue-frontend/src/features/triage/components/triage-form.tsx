@@ -10,30 +10,20 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { submitTriageForm } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
-import { VisitWithPatient } from "../types";
 import { ClipboardText, CaretDoubleRight, PaperPlaneRight, WarningCircle } from "@phosphor-icons/react";
 
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
 import { VitalsSection } from "./vitals-section";
+import { useTriageStore } from "../store/use-triage-store";
 
-interface TriageFormProps {
-    isManualEntry: boolean;
-    setIsManualEntry: (val: boolean) => void;
-    selectedPatient: VisitWithPatient | null;
-    setSelectedPatient: (val: VisitWithPatient | null) => void;
-    submitError: string;
-    setSubmitError: (val: string) => void;
-}
-
-export function TriageForm({
-    isManualEntry,
-    setIsManualEntry,
-    selectedPatient,
-    setSelectedPatient,
-    submitError,
-    setSubmitError
-}: TriageFormProps) {
+export function TriageForm() {
+    const { 
+        isManualEntry, setManualEntry, 
+        selectedPatient, 
+        submitError, setSubmitError,
+        resetTriage
+    } = useTriageStore();
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
@@ -92,8 +82,7 @@ export function TriageForm({
             } else {
                 setSubmitSuccess(true);
                 setTimeout(() => {
-                    setIsManualEntry(false);
-                    setSelectedPatient(null);
+                    resetTriage();
                     setSubmitSuccess(false);
                     methods.reset();
                 }, 2000);
@@ -124,8 +113,7 @@ export function TriageForm({
                         onCheckedChange={(checked) => {
                             setSubmitError("");
                             setSubmitSuccess(false);
-                            setIsManualEntry(checked);
-                            if (checked) setSelectedPatient(null);
+                            setManualEntry(checked);
                         }}
                         className="data-[state=checked]:bg-emerald-600 shadow-inner"
                     />

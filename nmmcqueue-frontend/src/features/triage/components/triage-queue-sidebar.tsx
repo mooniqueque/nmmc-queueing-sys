@@ -4,26 +4,22 @@ import { useTransition, useState } from "react";
 import { markNoShow, removeQueue, restoreNoShow } from "../actions";
 import { useTriageQueue } from "../hooks";
 import { VisitWithPatient } from "../types";
+import { useTriageStore } from "../store/use-triage-store";
 import { CheckCircle, Clock, ClockCounterClockwise, Trash, UserMinus, MagnifyingGlass, Funnel, ArrowClockwise } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
+import { calculateAge } from "@/lib/utils";
 
 interface TriageQueueSidebarProps {
     initialQueue: VisitWithPatient[];
-    isManualEntry: boolean;
-    selectedPatientId: string | undefined;
-    onSelectPatient: (patient: VisitWithPatient | null) => void;
-    onError: (err: string) => void;
-    isPanelOpen?: boolean;
 }
 
 export function TriageQueueSidebar({
-    initialQueue,
-    isManualEntry,
-    selectedPatientId,
-    onSelectPatient,
-    onError,
-    isPanelOpen
+    initialQueue
 }: TriageQueueSidebarProps) {
+    const { selectedPatient, isManualEntry, isPanelOpen, setSelectedPatient, setSubmitError } = useTriageStore();
+    const selectedPatientId = selectedPatient?.id;
+    const onSelectPatient = setSelectedPatient;
+    const onError = setSubmitError;
     const { activeQueue, noShowQueue, activeTab, setActiveTab } = useTriageQueue(initialQueue);
     const [isPending, startTransition] = useTransition();
     const [searchQuery, setSearchQuery] = useState("");
@@ -188,7 +184,7 @@ export function TriageQueueSidebar({
                                         }}
                                         className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px_100px]" : "grid-cols-[70px_1fr_120px_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-px group ${
                                             isDis
-                                                ? "opacity-50 hover:-translate-y-0 cursor-not-allowed bg-slate-50/50 border-slate-200"
+                                                ? "opacity-50 hover:translate-y-0 cursor-not-allowed bg-slate-50/50 border-slate-200"
                                                 : isSelected
                                                     ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
                                                     : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
@@ -205,7 +201,7 @@ export function TriageQueueSidebar({
                                                 {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
                                             </div>
                                             <div className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                                {visit.patient.gender.substring(0, 1)}, {visit.patient.age}y 
+                                                {visit.patient.gender.substring(0, 1)}, {calculateAge(visit.patient.dateOfBirth)}y 
                                                 <span className="opacity-50 mx-0.5">•</span> 
                                                 <span className="italic">Queued: {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>

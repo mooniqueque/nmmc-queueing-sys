@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
 import { VisitWithPatient } from "@/features/triage/types";
@@ -10,11 +10,11 @@ import {
     Clock, Users, SpeakerHigh, UserMinus, CheckCircle, Hash, Phone, Heartbeat, Thermometer, Info, ArrowUpRight, ArrowSquareOut
 } from "@phosphor-icons/react";
 import { getDepartments } from "@/features/shared/api";
-import { Department } from "@/types/models";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect } from "react";
 import { transferPatient } from "../api";
+import { useCallerStore } from "../store/use-caller-store";
 
 
 export default function UserCallerDashboard({
@@ -25,17 +25,20 @@ export default function UserCallerDashboard({
     initialQueue?: VisitWithPatient[];
 }) {
     const isAvailable = true;
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [activeTab, setActiveTab] = useState<"pending" | "noshow" | "referrals">("pending");
-    const [allDepartments, setAllDepartments] = useState<Department[]>([]);
-    const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
-    const [targetDeptId, setTargetDeptId] = useState<string>("");
+    const { 
+        activeTab, setActiveTab, 
+        isProcessing, setIsProcessing, 
+        allDepartments, setDepartments, 
+        isReferralModalOpen, setReferralModalOpen,
+        targetDeptId, setTargetDeptId,
+        resetReferral
+    } = useCallerStore();
 
     useEffect(() => {
         getDepartments().then(res => {
-            if (res.success) setAllDepartments(res.data);
+            if (res.success) setDepartments(res.data);
         });
-    }, []);
+    }, [setDepartments]);
 
     // Live Queue Hook locked directly to the user's role department
     const { activeQueue } = useClinicQueue(department, initialQueue);
@@ -105,8 +108,7 @@ export default function UserCallerDashboard({
             const res = await transferPatient(targetVisit.id, targetDeptId);
             if (res.success) {
                 toast.success(`Patient referred successfully.`);
-                setIsReferralModalOpen(false);
-                setTargetDeptId("");
+                resetReferral();
             } else {
                 toast.error(res.error || "Failed to refer patient.");
             }
@@ -448,7 +450,7 @@ export default function UserCallerDashboard({
                                 <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar justify-start">
                                     <Button 
                                         variant="outline" 
-                                        onClick={() => setIsReferralModalOpen(true)}
+                                        onClick={() => setReferralModalOpen(true)}
                                         disabled={isProcessing}
                                         className="h-14 px-5 border-slate-700 bg-slate-800 text-emerald-400 hover:bg-slate-700 hover:text-emerald-300 rounded-xl font-bold uppercase tracking-widest text-[12px] shrink-0"
                                     >
@@ -494,7 +496,7 @@ export default function UserCallerDashboard({
             </div>
 
             {/* Referral Modal */}
-            <Dialog open={isReferralModalOpen} onOpenChange={setIsReferralModalOpen}>
+            <Dialog open={isReferralModalOpen} onOpenChange={setReferralModalOpen}>
                 <DialogContent className="sm:max-w-[425px] rounded-3xl p-8">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Refer Patient</DialogTitle>
@@ -533,7 +535,7 @@ export default function UserCallerDashboard({
                         <Button
                             variant="outline"
                             className="h-12 rounded-xl border-slate-200 font-bold px-6"
-                            onClick={() => setIsReferralModalOpen(false)}
+                            onClick={() => setReferralModalOpen(false)}
                             disabled={isProcessing}
                         >
                             Cancel

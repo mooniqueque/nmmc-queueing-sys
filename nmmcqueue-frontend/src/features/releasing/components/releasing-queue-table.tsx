@@ -2,7 +2,8 @@
 
 import { Input } from "@/components/ui/input";
 import { VisitWithPatient } from "@/features/triage/types";
-import { CheckCircle, Clock, MagnifyingGlass, WarningCircle, Funnel, ArrowClockwise } from "@phosphor-icons/react";
+import { CheckCircle, Clock, MagnifyingGlass, Funnel, ArrowClockwise } from "@phosphor-icons/react";
+import { calculateAge } from "@/lib/utils";
 
 type QueueCategory = "ALL" | "PRIORITY" | "REGULAR";
 
@@ -138,7 +139,7 @@ export function ReleasingQueueTable({
                                 <button
                                     key={visit.id}
                                     onClick={() => onSelectPatient(visit)}
-                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[70px_1fr_1fr_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-[1px] ${
+                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[70px_1fr_1fr_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-px ${
                                         isSelected
                                             ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
                                             : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
@@ -155,9 +156,19 @@ export function ReleasingQueueTable({
                                             {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
                                         </div>
                                         <div className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                            {visit.patient.gender.substring(0, 1)}, {visit.patient.age}y 
+                                            {visit.patient.gender.substring(0, 1)}, {calculateAge(visit.patient.dateOfBirth)}y 
                                             <span className="opacity-50 mx-0.5">•</span> 
                                             <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-slate-100 rounded border border-slate-200">{category}</span>
+                                            {visit.status === 'IN_PROGRESS' && (
+                                                <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded animate-pulse">
+                                                    CALLED
+                                                </span>
+                                            )}
+                                            {visit.status === 'NO_SHOW' && (
+                                                <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-rose-100 text-rose-700 border border-rose-200 rounded">
+                                                    NO-SHOW
+                                                </span>
+                                            )}
                                             {badges.map(b => (
                                                 <span key={b} className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
                                                     {b}

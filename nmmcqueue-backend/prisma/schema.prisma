@@ -6,28 +6,68 @@ datasource db {
   provider = "mysql"
 }
 
+enum UserRole {
+  ADMIN
+  TRIAGE_NURSE
+  WINDOW_CLERK
+  CLINIC_CALLER
+}
+
+enum VisitStatus {
+  PENDING_TRIAGE
+  KIOSK_SUBMITTED
+  WAITING_WINDOW
+  WAITING_CLINIC
+  IN_PROGRESS
+  COMPLETED
+  NO_SHOW
+}
+
+enum PriorityClass {
+  REGNEW
+  REGULAR
+  PRIORITY
+  CHILD
+  ER_REF
+  FT
+  REFERRALS
+}
+
+enum WorkstationType {
+  WINDOW
+  TRIAGE
+  CALLER
+}
+
 model User {
-  id            String    @id @default(cuid())
-  firstName     String
-  lastName      String
-  middleName    String?
-  suffix        String?
-  birthDate     DateTime
-  contactNumber String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  employeeID    String    @unique
-  image         String?
-  role          String
-  isApproved    Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  name          String
-  department    String
-  isActive      Boolean   @default(true)
-  accounts      Account[]
-  sessions      Session[]
-  triagedVisits Visit[]   @relation("UserTriage")
+  id              String    @id @default(cuid())
+  firstName       String
+  lastName        String
+  middleName      String?
+  suffix          String?
+  birthDate       DateTime
+  contactNumber   String
+  email           String    @unique
+  emailVerified   Boolean   @default(false)
+  employeeID      String    @unique
+  username        String?   @unique
+  displayUsername String?
+  image           String?
+  role            UserRole
+  isApproved      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  name            String
+  department      String?
+  departmentId    String?
+  isActive        Boolean   @default(true)
+  accounts        Account[]
+  sessions        Session[]
+  triagedVisits   Visit[]   @relation("UserTriage")
+  calledVisits    Visit[]   @relation("UserCall")
+  dept            Department? @relation(fields: [departmentId], references: [id])
+  workstationId   String?
+  workstation     WorkStation? @relation(fields: [workstationId], references: [id])
 
   @@map("user")
 }
@@ -87,8 +127,25 @@ model Department {
   visits       Visit[]
   referredVisits Visit[]    @relation("DepartmentReferrals")
   queueOptions LaneOption[]
+  users        User[]
+  workstations WorkStation[]
 
   @@map("department")
+}
+
+model WorkStation {
+  id           String          @id @default(cuid())
+  name         String          @unique
+  type         WorkstationType
+  stationNo    Int
+  isActive     Boolean         @default(true)
+  departmentId String?
+  department   Department?     @relation(fields: [departmentId], references: [id])
+  users        User[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@map("workstation")
 }
 
 model Patient {
@@ -97,7 +154,6 @@ model Patient {
   lastName     String
   middleName   String?
   dateOfBirth  DateTime
-  age          Int
   gender       String
   contactNo    String?
   address      String?
@@ -118,7 +174,7 @@ model Visit {
   patientId       String
   departmentId    String?
   ticketNumber    Int
-  status          String      @default("PENDING_TRIAGE")
+  status          VisitStatus @default(PENDING_TRIAGE)
   bloodPressure   String?
   heartRate       Int?
   respiratoryRate Int?
@@ -135,10 +191,13 @@ model Visit {
   disposition     String?
   triagedByUserId String?
   triagedAt       DateTime?
+  calledAt        DateTime?
+  calledByUserId  String?
+  windowNumber    Int?
   queueDate       DateTime    @default(now())
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-  priorityClass   String      @default("REGNEW")
+  priorityClass   PriorityClass @default(REGNEW)
   hasAppointment  Boolean     @default(false)
   isReferred      Boolean     @default(false)
   referredFromId  String?
@@ -146,11 +205,29 @@ model Visit {
   department      Department? @relation(fields: [departmentId], references: [id])
   patient         Patient     @relation(fields: [patientId], references: [id])
   triagedByUser   User?       @relation("UserTriage", fields: [triagedByUserId], references: [id])
+  calledByUser    User?       @relation("UserCall", fields: [calledByUserId], references: [id])
+  statusHistory   VisitStatusHistory[]
 
   @@index([departmentId], map: "visit_departmentId_fkey")
   @@index([patientId], map: "visit_patientId_fkey")
   @@index([triagedByUserId], map: "visit_triagedByUserId_fkey")
+  @@index([calledByUserId], map: "visit_calledByUserId_fkey")
+  @@index([status])
+  @@index([createdAt])
+  @@index([priorityClass])
   @@map("visit")
+}
+
+model VisitStatusHistory {
+  id        String      @id @default(cuid())
+  visitId   String
+  status    VisitStatus
+  changedAt DateTime    @default(now())
+  changedBy String?
+  visit     Visit       @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId])
+  @@map("visit_status_history")
 }
 
 model Sequence {

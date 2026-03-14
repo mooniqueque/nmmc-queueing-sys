@@ -26,6 +26,7 @@ async function main() {
         await prisma.account.deleteMany();
         await prisma.verification.deleteMany();
         await prisma.user.deleteMany();
+        await prisma.workStation.deleteMany();
         // DO NOT delete departments entirely as there might be legitimate user-made ones, 
         // but we will ensure our seeded ones exist.
 
@@ -66,18 +67,45 @@ async function main() {
             ...pendingUsers.map(u => u.dept)
         ]));
 
+        const deptMap: Record<string, string> = {};
         for (const deptString of allDepts) {
             const name = deptString.trim().toUpperCase();
             // Generate a simple code if one doesn't exist, e.g. INTERNAL MEDICINE -> INT
             const code = name.replace(/[^A-Z]/g, '').substring(0, 4) || name.substring(0, 4);
             
-            await prisma.department.upsert({
+            const dept = await prisma.department.upsert({
                 where: { name },
                 update: {},
                 create: { name, code }
             });
         }
         console.log(`✅ ${allDepts.length} departments synchronized`);
+
+        // 1.6 Seed Workstations
+        console.log("🏁 Synchronizing Workstations...");
+        const workstationSeeds = [
+            { name: "Entrance Triage 1", type: "TRIAGE", stationNo: 1 },
+            { name: "Main Window 1", type: "WINDOW", stationNo: 1 },
+            { name: "Main Window 2", type: "WINDOW", stationNo: 2 },
+            { name: "Main Window 3", type: "WINDOW", stationNo: 3 },
+            { name: "Clinic Desk Alpha", type: "CALLER", stationNo: 1 },
+            { name: "Clinic Desk Beta", type: "CALLER", stationNo: 2 },
+        ];
+
+        const wsMap: Record<string, string> = {};
+        for (const ws of workstationSeeds) {
+            const created = await prisma.workStation.upsert({
+                where: { name: ws.name },
+                update: {},
+                create: { 
+                    name: ws.name, 
+                    type: ws.type as any, 
+                    stationNo: ws.stationNo 
+                }
+            });
+            wsMap[ws.name] = created.id;
+        }
+        console.log(`✅ ${workstationSeeds.length} workstations synchronized`);
 
         console.log("✅ Database cleared");
 
@@ -95,10 +123,14 @@ async function main() {
                 birthDate: new Date("1985-03-15").toISOString(),
                 contactNumber: "09171234567",
                 employeeID: "EMP001",
-                role: "ADMIN",
+                username: "admin",
+                role: "ADMIN" as any,
+                departmentId: deptMap["Administration"],
                 department: "Administration",
+                workstationId: wsMap["Main Window 1"] as any, // Admin doesn't strictly need one but schema/auth might expect it
                 isApproved: true,
-            }
+            },
+            headers: new Headers(),
         });
         console.log("✅ Admin user created");
 
@@ -118,10 +150,14 @@ async function main() {
                     birthDate: new Date("1990-06-20").toISOString(),
                     contactNumber: `09${Math.floor(100000000 + Math.random() * 900000000)}`,
                     employeeID: caller.empId,
-                    role: "CLINIC_CALLER",
+                    username: caller.email.split('@')[0],
+                    role: "CLINIC_CALLER" as any,
+                    departmentId: deptMap[caller.dept],
                     department: caller.dept,
+                    workstationId: wsMap["Clinic Desk Alpha"],
                     isApproved: true,
-                }
+                },
+                headers: new Headers(),
             });
         }
         console.log(`✅ ${callers.length} clinic callers created`);
@@ -142,10 +178,14 @@ async function main() {
                     birthDate: new Date("1992-08-10").toISOString(),
                     contactNumber: `09${Math.floor(100000000 + Math.random() * 900000000)}`,
                     employeeID: clerk.empId,
-                    role: "WINDOW_CLERK",
+                    username: clerk.email.split('@')[0],
+                    role: "WINDOW_CLERK" as any,
+                    departmentId: deptMap[clerk.dept],
                     department: clerk.dept,
+                    workstationId: wsMap["Main Window 1"],
                     isApproved: true,
-                }
+                },
+                headers: new Headers(),
             });
         }
         console.log(`✅ ${clerks.length} window clerks created`);
@@ -166,10 +206,14 @@ async function main() {
                     birthDate: new Date("1995-05-15").toISOString(),
                     contactNumber: `09${Math.floor(100000000 + Math.random() * 900000000)}`,
                     employeeID: pendingUser.empId,
-                    role: pendingUser.role,
+                    username: pendingUser.email.split('@')[0],
+                    role: pendingUser.role as any,
+                    departmentId: deptMap[pendingUser.dept],
                     department: pendingUser.dept,
+                    workstationId: (pendingUser.role === 'TRIAGE_NURSE' ? wsMap["Entrance Triage 1"] : wsMap["Main Window 1"]) as any,
                     isApproved: false,
-                }
+                },
+                headers: new Headers(),
             });
         }
         console.log(`✅ ${pendingUsers.length} pending users created`);

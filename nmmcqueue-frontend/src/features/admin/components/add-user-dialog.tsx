@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
     Dialog,
     DialogContent,
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
     Select,
     SelectContent,
@@ -19,15 +21,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { UserPlus, CaretUpDown, Check } from '@phosphor-icons/react';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Department, WorkStation, WorkstationType } from "@/types/models";
+import { CaretUpDown, Check, UserPlus } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
-import { useState } from 'react';
-
-import { Department } from "@/types/models";
+import { useEffect, useState } from "react";
 import { adminCreateUser } from '../user-actions';
+import { getWorkstations } from '../workstation-actions';
 
 /**
  * COMPONENT: AddUserDialog
@@ -44,8 +44,28 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
         email: '',
         employeeID: '',
         role: '',
-        department: ''
+        department: '',
+        workstationId: ''
     });
+    const [allWorkstations, setAllWorkstations] = useState<WorkStation[]>([]);
+
+    useEffect(() => {
+        if (open) {
+            getWorkstations().then(res => {
+                if (res.success) setAllWorkstations(res.data);
+            });
+        }
+    }, [open]);
+
+    const filteredWorkstations = allWorkstations.filter(ws => {
+        if (formData.role === "WINDOW_CLERK") return ws.type === WorkstationType.WINDOW;
+        if (formData.role === "TRIAGE_NURSE") return ws.type === WorkstationType.TRIAGE;
+        if (formData.role === "CLINIC_CALLER") return ws.type === WorkstationType.CALLER;
+        return false;
+    });
+
+    const isWindowOrTriage = formData.role === "WINDOW_CLERK" || formData.role === "TRIAGE_NURSE";
+    const isClinicCaller = formData.role === "CLINIC_CALLER";
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,7 +74,7 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
             const result = await adminCreateUser(formData);
             if (result.success) {
                 setOpen(false);
-                setFormData({ name: '', email: '', employeeID: '', role: '', department: '' });
+                setFormData({ name: '', email: '', employeeID: '', role: '', department: '', workstationId: '' });
                 router.refresh();
             } else {
                 alert(result.error);
@@ -133,60 +153,88 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
                             </Select>
                         </div>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="dept" className="text-right">Dept</Label>
-                        <div className="col-span-3">
-                            <Popover open={openDept} onOpenChange={setOpenDept}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={openDept}
-                                        className="w-full justify-between font-normal bg-white border-slate-200 hover:bg-slate-50 relative"
-                                    >
-                                        <span className="truncate pr-5">
-                                            {formData.department
-                                                ? departments.find((dept) => dept.name === formData.department)?.name
-                                                : "Search department..."}
-                                        </span>
-                                        <CaretUpDown weight="bold" className="ml-2 h-4 w-4 shrink-0 opacity-50 absolute right-3" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0 z-50" align="start">
-                                    <Command>
-                                        <CommandInput placeholder="Search department..." className="h-9" />
-                                        <CommandList className="max-h-[240px] overflow-y-auto">
-                                            <CommandEmpty>No department found.</CommandEmpty>
-                                            <CommandGroup>
-                                                {departments.map((dept) => (
-                                                    <CommandItem
-                                                        key={dept.id}
-                                                        value={dept.name}
-                                                        onSelect={(currentValue) => {
-                                                            const actualValue = departments.find(
-                                                                (d) => d.name.toLowerCase() === currentValue.toLowerCase()
-                                                            )?.name || currentValue;
-                                                            setFormData({ ...formData, department: actualValue === formData.department ? "" : actualValue });
-                                                            setOpenDept(false);
-                                                        }}
-                                                    >
-                                                        {dept.name}
-                                                        <Check
-                                                            weight="bold"
-                                                            className={cn(
-                                                                "ml-auto h-4 w-4",
-                                                                formData.department === dept.name ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
+                    {/* Workstation Selector (Dynamic based on role) */}
+                    {(isWindowOrTriage || isClinicCaller) && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="ws" className="text-right">Station</Label>
+                            <div className="col-span-3">
+                                <Select
+                                    value={formData.workstationId}
+                                    onValueChange={(val) => setFormData({ ...formData, workstationId: val })}
+                                    required
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder={`Select ${formData.role === "WINDOW_CLERK" ? 'Window' : 'Station'}`} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {filteredWorkstations.map(ws => (
+                                            <SelectItem key={ws.id} value={ws.id}>
+                                                {ws.name} ({ws.stationNo})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Department Selector (Hidden for Window/Triage as they use Stations) */}
+                    {(!isWindowOrTriage) && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="dept" className="text-right">Dept</Label>
+                            <div className="col-span-3">
+                                <Popover open={openDept} onOpenChange={setOpenDept}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openDept}
+                                            className="w-full justify-between font-normal bg-white border-slate-200 hover:bg-slate-50 relative"
+                                        >
+                                            <span className="truncate pr-5">
+                                                {formData.department
+                                                    ? departments.find((dept) => dept.name === formData.department)?.name
+                                                    : "Search department..."}
+                                            </span>
+                                            <CaretUpDown weight="bold" className="ml-2 h-4 w-4 shrink-0 opacity-50 absolute right-3" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0 z-50" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search department..." className="h-9" />
+                                            <CommandList className="max-h-[240px] overflow-y-auto">
+                                                <CommandEmpty>No department found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {departments.map((dept) => (
+                                                        <CommandItem
+                                                            key={dept.id}
+                                                            value={dept.name}
+                                                            onSelect={(currentValue) => {
+                                                                const actualValue = departments.find(
+                                                                    (d) => d.name.toLowerCase() === currentValue.toLowerCase()
+                                                                )?.name || currentValue;
+                                                                setFormData({ ...formData, department: actualValue === formData.department ? "" : actualValue });
+                                                                setOpenDept(false);
+                                                            }}
+                                                        >
+                                                            {dept.name}
+                                                            <Check
+                                                                weight="bold"
+                                                                className={cn(
+                                                                    "ml-auto h-4 w-4",
+                                                                    formData.department === dept.name ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting ? "Creating..." : "Save User"}

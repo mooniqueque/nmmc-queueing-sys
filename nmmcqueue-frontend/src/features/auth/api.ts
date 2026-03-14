@@ -78,3 +78,17 @@ export async function toggleUserStatus(
     });
     return res.json();
 }
+
+export async function updateUserDepartment(
+    userId: string,
+    department: string,
+    options?: RequestInit
+) {
+    const res = await fetch(`${API_URL}/users/${userId}/department`, {
+        method: "PUT",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ department }),
+    });
+    return res.json();
+}

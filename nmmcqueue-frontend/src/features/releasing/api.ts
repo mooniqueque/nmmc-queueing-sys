@@ -13,6 +13,22 @@ export async function getPendingQueue(options?: RequestInit) {
     return res.json();
 }
 
+export async function callTicket(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/releasing/${visitId}/call`, {
+        method: "POST",
+        ...options,
+    });
+    return res.json();
+}
+
+export async function noShowTicket(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/releasing/${visitId}/noshow`, {
+        method: "POST",
+        ...options,
+    });
+    return res.json();
+}
+
 export async function assignTicket(
     visitId: string,
     departmentId: string,

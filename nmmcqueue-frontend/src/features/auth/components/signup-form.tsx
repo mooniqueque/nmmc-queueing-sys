@@ -86,6 +86,7 @@ export function SignupForm({
     try {
       const payload: SignUpPayload = {
         email: values.email,
+        username: values.email.split('@')[0],
         password: values.password,
         name: `${values.firstName} ${values.lastName}`.trim(),
         firstName: values.firstName,

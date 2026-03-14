@@ -9,6 +9,22 @@ export async function getPendingQueue() {
     });
 }
 
+export async function callTicket(visitId: string) {
+    const result = await releasingApi.callTicket(visitId, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/releasing", "page");
+    return result;
+}
+
+export async function noShowTicket(visitId: string) {
+    const result = await releasingApi.noShowTicket(visitId, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/releasing", "page");
+    return result;
+}
+
 export async function assignTicket(
     visitId: string,
     departmentId: string,

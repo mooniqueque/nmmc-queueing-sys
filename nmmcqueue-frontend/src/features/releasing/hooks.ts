@@ -5,9 +5,13 @@ import { useLiveQueue } from "@/hooks/use-live-queue";
 
 export function useReleasingQueue(initialQueue: VisitWithPatient[]) {
     // SET UP SSE FOR REAL-TIME QUEUE UPDATES
-    useLiveQueue();
+    useLiveQueue('WINDOW');
 
-    const activeQueue = initialQueue.filter(v => v.status === "WAITING_WINDOW");
+    const activeQueue = initialQueue.filter(v => 
+        v.status === "WAITING_WINDOW" || 
+        v.status === "IN_PROGRESS" || 
+        v.status === "NO_SHOW"
+    );
 
     return { activeQueue };
 }

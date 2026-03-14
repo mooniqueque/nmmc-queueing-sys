@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { username } from 'better-auth/plugins';
 import { db } from '../../config/database.js';
 
 export const auth = betterAuth({
@@ -19,14 +20,20 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
+    plugins: [
+        username(),
+    ],
     user: {
         additionalFields: {
+            username: { type: 'string' },
             firstName: { type: 'string' },
             lastName: { type: 'string' },
             middleName: { type: 'string' },
             suffix: { type: 'string' },
             employeeID: { type: 'string' },
             department: { type: 'string' },
+            departmentId: { type: 'string' },
+            workstationId: { type: 'string' },
             role: { type: 'string' },
             birthDate: { type: 'string' },
             contactNumber: { type: 'string' },

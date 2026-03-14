@@ -46,3 +46,25 @@ export async function toggleUserStatus(userId: string, status: boolean) {
     if (result.success) revalidatePath("/admin-dashboard");
     return result;
 }
+
+export async function updateUserDepartment(userId: string, department: string) {
+    const result = await authApi.updateUserDepartment(userId, department, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
+}
+
+export async function updateUserWorkstation(userId: string, workstationId: string) {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001"}/api/users/${userId}/workstation`, {
+        method: "PUT",
+        headers: {
+            ...(await getServerHeaders()),
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ workstationId }),
+    });
+    const result = await response.json();
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
+}

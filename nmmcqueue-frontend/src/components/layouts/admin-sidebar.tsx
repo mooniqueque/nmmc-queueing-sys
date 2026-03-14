@@ -54,6 +54,7 @@ export default function AdminSidebar() {
 
     const adminSettings = [
         { label: 'Reset Services', href: '/admin-resetserv' },
+        { label: 'Workstation Settings', href: '/admin-workstations' },
         { label: 'Department Settings', href: '/admin-departments' },
         { label: 'Manage Releasing', href: '/admin-releasing' },
         { label: 'Monitor Settings', href: '/admin-monisetting' },

@@ -1,47 +1,30 @@
 "use client";
 
 import {
-    ArrowSquareOut,
-    Funnel,
-    MagnifyingGlass,
     Ticket,
     Users,
     ClockCounterClockwise,
     CheckCircle,
 } from '@phosphor-icons/react';
-import { useState } from 'react';
+import { VisitWithPatient } from '@/features/triage/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { StatsCard } from './stats-card';
 import { SessionUser } from '@/types/auth';
 import { Department } from '@/types/models';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-
-const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
-
-function normalizeDepartmentKey(value: string) {
-    return value.trim().toUpperCase();
-}
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 export default function ReleasingDashboard({
     loggedInUser,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     departments = [],
-    queueOptionsByDepartment = {}
 }: {
     loggedInUser: SessionUser;
     departments: Department[];
+    initialQueue?: VisitWithPatient[];
     queueOptionsByDepartment?: Record<string, string[]>;
 }) {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedDepartment, setSelectedDepartment] = useState('');
-    const [ticketsToRelease, setTicketsToRelease] = useState('');
-    const [selectedQueueOption, setSelectedQueueOption] = useState('');
-
-    // MOCK DATA: Replace this with real data from your backend later
+    // MOCK DATA for Admin Statistics view
     const kpis = {
         totalTicketsReleased: 124,
         totalWaitingPatients: 42,
@@ -49,25 +32,13 @@ export default function ReleasingDashboard({
         resolvedTickets: 89
     };
 
-
-    // Filter departments based on search query
-    const filteredDepartments = departments.filter(dept =>
-        dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dept.code.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    // Get queue options for selected department
-    const queueOptions = selectedDepartment
-        ? (queueOptionsByDepartment[normalizeDepartmentKey(selectedDepartment)] ?? DEFAULT_QUEUE_OPTIONS)
-        : [];
-
     return (
         <div className='flex flex-1 flex-col h-full'>
             {/* HEADER */}
             <header className='bg-white sticky top-0 z-10 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
                 <div className="flex items-center gap-3">
                     <SidebarTrigger />
-                    <h1 className="text-xl font-bold text-emerald-900">Ticket Releasing</h1>
+                    <h1 className="text-xl font-bold text-emerald-900">Releasing Analytics</h1>
                 </div>
                 <div className='flex items-center gap-3'>
                     <div className="flex flex-col items-end mr-1 sm:flex">
@@ -85,29 +56,21 @@ export default function ReleasingDashboard({
                 </div>
             </header>
 
-            {/* TOP KPI STATS ROW */}
             <main className='flex-1 p-6 space-y-6 bg-slate-50/50 px-10 overflow-y-auto'>
-                <Tabs defaultValue="releasing" className="w-full">
-                    {/* The Tab Buttons */}
+                <Tabs defaultValue="statistics" className="w-full">
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h2 className="text-2xl font-semibold text-emerald-800">Releasing Dashboard</h2>
                             <p className="text-sm text-muted-foreground">Manage tickets and view department analytics</p>
                         </div>
                         <TabsList className="bg-emerald-100/50 p-1">
-                            <TabsTrigger value="releasing" className="data-[state=active]:bg-white data-[state=active]:text-emerald-900 data-[state=active]:shadow-sm">
-                                🎫 Ticket Releasing
-                            </TabsTrigger>
                             <TabsTrigger value="statistics" className="data-[state=active]:bg-white data-[state=active]:text-emerald-900 data-[state=active]:shadow-sm">
                                 📊 Department Statistics
                             </TabsTrigger>
                         </TabsList>
                     </div>
 
-                    {/* TAB 1: RELEASING WINDOW (Your previous code) */}
-                    <TabsContent value="releasing" className="space-y-6 m-0 focus-visible:outline-none">
-
-                        {/* TOP KPI STATS ROW */}
+                    <TabsContent value="statistics" className="space-y-6 m-0 focus-visible:outline-none">
                         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6'>
                             <StatsCard
                                 label="Total Tickets Today"
@@ -135,23 +98,15 @@ export default function ReleasingDashboard({
                             />
                         </div>
 
-                        {/* We will add the department cards back here soon! */}
-                        <div className="bg-white p-10 border rounded-xl text-center text-slate-500">
-                            Department Cards Grid Goes Here
-                        </div>
-                    </TabsContent>
-
-                    {/* TAB 2: STATISTICS DASHBOARD */}
-                    <TabsContent value="statistics" className="space-y-6 m-0 focus-visible:outline-none">
                         <div className="bg-white p-6 border rounded-xl shadow-sm">
                             <h3 className="text-lg font-bold text-emerald-900 mb-4">Select a Department to View Stats</h3>
-                            {/* We will add the dropdown and charts here soon! */}
+                            <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-50 border-2 border-dashed rounded-lg">
+                                Analytics visualization placeholder
+                            </div>
                         </div>
                     </TabsContent>
                 </Tabs>
             </main>
-
-
-        </div >
-    )
+        </div>
+    );
 }

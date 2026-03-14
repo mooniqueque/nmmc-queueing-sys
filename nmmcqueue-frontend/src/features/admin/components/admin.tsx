@@ -23,7 +23,7 @@ import {
 import { HOSPITAL_ROLES } from "@/types/constants";
 import { SessionUser, UserData } from "@/types/auth";
 import { cn } from "@/lib/utils";
-import { Department } from "@/types/models";
+import { Department, WorkStation, WorkstationType } from "@/types/models";
 import {
     Check,
     CheckCircle,
@@ -37,13 +37,11 @@ import {
     Phone,
     Trash,
     Users,
-    XCircle,
-    ArrowsDownUp,
-    ArrowsDownUpIcon
+    XCircle
 } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react';
-import { approveUser, rejectUser, toggleUserStatus, updateUserRole } from "../user-actions";
+import { approveUser, rejectUser, toggleUserStatus, updateUserRole, updateUserDepartment, updateUserWorkstation } from "../user-actions";
 import { AddUserDialog } from "./add-user-dialog";
 import { StatsCard } from "./stats-card";
 import { useIsMounted } from "@/hooks/use-is-mounted";
@@ -54,11 +52,13 @@ import { useIsMounted } from "@/hooks/use-is-mounted";
 export default function AdminDashboard({
     loggedInUser,
     initialUsers = [],
-    departments = []
+    departments = [],
+    workstations = []
 }: {
     loggedInUser?: SessionUser,
     initialUsers?: UserData[],
-    departments?: Department[]
+    departments?: Department[],
+    workstations?: WorkStation[]
 }) {
     const router = useRouter();
 
@@ -75,9 +75,6 @@ export default function AdminDashboard({
         setCurrentPage(1);
     }, [searchQuery, filterRole, viewPendingOnly]);
 
-    //SORT FUNCTION
-    const [sortBy, setSortBy] = useState<'name'>('name');
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
     // 2. DATA CALCULATIONS (Derived State)
     const analytics = {
@@ -94,6 +91,8 @@ export default function AdminDashboard({
             user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
             user.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.workstation?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             user.employeeID.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesFilter = filterRole === 'All Users' || user.role === filterRole;
@@ -143,31 +142,34 @@ export default function AdminDashboard({
         }
     };
 
-    //FILTERED USERS
-    const sortedUsers = [...filteredUsers].sort((a, b) => {
-        let valA = '';
-        let valB = '';
-
-        switch (sortBy) {
-            case 'name':
-                valA = a.name.toLowerCase();
-                valB = b.name.toLowerCase();
-                break;
-        }
-        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-    });
-
-    //TOGGLE HANDLER
-    const handleSort = (column: 'name') => {
-        if (sortBy == column) {
-            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortBy(column);
-            setSortDirection('asc');
+    const handleUpdateDepartment = async (userId: string, newDept: string) => {
+        setUpdatingUserId(userId);
+        try {
+            const result = await updateUserDepartment(userId, newDept);
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert(result.error);
+            }
+        } finally {
+            setUpdatingUserId(null);
         }
     };
+
+    const handleUpdateWorkstation = async (userId: string, wsId: string) => {
+        setUpdatingUserId(userId);
+        try {
+            const result = await updateUserWorkstation(userId, wsId);
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert(result.error);
+            }
+        } finally {
+            setUpdatingUserId(null);
+        }
+    };
+
 
     const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
         setUpdatingUserId(userId);
@@ -290,7 +292,7 @@ export default function AdminDashboard({
                         <TableHeader>
                             <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-100">
                                 <TableHead className="w-[300px] font-semibold text-gray-700">Staff Info</TableHead>
-                                <TableHead className="font-semibold text-gray-700">Department</TableHead>
+                                <TableHead className="font-semibold text-gray-700">Assignment</TableHead>
                                 <TableHead className="font-semibold text-gray-700">System Role</TableHead>
                                 <TableHead className="font-semibold text-gray-700">Status</TableHead>
                                 <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
@@ -305,7 +307,74 @@ export default function AdminDashboard({
                                             <span className="text-xs text-black">{user.email}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="font-bold text-black">{user.department}</TableCell>
+                                    <TableCell className="font-bold text-black">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className={cn(
+                                                        "font-bold text-black h-8 px-2 hover:bg-slate-100 transition-all text-left justify-start",
+                                                        updatingUserId === user.id && "animate-pulse opacity-50 pointer-events-none"
+                                                    )}
+                                                >
+                                                    {user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' ? (
+                                                        <span className="flex items-center text-emerald-600">
+                                                            {user.workstation ? `${user.workstation.name} (#${user.workstation.stationNo})` : 'No Station'}
+                                                        </span>
+                                                    ) : (
+                                                        user.department
+                                                    )}
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto w-64 p-2">
+                                                {/* Role based selection */}
+                                                {(user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' || user.role === 'CLINIC_CALLER') && (
+                                                    <>
+                                                        <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Stations</div>
+                                                        {workstations
+                                                            .filter(ws => {
+                                                                if (user.role === 'WINDOW_CLERK') return ws.type === WorkstationType.WINDOW;
+                                                                if (user.role === 'TRIAGE_NURSE') return ws.type === WorkstationType.TRIAGE;
+                                                                if (user.role === 'CLINIC_CALLER') return ws.type === WorkstationType.CALLER;
+                                                                return false;
+                                                            })
+                                                            .map((ws) => (
+                                                                <DropdownMenuItem
+                                                                    key={ws.id}
+                                                                    onClick={() => handleUpdateWorkstation(user.id, ws.id)}
+                                                                    className={cn(
+                                                                        "text-xs font-medium py-2",
+                                                                        user.workstationId === ws.id && "bg-emerald-50 text-emerald-700 font-bold"
+                                                                    )}
+                                                                >
+                                                                    {ws.name} ({ws.stationNo})
+                                                                </DropdownMenuItem>
+                                                            ))}
+                                                        {user.role === 'CLINIC_CALLER' && <div className="border-t my-1" />}
+                                                    </>
+                                                )}
+
+                                                {(user.role === 'CLINIC_CALLER' || user.role === 'ADMIN') && (
+                                                    <>
+                                                        <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Departments</div>
+                                                        {departments.map((dept) => (
+                                                            <DropdownMenuItem
+                                                                key={dept.id}
+                                                                onClick={() => handleUpdateDepartment(user.id, dept.name)}
+                                                                className={cn(
+                                                                    "text-xs font-medium py-2",
+                                                                    user.department === dept.name && "bg-blue-50 text-blue-700 font-bold"
+                                                                )}
+                                                            >
+                                                                {dept.name}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
                                     <TableCell>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>

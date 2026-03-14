@@ -1,4 +1,3 @@
-import { getQueueOptionsByDepartment } from "@/features/admin/queue-option-actions";
 import { VisitWithPatient } from "@/features/triage/types";
 import { auth } from "@/lib/database/auth";
 
@@ -11,7 +10,6 @@ export default async function CallerData() {
     await connection();
 
     let session = null;
-    let queueOptionsByDepartment = {};
     let initialQueueData: VisitWithPatient[] = [];
     let userDepartment = ""; // Fallback
 
@@ -26,7 +24,6 @@ export default async function CallerData() {
         if (!userDepartment) {
             redirect("/login");
         }
-        queueOptionsByDepartment = await getQueueOptionsByDepartment([userDepartment]);
 
         const { getClinicQueues } = await import('@/features/admin/clinic-queue-actions');
         // Fetch only for the specific user's department
@@ -43,7 +40,6 @@ export default async function CallerData() {
     return (
         <UserCallerDashboard
             department={userDepartment}
-            queueOptionsByDepartment={queueOptionsByDepartment}
             initialQueue={initialQueueData}
         />
     );

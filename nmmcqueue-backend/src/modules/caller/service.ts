@@ -1,7 +1,7 @@
 import { db } from '../../config/database.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
 
-const DEFAULT_QUEUE_OPTIONS = ['REGULAR', 'CHILD', 'ER-REF', 'FT', 'REFERRALS'];
+const DEFAULT_QUEUE_OPTIONS = ['REGNEW', 'REGULAR', 'PRIORITY', 'CHILD', 'ER_REF', 'FT', 'REFERRALS'];
 const normalizeOption = (v: string) => v.trim().toUpperCase();
 const normalizeDepartmentKey = (v: string) => v.trim().toUpperCase();
 const isDefaultOption = (v: string) => DEFAULT_QUEUE_OPTIONS.includes(v);
@@ -49,7 +49,10 @@ class CallerService {
                 department: true,
                 referredFrom: true,
             },
-            orderBy: { ticketNumber: 'asc' },
+            orderBy: [
+                { priorityClass: 'desc' },
+                { ticketNumber: 'asc' },
+            ],
         });
     }
 
@@ -86,40 +89,52 @@ class CallerService {
         });
     }
 
-    async callPatient(visitId: string) {
+    async callPatient(visitId: string, userId?: string, windowNumber?: number) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         const updated = await db.visit.update({
             where: { id: visitId },
-            data: { status: 'IN_PROGRESS' }
+            data: { 
+                status: 'IN_PROGRESS',
+                calledAt: new Date(),
+                calledByUserId: userId,
+                windowNumber: windowNumber,
+                statusHistory: { create: { status: 'IN_PROGRESS', changedBy: userId } }
+            }
         });
         if (updated.departmentId) emitQueueUpdate(updated.departmentId);
         return updated;
     }
 
-    async servePatient(visitId: string) {
+    async servePatient(visitId: string, userId?: string) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         const updated = await db.visit.update({
             where: { id: visitId },
-            data: { status: 'COMPLETED' }
+            data: { 
+                status: 'COMPLETED',
+                statusHistory: { create: { status: 'COMPLETED', changedBy: userId } }
+            }
         });
         if (updated.departmentId) emitQueueUpdate(updated.departmentId);
         return updated;
     }
 
-    async noShowPatient(visitId: string) {
+    async noShowPatient(visitId: string, userId?: string) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         const updated = await db.visit.update({
             where: { id: visitId },
-            data: { status: 'NO_SHOW' }
+            data: { 
+                status: 'NO_SHOW',
+                statusHistory: { create: { status: 'NO_SHOW', changedBy: userId } }
+            }
         });
         if (updated.departmentId) emitQueueUpdate(updated.departmentId);
         return updated;
     }
 
-    async transferPatient(visitId: string, targetDepartmentId: string) {
+    async transferPatient(visitId: string, targetDepartmentId: string, userId?: string) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         if (visit.departmentId === targetDepartmentId) throw new Error('Patient is already in this department');
@@ -130,7 +145,8 @@ class CallerService {
                 status: 'WAITING_CLINIC', 
                 departmentId: targetDepartmentId,
                 isReferred: true,
-                referredFromId: visit.departmentId
+                referredFromId: visit.departmentId,
+                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
             }
         });
         
@@ -152,12 +168,15 @@ class CallerService {
         console.log(`[SMS MOCK] Sending SMS to ${contactNo}: "Please proceed to the clinic, it is almost your turn."`);
         return { success: true, message: 'Notification sent successfully' };
     }
-    async restorePatient(visitId: string) {
+    async restorePatient(visitId: string, userId?: string) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         const updated = await db.visit.update({
             where: { id: visitId },
-            data: { status: 'WAITING_CLINIC' }
+            data: { 
+                status: 'WAITING_CLINIC',
+                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
+            }
         });
         if (updated.departmentId) emitQueueUpdate(updated.departmentId);
         return updated;

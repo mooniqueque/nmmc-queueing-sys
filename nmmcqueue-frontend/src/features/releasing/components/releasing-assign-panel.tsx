@@ -5,8 +5,10 @@ import { Label } from "@/components/ui/label";
 import { VisitWithPatient } from "@/features/triage/types";
 import { Department } from "@/types/models";
 import { useState, useTransition, useMemo } from "react";
-import { assignTicket } from "../actions";
-import { X, User, PencilSimple, BookmarkSimple, Printer, WarningCircle } from "@phosphor-icons/react";
+import { callTicket, noShowTicket, assignTicket } from "../actions";
+import { X, User, Printer, Phone, WarningCircle, BellRinging } from "@phosphor-icons/react";
+import { calculateAge } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ReleasingAssignPanelProps {
     selectedPatient: VisitWithPatient;
@@ -44,15 +46,34 @@ export function ReleasingAssignPanel({
         return "";
     }, [badges, selectedPatient.disposition]);
 
+    const handleCall = () => {
+        startTransition(async () => {
+            const res = await callTicket(selectedPatient.id);
+            if (res.success) toast.success("Patient called to window");
+            else toast.error(res.error || "Failed to call patient");
+        });
+    };
+
+    const handleNoShow = () => {
+        startTransition(async () => {
+            const res = await noShowTicket(selectedPatient.id);
+            if (res.success) toast.success("Patient marked as no-show");
+            else toast.error(res.error || "Failed to update status");
+        });
+    };
+
     const handleAssign = () => {
         if (!selectedDepartmentId || !selectedQueueOption) return;
 
         startTransition(async () => {
             await assignTicket(selectedPatient.id, selectedDepartmentId, selectedQueueOption);
-            // We would also save 'notes' via a different backend call here if your API supports it.
+            toast.success("Ticket printed and assigned successfully");
             onAssignComplete();
         });
     };
+
+    const isCalled = selectedPatient.status === 'IN_PROGRESS';
+    const isNoShow = selectedPatient.status === 'NO_SHOW';
 
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 h-full flex flex-col pt-6 overflow-hidden">
@@ -60,19 +81,26 @@ export function ReleasingAssignPanel({
             {/* Header */}
             <div className="px-6 lg:px-8 pb-5 flex items-center justify-between border-b border-slate-100">
                 <h3 className="text-[19px] font-black text-slate-800 tracking-tight">Patient Verification & Routing</h3>
-                <span className="bg-emerald-500 text-white font-black text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-full shadow-sm shadow-emerald-500/20">
-                    Active Processing
-                </span>
+                <button 
+                    onClick={onClose}
+                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                    <X size={20} weight="bold" />
+                </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 custom-scrollbar shrink-0">
                 
+                {/* Status Alert */}
+                {isNoShow && (
+                    <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-700 font-bold text-sm">
+                        <WarningCircle size={20} weight="fill" />
+                        Patient was previously marked as NO-SHOW.
+                    </div>
+                )}
+
                 {/* Profile Card */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative mb-6 hover:shadow-md transition-shadow">
-                    <button className="absolute top-4 right-4 p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors group">
-                        <PencilSimple size={20} weight="duotone" className="group-hover:text-emerald-500" />
-                    </button>
-
                     <div className="flex items-start gap-4 mb-5">
                         <div className="w-16 h-16 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center shrink-0">
                             <User size={32} weight="fill" className="text-slate-300" />
@@ -86,9 +114,16 @@ export function ReleasingAssignPanel({
                                 <span className="opacity-40">•</span>
                                 <span>Gender: <strong className="text-slate-700">{selectedPatient.patient.gender}</strong></span>
                                 <span className="opacity-40">•</span>
-                                <span>Age: <strong className="text-slate-700">{selectedPatient.patient.age}y</strong></span>
+                                <span>Age: <strong className="text-slate-700">{calculateAge(selectedPatient.patient.dateOfBirth)}y</strong></span>
                             </div>
                         </div>
+                    </div>
+
+                    <div className="mb-4">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Chief Complaint</span>
+                        <p className="text-[14px] font-medium text-slate-700 italic">
+                            &ldquo;{selectedPatient.chiefComplaint || 'No complaint specified'}&rdquo;
+                        </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -108,6 +143,35 @@ export function ReleasingAssignPanel({
                             </span>
                         ))}
                     </div>
+                </div>
+
+                {/* Quick Actions (Call / No-Show) */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                    {!isCalled ? (
+                        <Button 
+                            onClick={handleCall}
+                            disabled={isPending}
+                            className="h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest gap-2 rounded-2xl shadow-lg shadow-emerald-600/20"
+                        >
+                            <BellRinging size={24} weight="fill" />
+                            Call Patient
+                        </Button>
+                    ) : (
+                        <div className="h-14 bg-emerald-50 border-2 border-emerald-200 rounded-2xl flex items-center justify-center gap-2 text-emerald-700 font-black uppercase tracking-widest text-xs animate-pulse">
+                            <Phone size={24} weight="fill" />
+                            Currently Serving
+                        </div>
+                    )}
+
+                    <Button 
+                        variant="outline"
+                        onClick={handleNoShow}
+                        disabled={isPending || isNoShow}
+                        className="h-14 border-slate-200 text-slate-600 font-bold uppercase tracking-widest gap-2 rounded-2xl hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200"
+                    >
+                        <X size={20} weight="bold" />
+                        No Show
+                    </Button>
                 </div>
 
                 {/* Vitals Ribbon */}
@@ -213,21 +277,13 @@ export function ReleasingAssignPanel({
                 
                 <div className="flex gap-3 w-full justify-end">
                     <Button 
-                        variant="outline" 
-                        disabled={!selectedDepartmentId || !selectedQueueOption || isPending}
-                        className="h-12 border-emerald-500text-[14px] px-6 text-emerald-600 font-bold uppercase tracking-widest border-2 hover:bg-emerald-50 hidden xl:flex gap-2"
-                    >
-                        <BookmarkSimple size={18} weight="bold" /> Save Record
-                    </Button>
-
-                    <Button 
-                        disabled={!selectedDepartmentId || !selectedQueueOption || isPending}
+                        disabled={!selectedDepartmentId || !selectedQueueOption || isPending || !isCalled}
                         onClick={handleAssign}
                         className="h-12 bg-emerald-500 hover:bg-emerald-400 border-none shadow-lg shadow-emerald-500/20 text-white text-[14px] px-8 font-black uppercase tracking-widest transition-transform active:scale-95 flex-1 max-w-[280px] gap-2"
                     >
                         {isPending ? "Routing..." : (
                             <>
-                                <Printer size={20} weight="fill" /> Print New Ticket
+                                <Printer size={20} weight="fill" /> Print & Assign
                             </>
                         )}
                     </Button>

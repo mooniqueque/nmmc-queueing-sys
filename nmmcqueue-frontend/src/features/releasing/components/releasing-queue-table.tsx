@@ -5,9 +5,9 @@ import { VisitWithPatient } from "@/features/triage/types";
 import { CheckCircle, Clock, MagnifyingGlass, Funnel, ArrowClockwise } from "@phosphor-icons/react";
 import { calculateAge } from "@/lib/utils";
 
-type QueueCategory = "ALL" | "PRIORITY" | "REGULAR";
+export type QueueCategory = "ALL" | "PRIORITY" | "REGULAR" | "NO_SHOW";
 
-interface QueueItem {
+export interface QueueItem {
     visit: VisitWithPatient;
     category: Exclude<QueueCategory, "ALL">;
     badges: string[];
@@ -29,6 +29,7 @@ const TABS: { key: QueueCategory; label: string; color: string; activeBg: string
     { key: "ALL", label: "All Patients", color: "text-slate-500 hover:text-slate-800", activeBg: "bg-slate-900", activeText: "text-white" },
     { key: "PRIORITY", label: "Priority", color: "text-slate-500 hover:text-amber-600", activeBg: "bg-amber-500", activeText: "text-white" },
     { key: "REGULAR", label: "Regular", color: "text-slate-500 hover:text-emerald-600", activeBg: "bg-emerald-500", activeText: "text-white" },
+    { key: "NO_SHOW", label: "No Show", color: "text-slate-500 hover:text-rose-600", activeBg: "bg-rose-500", activeText: "text-white" },
 ];
 
 export function ReleasingQueueTable({

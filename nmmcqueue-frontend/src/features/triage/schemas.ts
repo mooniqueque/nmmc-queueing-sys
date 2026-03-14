@@ -34,6 +34,7 @@ export const triageFormSchema = z.object({
     triageRemarks: z.string().optional(),
     disposition: z.enum(["EMERGENT", "URGENT", "NON-URGENT"]).default("NON-URGENT"),
     priorityClass: z.string().default("REGNEW"),
+    categoryIds: z.array(z.string()).default([]),
 })
     // SuperRefine to enforce Demographics validation ONLY if it is a manual entry!
     .superRefine((data, ctx) => {

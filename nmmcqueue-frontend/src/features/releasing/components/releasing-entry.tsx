@@ -1,25 +1,28 @@
 "use client";
 
 import { VisitWithPatient } from "@/features/triage/types";
-import { Department } from "@/types/models";
+import { PriorityCategory, Department } from "@/types/models";
 import { useState } from "react";
 import { useReleasingQueue } from "../hooks";
-import { ReleasingQueueTable } from "./releasing-queue-table";
+import { QueueCategory, ReleasingQueueTable } from "./releasing-queue-table";
 import { ReleasingAssignPanel } from "./releasing-assign-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculateAge } from "@/lib/utils";
 import { Queue, ChartBar } from "@phosphor-icons/react";
 
 // ─── Auto-categorization logic ────────────────────────────────
-type QueueCategory = "ALL" | "PRIORITY" | "REGULAR";
 
 export function categorizeVisit(visit: VisitWithPatient): Exclude<QueueCategory, "ALL"> {
-    // Treat previously "URGENT" items as PRIORITY
+    if (visit.status === 'NO_SHOW') return "NO_SHOW";
+    
+    // Explicit priority from classification field
+    if (visit.classification === 'PRIORITY') return "PRIORITY";
+
+    // Fallback/Draft logic for UI consistency
     if (visit.isInfectious) return "PRIORITY";
     if (visit.disposition?.toUpperCase().includes("ER")) return "PRIORITY";
 
     const age = calculateAge(visit.patient.dateOfBirth);
-    // PRIORITY: has appointment, children (<12), seniors (>=60)
     if (visit.hasAppointment) return "PRIORITY";
     if (age < 12 || age >= 60) return "PRIORITY";
 
@@ -28,13 +31,24 @@ export function categorizeVisit(visit: VisitWithPatient): Exclude<QueueCategory,
 
 export function getCategoryBadges(visit: VisitWithPatient): string[] {
     const badges: string[] = [];
-    if (visit.isInfectious) badges.push("INFECTIOUS");
-    if (visit.disposition?.toUpperCase().includes("ER")) badges.push("ER-REF");
-    if (visit.hasAppointment) badges.push("APPT");
     
-    const age = calculateAge(visit.patient.dateOfBirth);
-    if (age < 12) badges.push("CHILD");
-    if (age >= 60) badges.push("SENIOR");
+    // Use dynamic categories if available
+    if (visit.categories && visit.categories.length > 0) {
+        visit.categories.forEach(vc => {
+            if (vc.category?.name) badges.push(vc.category.name);
+        });
+    }
+
+    // Fallbacks if categories haven't been processed or for legacy items
+    if (badges.length === 0) {
+        if (visit.isInfectious) badges.push("INFECTIOUS");
+        if (visit.disposition?.toUpperCase().includes("ER")) badges.push("ER-REF");
+        if (visit.hasAppointment) badges.push("APPT");
+        
+        const age = calculateAge(visit.patient.dateOfBirth);
+        if (age < 12) badges.push("CHILD");
+        if (age >= 60) badges.push("SENIOR");
+    }
     return badges;
 }
 
@@ -42,7 +56,7 @@ export function getCategoryBadges(visit: VisitWithPatient): string[] {
 interface ReleasingEntryProps {
     initialQueue: VisitWithPatient[];
     departments: Department[];
-    queueOptionsByDepartment: Record<string, string[]>;
+    queueOptionsByDepartment: Record<string, PriorityCategory[]>;
 }
 
 export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepartment }: ReleasingEntryProps) {
@@ -71,20 +85,21 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
     // Counts (based on search filtered)
     const counts = {
-        ALL: searchFiltered.length,
+        ALL: searchFiltered.filter(c => c.category !== "NO_SHOW").length,
         PRIORITY: searchFiltered.filter(c => c.category === "PRIORITY").length,
         REGULAR: searchFiltered.filter(c => c.category === "REGULAR").length,
+        NO_SHOW: searchFiltered.filter(c => c.category === "NO_SHOW").length,
     };
 
     // Filter by Tab
     const filtered = activeTab === "ALL"
-        ? searchFiltered
+        ? searchFiltered.filter(c => c.category !== "NO_SHOW")
         : searchFiltered.filter(c => c.category === activeTab);
 
     // Sort: within each view, PRIORITY first, then REGULAR, then by ticket number
     const sorted = [...filtered].sort((a, b) => {
-        const order: Record<string, number> = { PRIORITY: 0, REGULAR: 1 };
-        const catDiff = (order[a.category] ?? 2) - (order[b.category] ?? 2);
+        const order: Record<string, number> = { PRIORITY: 0, REGULAR: 1, NO_SHOW: 2 };
+        const catDiff = (order[a.category] ?? 3) - (order[b.category] ?? 3);
         if (catDiff !== 0) return catDiff;
         return a.visit.ticketNumber - b.visit.ticketNumber;
     });

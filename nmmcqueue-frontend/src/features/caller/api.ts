@@ -33,28 +33,22 @@ export async function deleteDepartment(id: string, options?: RequestInit) {
 
 export async function createQueueOption(
     departmentName: string,
-    option: string,
+    data: { name: string, code: string, isPriority: boolean, parentId?: string },
     options?: RequestInit
 ) {
     const res = await fetch(`${API_URL}/caller/queue-options`, {
         method: "POST",
         ...options,
         headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify({ departmentName, option }),
+        body: JSON.stringify({ departmentName, data }),
     });
     return res.json();
 }
 
-export async function deleteQueueOption(
-    departmentName: string,
-    option: string,
-    options?: RequestInit
-) {
-    const res = await fetch(`${API_URL}/caller/queue-options`, {
+export async function deleteQueueOption(id: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/caller/queue-options/${id}`, {
         method: "DELETE",
         ...options,
-        headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify({ departmentName, option }),
     });
     return res.json();
 }

@@ -20,6 +20,7 @@ export const kioskFormSchema = z.object({
         message: "Please select a civil status",
     }),
     hasAppointment: z.boolean().default(false),
+    categoryIds: z.array(z.string()).optional().default([]),
 });
 
 export type KioskFormValues = z.infer<typeof kioskFormSchema>;

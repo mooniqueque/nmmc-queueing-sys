@@ -37,13 +37,13 @@ class CallerController {
     }
     async createQueueOption(req: Request, res: Response) {
         try {
-            await callerService.createQueueOption(req.body.departmentName, req.body.option);
-            res.status(200).json({ success: true });
+            const data = await callerService.createQueueOption(req.body.departmentName, req.body.data);
+            res.status(200).json({ success: true, data });
         } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
     }
     async deleteQueueOption(req: Request, res: Response) {
         try {
-            await callerService.deleteQueueOption(req.body.departmentName, req.body.option);
+            await callerService.deleteQueueOption(req.params.id);
             res.status(200).json({ success: true });
         } catch (error: any) { res.status(400).json({ success: false, error: error.message }); }
     }

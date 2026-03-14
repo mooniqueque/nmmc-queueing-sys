@@ -10,7 +10,10 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { submitTriageForm } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
-import { ClipboardText, CaretDoubleRight, PaperPlaneRight, WarningCircle } from "@phosphor-icons/react";
+import { ClipboardText, CaretDoubleRight, PaperPlaneRight, WarningCircle, Tag } from "@phosphor-icons/react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { getQueueOptions } from "@/features/shared/api";
+import { PriorityCategory } from "@/types/models";
 
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
@@ -26,6 +29,11 @@ export function TriageForm() {
     } = useTriageStore();
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
+
+    useEffect(() => {
+        getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
+    }, []);
 
     const methods = useForm<z.input<typeof triageFormSchema>, unknown, TriageFormValues>({
         resolver: zodResolver(triageFormSchema),
@@ -35,7 +43,8 @@ export function TriageForm() {
             address: "", birthPlace: "", religion: "", civilStatus: "Single", hasAppointment: false,
             bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
             hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
-            priorityClass: "REGNEW"
+            priorityClass: "REGULAR",
+            categoryIds: []
         }
     });
 
@@ -47,7 +56,8 @@ export function TriageForm() {
                 address: "", birthPlace: "", religion: "", civilStatus: "Single", hasAppointment: false,
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
-                priorityClass: "REGNEW"
+                priorityClass: "REGULAR",
+                categoryIds: []
             });
         } else if (selectedPatient) {
             methods.reset({
@@ -64,7 +74,8 @@ export function TriageForm() {
                 hasAppointment: selectedPatient.hasAppointment || false,
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
-                priorityClass: "REGNEW"
+                priorityClass: selectedPatient.classification || "REGULAR",
+                categoryIds: selectedPatient.categories?.map(c => c.categoryId) || []
             });
         } else {
             methods.reset();
@@ -169,29 +180,64 @@ export function TriageForm() {
                                             )}
                                         />
                                     </div>
-                                    <div className="w-56">
+                                    <div className="flex-1">
                                         <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
-                                            Patient Priority 
+                                            Patient Classification
                                         </Label>
                                         <Controller
                                             control={methods.control}
                                             name="priorityClass"
                                             render={({ field }) => (
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger className={`h-14 rounded-xl border-slate-600 bg-slate-700/50 text-base font-bold transition-all ${
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <SelectTrigger className={`h-11 rounded-xl border-slate-600 bg-slate-700/50 text-sm font-bold transition-all ${
                                                         field.value === "PRIORITY" ? "text-emerald-400 border-emerald-500/50 ring-2 ring-emerald-500/20" : "text-white"
                                                     }`}>
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent className="rounded-xl shadow-2xl border-slate-700 bg-slate-800 text-slate-200">
-                                                        <SelectItem value="REGULAR" className="font-bold py-3 focus:bg-slate-700">Regular</SelectItem>
-                                                        <SelectItem value="PRIORITY" className="font-bold py-3 text-emerald-400 focus:bg-slate-700">Priority</SelectItem>
+                                                        <SelectItem value="REGULAR" className="font-bold py-2 focus:bg-slate-700">Regular</SelectItem>
+                                                        <SelectItem value="PRIORITY" className="font-bold py-2 text-emerald-400 focus:bg-slate-700">Priority</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
                                         />
                                     </div>
                                 </div>
+
+                                {availableCategories.length > 0 && (
+                                    <div className="mt-4 p-4 bg-slate-700/30 rounded-xl border border-slate-600/50">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Tag size={18} weight="duotone" className="text-emerald-400" />
+                                            <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">Priority Tags / Categories</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {availableCategories.map(cat => (
+                                                <div key={cat.id} className="flex items-center space-x-2 bg-slate-700/50 p-2 rounded-lg border border-slate-600/50 hover:border-emerald-500/50 transition-colors">
+                                                    <Controller
+                                                        control={methods.control}
+                                                        name="categoryIds"
+                                                        render={({ field }) => (
+                                                            <Checkbox 
+                                                                id={`triage-cat-${cat.id}`}
+                                                                checked={field.value?.includes(cat.id)}
+                                                                onCheckedChange={(checked: boolean) => {
+                                                                    const current = field.value || [];
+                                                                    const next = checked 
+                                                                        ? [...current, cat.id]
+                                                                        : current.filter(id => id !== cat.id);
+                                                                    field.onChange(next);
+                                                                }}
+                                                            />
+                                                        )}
+                                                    />
+                                                    <label htmlFor={`triage-cat-${cat.id}`} className="text-xs font-bold text-slate-200 cursor-pointer">
+                                                        {cat.name}
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex flex-col items-end justify-center">
                                     {submitError && (

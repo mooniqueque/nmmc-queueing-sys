@@ -8,6 +8,7 @@ export interface SessionUser {
     workstation?: {
         name: string;
         stationNo: number;
+        pairedStationId?: string;
     };
 }
 
@@ -26,6 +27,7 @@ export interface UserData {
     workstation?: {
         name: string;
         stationNo: number;
+        pairedStationId?: string;
     };
 }
 

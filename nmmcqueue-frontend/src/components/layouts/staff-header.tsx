@@ -30,9 +30,9 @@ export default function StaffHeader({ title }: { title: string }) {
     }
 
     return (
-        <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm shrink-0 w-full'>
+        <header className='bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100 px-6 py-4 flex items-center justify-between shadow-sm shrink-0 w-full'>
             <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold text-emerald-900">{title}</h1>
+                <h1 className="text-xl font-black text-emerald-800 tracking-tight">{title}</h1>
             </div>
 
             <div className='flex items-center gap-3'>

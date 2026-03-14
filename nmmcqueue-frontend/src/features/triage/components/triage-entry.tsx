@@ -5,11 +5,14 @@ import { TriageForm } from "./triage-form";
 import { TriageQueueSidebar } from "./triage-queue-sidebar";
 import { useTriageStore } from "../store/use-triage-store";
 
+import { SessionUser } from "@/types/auth";
+
 interface TriageEntryProps {
     initialQueue: VisitWithPatient[];
+    user?: SessionUser;
 }
 
-export function TriageEntry({ initialQueue }: TriageEntryProps) {
+export function TriageEntry({ initialQueue, user }: TriageEntryProps) {
     const { isPanelOpen } = useTriageStore();
 
     return (
@@ -18,6 +21,7 @@ export function TriageEntry({ initialQueue }: TriageEntryProps) {
             <div className={`flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isPanelOpen ? "lg:w-[45%]" : "w-full"}`}>
                 <TriageQueueSidebar
                     initialQueue={initialQueue}
+                    user={user}
                 />
             </div>
 

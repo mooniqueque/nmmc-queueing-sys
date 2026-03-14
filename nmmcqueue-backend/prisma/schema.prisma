@@ -23,20 +23,16 @@ enum VisitStatus {
   NO_SHOW
 }
 
-enum PriorityClass {
-  REGNEW
+enum VisitClassification {
   REGULAR
   PRIORITY
-  CHILD
-  ER_REF
-  FT
-  REFERRALS
 }
 
 enum WorkstationType {
   WINDOW
   TRIAGE
   CALLER
+  KIOSK
 }
 
 model User {
@@ -129,6 +125,7 @@ model Department {
   queueOptions LaneOption[]
   users        User[]
   workstations WorkStation[]
+  priorityCategories PriorityCategory[]
 
   @@map("department")
 }
@@ -141,9 +138,14 @@ model WorkStation {
   isActive     Boolean         @default(true)
   departmentId String?
   department   Department?     @relation(fields: [departmentId], references: [id])
-  users        User[]
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  users           User[]
+  originatedVisits Visit[]      @relation("KioskVisits")
+  triageVisits     Visit[]      @relation("TriageVisits")
+  pairedStationId  String?
+  pairedStation    WorkStation? @relation("StationPairing", fields: [pairedStationId], references: [id])
+  pairings         WorkStation[] @relation("StationPairing")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@map("workstation")
 }
@@ -197,15 +199,22 @@ model Visit {
   queueDate       DateTime    @default(now())
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-  priorityClass   PriorityClass @default(REGNEW)
+  classification  VisitClassification @default(REGULAR)
   hasAppointment  Boolean     @default(false)
   isReferred      Boolean     @default(false)
   referredFromId  String?
+  categories      VisitPriorityCategory[]
   referredFrom    Department? @relation("DepartmentReferrals", fields: [referredFromId], references: [id])
   department      Department? @relation(fields: [departmentId], references: [id])
   patient         Patient     @relation(fields: [patientId], references: [id])
   triagedByUser   User?       @relation("UserTriage", fields: [triagedByUserId], references: [id])
   calledByUser    User?       @relation("UserCall", fields: [calledByUserId], references: [id])
+  
+  originStationId String?
+  triageStationId String?
+  originStation   WorkStation? @relation("KioskVisits", fields: [originStationId], references: [id])
+  triageStation   WorkStation? @relation("TriageVisits", fields: [triageStationId], references: [id])
+
   statusHistory   VisitStatusHistory[]
 
   @@index([departmentId], map: "visit_departmentId_fkey")
@@ -214,8 +223,34 @@ model Visit {
   @@index([calledByUserId], map: "visit_calledByUserId_fkey")
   @@index([status])
   @@index([createdAt])
-  @@index([priorityClass])
+  @@index([classification])
   @@map("visit")
+}
+
+model PriorityCategory {
+  id           String             @id @default(cuid())
+  name         String
+  code         String
+  isPriority   Boolean            @default(false)
+  departmentId String?
+  department   Department?        @relation(fields: [departmentId], references: [id])
+  parentId     String?
+  parent       PriorityCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children     PriorityCategory[] @relation("CategoryHierarchy")
+  visits       VisitPriorityCategory[]
+
+  @@unique([departmentId, code])
+  @@map("priority_category")
+}
+
+model VisitPriorityCategory {
+  visitId    String
+  categoryId String
+  visit      Visit            @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  category   PriorityCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([visitId, categoryId])
+  @@map("visit_priority_category")
 }
 
 model VisitStatusHistory {

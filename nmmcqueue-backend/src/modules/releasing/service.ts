@@ -16,6 +16,11 @@ class ReleasingService {
             },
             include: {
                 patient: true,
+                categories: {
+                    include: {
+                        category: true
+                    }
+                }
             },
             orderBy: { ticketNumber: 'asc' },
         });
@@ -60,12 +65,24 @@ class ReleasingService {
     async assignTicket(visitId: string, payload: unknown, userId?: string) {
         const data = await assignTicketSchema.parseAsync(payload);
 
+        // Fetch category to check if it's priority
+        const category = await db.priorityCategory.findUnique({
+            where: { id: data.priorityClass } // data.priorityClass is now the categoryId
+        });
+
+        const classification = category?.isPriority ? 'PRIORITY' : 'REGULAR';
+
         await db.visit.update({
             where: { id: visitId },
             data: {
                 departmentId: data.departmentId,
-                priorityClass: data.priorityClass as any,
+                classification: classification,
                 status: 'WAITING_CLINIC',
+                // Link the category explicitly
+                categories: {
+                    deleteMany: {}, // Clear existing if any (usually none from window unless multiple tags)
+                    create: { categoryId: data.priorityClass }
+                },
                 statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
             }
         });

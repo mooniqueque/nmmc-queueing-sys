@@ -16,8 +16,11 @@ export async function getQueueOptionsByDepartment(departmentNames: string[]) {
     });
 }
 
-export async function createQueueOption(departmentName: string, option: string) {
-    const result = await callerApi.createQueueOption(departmentName, option, {
+export async function createQueueOption(
+    departmentName: string,
+    data: { name: string; code: string; isPriority: boolean; parentId?: string }
+) {
+    const result = await callerApi.createQueueOption(departmentName, data, {
         headers: await getServerHeaders(),
     });
     if (result.success) {
@@ -27,8 +30,8 @@ export async function createQueueOption(departmentName: string, option: string) 
     return result;
 }
 
-export async function deleteQueueOption(departmentName: string, option: string) {
-    const result = await callerApi.deleteQueueOption(departmentName, option, {
+export async function deleteQueueOption(id: string) {
+    const result = await callerApi.deleteQueueOption(id, {
         headers: await getServerHeaders(),
     });
     if (result.success) {

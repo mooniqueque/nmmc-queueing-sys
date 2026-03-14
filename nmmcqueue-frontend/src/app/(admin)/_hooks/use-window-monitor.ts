@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
@@ -11,13 +9,17 @@ interface WindowStatus {
     priorityClass: string | null;
 }
 
-export function useWindowMonitor() {
+export function useWindowMonitor(departmentId?: string) {
     const [windows, setWindows] = useState<WindowStatus[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchStatus = async () => {
+    const fetchStatus = useCallback(async () => {
         try {
-            const res = await fetch(`${BACKEND_URL}/monitor/windows`);
+            const endpoint = departmentId 
+                ? `${BACKEND_URL}/monitor/department/${departmentId}`
+                : `${BACKEND_URL}/monitor/windows`;
+                
+            const res = await fetch(endpoint);
             const json = await res.json();
             if (json.success) {
                 setWindows(json.data);
@@ -27,7 +29,7 @@ export function useWindowMonitor() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [departmentId]);
 
     useEffect(() => {
         fetchStatus();
@@ -49,7 +51,7 @@ export function useWindowMonitor() {
         return () => {
             eventSource.close();
         };
-    }, []);
+    }, [fetchStatus]);
 
     return { windows, loading };
 }

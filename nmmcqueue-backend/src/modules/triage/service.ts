@@ -13,6 +13,15 @@ function calculateAgeFromDate(dateOfBirth: Date): number {
     return age >= 0 ? age : 0;
 }
 
+async function determineClassification(categoryIds: string[]): Promise<'REGULAR' | 'PRIORITY'> {
+    if (!categoryIds || categoryIds.length === 0) return 'REGULAR';
+    const categories = await db.priorityCategory.findMany({
+        where: { id: { in: categoryIds }, isPriority: true },
+        select: { id: true }
+    });
+    return categories.length > 0 ? 'PRIORITY' : 'REGULAR';
+}
+
 class TriageService {
     async registerKioskPatient(payload: unknown) {
         const rawData = await kioskFormSchema.parseAsync(payload);
@@ -54,12 +63,19 @@ class TriageService {
             if (existingVisit) throw new Error('ALREADY_IN_QUEUE');
 
             const nextTicket = await ticketService.generateNextTicketNumber(tx);
+            const classification = await determineClassification(rawData.categoryIds || []);
+            
             await tx.visit.create({ 
                 data: { 
                     patientId: patient.id, 
                     status: 'KIOSK_SUBMITTED', 
                     ticketNumber: nextTicket, 
                     hasAppointment: rawData.hasAppointment,
+                    originStationId: rawData.originStationId,
+                    classification,
+                    categories: {
+                        create: (rawData.categoryIds || []).map(id => ({ categoryId: id }))
+                    },
                     statusHistory: {
                         create: { status: 'KIOSK_SUBMITTED' }
                     }
@@ -71,13 +87,18 @@ class TriageService {
 
     async submitTriageForm(values: unknown, visitId: string | undefined, userId: string) {
         const validData = await triageFormSchema.parseAsync(values);
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            select: { workstationId: true }
+        });
+
         const triageUpdates: any = {
             bloodPressure: validData.bloodPressure, heartRate: validData.heartRate, respiratoryRate: validData.respiratoryRate,
             temperature: validData.temperature, oxygenSat: validData.oxygenSat, hasFever: validData.hasFever,
             hasCough: validData.hasCough, hasColds: validData.hasColds, hasRashes: validData.hasRashes,
             isInfectious: validData.isInfectious, chiefComplaint: validData.chiefComplaint, medicalHistory: validData.medicalHistory,
             triageRemarks: validData.triageRemarks, disposition: validData.disposition, hasAppointment: validData.hasAppointment,
-            triagedAt: new Date(), triagedByUserId: userId, status: 'WAITING_WINDOW',
+            triagedAt: new Date(), triagedByUserId: userId, triageStationId: user?.workstationId, status: 'WAITING_WINDOW',
         };
         if (validData.isManualEntry) {
             if (!validData.firstName || !validData.lastName || !validData.dateOfBirth || !validData.gender) throw new Error('Missing required demographic fields for Walk-In.');
@@ -92,6 +113,10 @@ class TriageService {
                         patientId: patient!.id, 
                         ticketNumber: nextTicket, 
                         ...triageUpdates,
+                        classification: await determineClassification(validData.categoryIds || []),
+                        categories: {
+                            create: (validData.categoryIds || []).map(id => ({ categoryId: id }))
+                        },
                         statusHistory: {
                             create: { status: 'WAITING_WINDOW' }
                         }
@@ -109,6 +134,11 @@ class TriageService {
                     where: { id: visitId }, 
                     data: {
                         ...triageUpdates,
+                        classification: await determineClassification(validData.categoryIds || []),
+                        categories: {
+                            deleteMany: {},
+                            create: (validData.categoryIds || []).map(id => ({ categoryId: id }))
+                        },
                         statusHistory: {
                             create: { status: 'WAITING_WINDOW' }
                         }
@@ -133,8 +163,16 @@ class TriageService {
             },
             include: {
                 patient: true,
+                categories: {
+                    include: {
+                        category: true
+                    }
+                }
             },
-            orderBy: { ticketNumber: 'asc' },
+            orderBy: [
+                { classification: 'desc' },
+                { ticketNumber: 'asc' }
+            ],
         });
     }
 

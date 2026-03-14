@@ -8,7 +8,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCurrentTime } from "@/hooks/use-current-time";
 import React, { useEffect, useState, FormEvent } from "react";
 import { getPatientByHospitalId, registerKioskPatient } from "../actions";
+import { getQueueOptions } from "@/features/shared/api";
+import { PriorityCategory } from "@/types/models";
 import { kioskFormSchema, KioskFormValues } from "../schemas";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const initialState: KioskFormValues = {
     hasAppointment: false,
@@ -25,7 +28,8 @@ const initialState: KioskFormValues = {
     age: undefined,
     birthPlace: "",
     religion: "",
-    hospitalId: ""
+    hospitalId: "",
+    categoryIds: []
 };
 
 export function KioskForm() {
@@ -37,6 +41,7 @@ export function KioskForm() {
 
     const [formData, setFormData] = useState<KioskFormValues>(initialState);
     const [errors, setErrors] = useState<Partial<Record<keyof KioskFormValues, string>>>({});
+    const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
 
     // 1. Set hydration and restore data (using microtask to avoid cascading renders warning)
     useEffect(() => {
@@ -44,7 +49,6 @@ export function KioskForm() {
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                // Deferring update to next tick to satisfy strict React Compiler rules
                 setTimeout(() => {
                     setFormData(prev => ({ ...prev, ...parsed }));
                 }, 0);
@@ -52,6 +56,12 @@ export function KioskForm() {
                 console.error("Failed to parse saved draft", e);
             }
         }
+        
+        // Fetch categories (assume "TRIAGE" or "GENERAL" for kiosk)
+        getQueueOptions("TRIAGE").then(cats => {
+            setAvailableCategories(cats);
+        }).catch(err => console.error("Failed to fetch categories", err));
+
         setTimeout(() => setIsHydrated(true), 0);
     }, []);
 
@@ -89,6 +99,16 @@ export function KioskForm() {
                 setErrors(prev => ({ ...prev, [e.name]: undefined }));
             }
         }
+    };
+
+    const handleCategoryToggle = (categoryId: string) => {
+        setFormData(prev => {
+            const current = prev.categoryIds || [];
+            const next = current.includes(categoryId)
+                ? current.filter(id => id !== categoryId)
+                : [...current, categoryId];
+            return { ...prev, categoryIds: next };
+        });
     };
 
     const calculateAge = () => {
@@ -222,22 +242,44 @@ export function KioskForm() {
 
                 <form onSubmit={onSubmit} className="space-y-6">
                     {/* Section: Appointment Status */}
-                    <div className="p-4 bg-slate-50 border rounded-md">
-                        <Label className="text-sm font-semibold text-slate-700 mb-3 block">1. Visit Status</Label>
-                        <RadioGroup
-                            onValueChange={(val) => handleChange({ name: "hasAppointment", value: val === "true" })}
-                            value={formData.hasAppointment ? "true" : "false"}
-                            className="flex gap-6"
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="true" id="appt-yes" />
-                                <Label htmlFor="appt-yes" className="font-normal cursor-pointer">With Appointment</Label>
+                    <div className="p-4 bg-slate-50 border rounded-md space-y-4">
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold text-slate-700 block">1. Visit Status</Label>
+                            <RadioGroup
+                                onValueChange={(val) => handleChange({ name: "hasAppointment", value: val === "true" })}
+                                value={formData.hasAppointment ? "true" : "false"}
+                                className="flex gap-6"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="true" id="appt-yes" />
+                                    <Label htmlFor="appt-yes" className="font-normal cursor-pointer">With Appointment</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="false" id="appt-no" />
+                                    <Label htmlFor="appt-no" className="font-normal cursor-pointer">Without Appointment (Walk-in)</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+
+                        {availableCategories.length > 0 && (
+                            <div className="space-y-3 pt-2 border-t border-slate-200">
+                                <Label className="text-sm font-semibold text-emerald-800 block">Special Classification / Priority</Label>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {availableCategories.map(cat => (
+                                        <div key={cat.id} className="flex items-center space-x-2 bg-white p-2 rounded border border-slate-200 shadow-sm hover:border-emerald-300 transition-colors">
+                                            <Checkbox 
+                                                id={`cat-${cat.id}`} 
+                                                checked={(formData.categoryIds || []).includes(cat.id)}
+                                                onCheckedChange={() => handleCategoryToggle(cat.id)}
+                                            />
+                                            <label htmlFor={`cat-${cat.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                                                {cat.name}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="false" id="appt-no" />
-                                <Label htmlFor="appt-no" className="font-normal cursor-pointer">Without Appointment (Walk-in)</Label>
-                            </div>
-                        </RadioGroup>
+                        )}
                     </div>
 
                     {/* Section: Returning Patient Search */}

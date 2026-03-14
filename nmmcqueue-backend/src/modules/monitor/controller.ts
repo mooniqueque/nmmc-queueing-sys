@@ -10,6 +10,16 @@ class MonitorController {
             res.status(500).json({ success: false, error: error.message });
         }
     }
+
+    async getDepartmentStatus(req: Request, res: Response) {
+        try {
+            const { departmentId } = req.params;
+            const status = await monitorService.getDepartmentStatus(departmentId);
+            res.status(200).json({ success: true, data: status });
+        } catch (error: any) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
 }
 
 export const monitorController = new MonitorController();

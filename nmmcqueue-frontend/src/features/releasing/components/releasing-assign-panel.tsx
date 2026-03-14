@@ -3,23 +3,21 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { VisitWithPatient } from "@/features/triage/types";
-import { Department } from "@/types/models";
-import { useState, useTransition, useMemo } from "react";
-import { callTicket, noShowTicket, assignTicket } from "../actions";
-import { X, User, Printer, Phone, WarningCircle, BellRinging } from "@phosphor-icons/react";
 import { calculateAge } from "@/lib/utils";
+import { Department, PriorityCategory } from "@/types/models";
+import { BellRinging, Phone, Printer, User, WarningCircle, X } from "@phosphor-icons/react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { assignTicket, callTicket, noShowTicket } from "../actions";
 
 interface ReleasingAssignPanelProps {
     selectedPatient: VisitWithPatient;
     departments: Department[];
-    queueOptionsByDepartment: Record<string, string[]>;
+    queueOptionsByDepartment: Record<string, PriorityCategory[]>;
     badges: string[];
     onClose: () => void;
     onAssignComplete: () => void;
 }
-
-const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
 
 export function ReleasingAssignPanel({
     selectedPatient,
@@ -35,16 +33,27 @@ export function ReleasingAssignPanel({
     const [isPending, startTransition] = useTransition();
 
     const activeDepartment = departments.find(d => d.id === selectedDepartmentId);
-    const queueOptions = activeDepartment
-        ? (queueOptionsByDepartment[activeDepartment.name.toUpperCase()] ?? DEFAULT_QUEUE_OPTIONS)
-        : DEFAULT_QUEUE_OPTIONS;
+    
+    const queueOptions = useMemo(() => {
+        if (!activeDepartment) return [];
+        return queueOptionsByDepartment[activeDepartment.name.toUpperCase()] || [];
+    }, [activeDepartment, queueOptionsByDepartment]);
 
     // Intelligent Recommendation
     const recommendedOption = useMemo(() => {
-        if (badges.includes("ER-REF") || selectedPatient.disposition?.toUpperCase().includes("ER")) return "ER-REF";
-        if (badges.includes("SENIOR") || badges.includes("CHILD")) return "PRIORITY";
-        return "";
-    }, [badges, selectedPatient.disposition]);
+        // If we have dynamic options, try to match by name or priority status
+        if (queueOptions.length > 0) {
+            if (badges.includes("ER-REF") || selectedPatient.disposition?.toUpperCase().includes("ER")) {
+                const opt = queueOptions.find(o => o.code === "ER-REF" || o.name.toUpperCase().includes("ER"));
+                if (opt) return opt;
+            }
+            if (badges.includes("SENIOR") || badges.includes("CHILD")) {
+                const opt = queueOptions.find(o => o.isPriority);
+                if (opt) return opt;
+            }
+        }
+        return null;
+    }, [badges, selectedPatient.disposition, queueOptions]);
 
     const handleCall = () => {
         startTransition(async () => {
@@ -77,11 +86,11 @@ export function ReleasingAssignPanel({
 
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 h-full flex flex-col pt-6 overflow-hidden">
-            
+
             {/* Header */}
             <div className="px-6 lg:px-8 pb-5 flex items-center justify-between border-b border-slate-100">
                 <h3 className="text-[19px] font-black text-slate-800 tracking-tight">Patient Verification & Routing</h3>
-                <button 
+                <button
                     onClick={onClose}
                     className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                 >
@@ -90,7 +99,7 @@ export function ReleasingAssignPanel({
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 custom-scrollbar shrink-0">
-                
+
                 {/* Status Alert */}
                 {isNoShow && (
                     <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-700 font-bold text-sm">
@@ -127,14 +136,9 @@ export function ReleasingAssignPanel({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                        {selectedPatient.disposition?.toUpperCase().includes("ER") && (
+                        {selectedPatient.classification === 'PRIORITY' && (
                             <span className="bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-sm shadow-rose-500/20">
-                                Priority: Red (Urgent)
-                            </span>
-                        )}
-                        {badges.includes("SENIOR") && (
-                            <span className="bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-sm shadow-rose-500/20">
-                                Priority: Senior
+                                PRIORITY
                             </span>
                         )}
                         {badges.map(b => (
@@ -148,7 +152,7 @@ export function ReleasingAssignPanel({
                 {/* Quick Actions (Call / No-Show) */}
                 <div className="grid grid-cols-2 gap-4 mb-8">
                     {!isCalled ? (
-                        <Button 
+                        <Button
                             onClick={handleCall}
                             disabled={isPending}
                             className="h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest gap-2 rounded-2xl shadow-lg shadow-emerald-600/20"
@@ -163,7 +167,7 @@ export function ReleasingAssignPanel({
                         </div>
                     )}
 
-                    <Button 
+                    <Button
                         variant="outline"
                         onClick={handleNoShow}
                         disabled={isPending || isNoShow}
@@ -216,7 +220,7 @@ export function ReleasingAssignPanel({
                 <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
                         <Label className="text-[13px] font-bold text-slate-700 tracking-tight mb-2 block">Assign Clinic / Department</Label>
-                        <select 
+                        <select
                             className="w-full bg-white border border-slate-300 text-slate-800 text-[14px] font-bold rounded-xl h-11 px-4 appearance-none outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                             value={selectedDepartmentId}
                             onChange={(e) => {
@@ -236,11 +240,11 @@ export function ReleasingAssignPanel({
                             Priority Type
                             {recommendedOption && (
                                 <span className="text-[9px] uppercase tracking-widest text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">
-                                    Suggested: {recommendedOption}
+                                    Suggested: {recommendedOption.name}
                                 </span>
                             )}
                         </Label>
-                        <select 
+                        <select
                             className="w-full bg-white border border-slate-300 text-slate-800 text-[14px] font-bold rounded-xl h-11 px-4 appearance-none outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                             value={selectedQueueOption}
                             onChange={(e) => setSelectedQueueOption(e.target.value)}
@@ -248,7 +252,7 @@ export function ReleasingAssignPanel({
                         >
                             <option value="" disabled>Select Priority...</option>
                             {queueOptions.map(opt => (
-                                <option key={opt} value={opt}>{opt}</option>
+                                <option key={opt.id} value={opt.id}>{opt.name}</option>
                             ))}
                         </select>
                     </div>
@@ -257,7 +261,7 @@ export function ReleasingAssignPanel({
                 {/* Internal Notes */}
                 <div className="mb-6">
                     <Label className="text-[13px] font-bold text-slate-700 tracking-tight mb-2 block">Internal Routing Notes</Label>
-                    <textarea 
+                    <textarea
                         className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-[14px] font-medium rounded-xl p-4 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-inner resize-none h-28 placeholder:text-slate-400 placeholder:italic"
                         placeholder="Add instructions for nursing staff or the receiving clinic..."
                         value={notes}
@@ -268,15 +272,15 @@ export function ReleasingAssignPanel({
 
             {/* Bottom Global Actions */}
             <div className="bg-slate-50 border-t border-slate-200 p-4 lg:p-6 flex items-center justify-between gap-4 mt-auto rounded-b-2xl">
-                <button 
+                <button
                     onClick={onClose}
                     className="text-[14px] font-bold text-slate-500 hover:text-slate-800 transition-colors px-2"
                 >
                     Clear <br /> Selection
                 </button>
-                
+
                 <div className="flex gap-3 w-full justify-end">
-                    <Button 
+                    <Button
                         disabled={!selectedDepartmentId || !selectedQueueOption || isPending || !isCalled}
                         onClick={handleAssign}
                         className="h-12 bg-emerald-500 hover:bg-emerald-400 border-none shadow-lg shadow-emerald-500/20 text-white text-[14px] px-8 font-black uppercase tracking-widest transition-transform active:scale-95 flex-1 max-w-[280px] gap-2"

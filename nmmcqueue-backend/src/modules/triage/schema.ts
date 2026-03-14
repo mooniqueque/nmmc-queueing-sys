@@ -16,6 +16,8 @@ export const kioskFormSchema = z.object({
     religion: z.string().optional(),
     civilStatus: z.string().min(1, 'Civil status is required'),
     hasAppointment: z.boolean().default(false),
+    originStationId: z.string().optional(),
+    categoryIds: z.array(z.string()).optional(),
 });
 
 export const triageFormSchema = z.object({
@@ -44,4 +46,5 @@ export const triageFormSchema = z.object({
     triageRemarks: z.string().optional(),
     disposition: z.string().optional(),
     hasAppointment: z.boolean().default(false),
+    categoryIds: z.array(z.string()).optional(),
 });

@@ -15,20 +15,32 @@ export enum VisitStatus {
     NO_SHOW = "NO_SHOW"
 }
 
-export enum PriorityClass {
-    REGNEW = "REGNEW",
+export enum VisitClassification {
     REGULAR = "REGULAR",
-    PRIORITY = "PRIORITY",
-    CHILD = "CHILD",
-    ER_REF = "ER_REF",
-    FT = "FT",
-    REFERRALS = "REFERRALS"
+    PRIORITY = "PRIORITY"
+}
+
+export interface PriorityCategory {
+    id: string;
+    name: string;
+    code: string;
+    isPriority: boolean;
+    departmentId?: string;
+    parentId?: string;
+    children?: PriorityCategory[];
+}
+
+export interface VisitPriorityCategory {
+    visitId: string;
+    categoryId: string;
+    category: PriorityCategory;
 }
 
 export enum WorkstationType {
     WINDOW = "WINDOW",
     TRIAGE = "TRIAGE",
-    CALLER = "CALLER"
+    CALLER = "CALLER",
+    KIOSK = "KIOSK"
 }
 
 export interface WorkStation {
@@ -39,6 +51,7 @@ export interface WorkStation {
     isActive: boolean;
     departmentId?: string;
     department?: Department;
+    pairedStationId?: string;
 }
 
 export interface Department {
@@ -85,6 +98,8 @@ export interface Visit {
     patientId: string;
     departmentId?: string;
     status: VisitStatus;
+    classification: VisitClassification;
+    categories: VisitPriorityCategory[];
     ticketNumber: number;
     hasAppointment: boolean;
     isReferred: boolean;
@@ -111,6 +126,9 @@ export interface Visit {
     queueDate?: Date | string;
     createdAt: Date;
     updatedAt: Date;
-    priorityClass: PriorityClass;
     patient: Patient;
+    originStationId?: string;
+    triageStationId?: string;
+    originStation?: WorkStation;
+    triageStation?: WorkStation;
 }

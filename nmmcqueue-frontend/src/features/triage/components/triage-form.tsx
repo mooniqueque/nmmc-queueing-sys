@@ -102,22 +102,21 @@ export function TriageForm({
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
             {/* Header Block */}
             <div className="bg-slate-50 border-b border-slate-200 pt-8 px-8 pb-6 flex justify-between items-end relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-lg blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
                 <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-1">
-                        <ClipboardText size={32} weight="duotone" className="text-emerald-600" />
-                        <h2 className="text-3xl font-black text-slate-800 tracking-tight">Triage Assessment Form</h2>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-m font-bold text-slate-900 uppercase tracking-tight">Triage Assessment Form</h2>
                     </div>
-                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest ml-11">
+                    <p className="text-sm font-medium text-slate-400 tracking-widest">
                         To be filled out by Triage Officer
                     </p>
                 </div>
 
-                <div className="relative z-10 flex items-center space-x-3 bg-white px-5 py-3 rounded-full shadow-sm border border-slate-200 transition-all hover:shadow-md">
+                <div className="relative z-0 flex items-center space-x-3 bg-white px-2 py-2 rounded-lg shadow-sm border border-slate-200 transition-all hover:shadow-md">
                     <Switch
                         id="manual-entry"
                         checked={isManualEntry}
@@ -138,7 +137,7 @@ export function TriageForm({
             <div className="p-8">
                 {(!isManualEntry && !selectedPatient) ? (
                     <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-[20px] border border-slate-200 border-dashed">
-                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mb-6">
+                        <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100 mb-6">
                             <CaretDoubleRight size={32} weight="duotone" className="text-slate-300" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-600 mb-2">Select a Patient</h3>
@@ -154,7 +153,7 @@ export function TriageForm({
                             <ClinicalNotesSection />
 
                             {/* Submission Footer */}
-                            <div className="mt-12 bg-slate-800 rounded-2xl p-6 flex items-center justify-between shadow-xl shadow-slate-900/10">
+                            <div className=" mt-8 bg-slate-50/70 p-6 rounded-lg p-6 flex items-center justify-between border border-slate-200/60 shadow-sm">
                                 <div className="flex gap-6">
                                     <div className="w-56">
                                         <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
@@ -165,39 +164,37 @@ export function TriageForm({
                                             name="disposition"
                                             render={({ field }) => (
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger className={`h-14 rounded-xl border-slate-600 bg-slate-700/50 text-base font-bold transition-all ${
-                                                        field.value === "EMERGENT" ? "text-rose-400 border-rose-500/50 ring-2 ring-rose-500/20" : 
-                                                        field.value === "URGENT" ? "text-amber-400 border-amber-500/50 ring-2 ring-amber-500/20" : 
-                                                        "text-white"
-                                                    }`}>
+                                                    <SelectTrigger className={`h-14 rounded-lg border-slate-300 bg-slate-200/50 text-base font-bold transition-all ${field.value === "EMERGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-slate-500/20" :
+                                                        field.value === "URGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-amber-500/20" :
+                                                            "text-slate-800"
+                                                        }`}>
                                                         <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-700 bg-slate-800 text-slate-200">
-                                                        <SelectItem value="NON-URGENT" className="font-bold py-3 focus:bg-slate-700">Non-Urgent</SelectItem>
-                                                        <SelectItem value="URGENT" className="font-bold py-3 text-amber-400 focus:bg-slate-700">Urgent</SelectItem>
-                                                        <SelectItem value="EMERGENT" className="font-bold py-3 text-rose-400 focus:bg-slate-700">Emergent (Critical)</SelectItem>
+                                                    <SelectContent className="rounded-lg shadow-2xl border-slate-300 bg-slate-100 text-slate-200">
+                                                        <SelectItem value="NON-URGENT" className="font-bold py-3 focus:bg-slate-200 text-slate-600">Non-Urgent</SelectItem>
+                                                        <SelectItem value="URGENT" className="font-bold py-3 text-slate-600 focus:bg-slate-200">Urgent</SelectItem>
+                                                        <SelectItem value="EMERGENT" className="font-bold py-3 text-slate-600 focus:bg-slate-200">Emergent (Critical)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
                                         />
                                     </div>
-                                    <div className="w-56">
+                                    <div className="w-30">
                                         <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
-                                            Patient Priority 
+                                            Patient Priority
                                         </Label>
                                         <Controller
                                             control={methods.control}
                                             name="priorityClass"
                                             render={({ field }) => (
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger className={`h-14 rounded-xl border-slate-600 bg-slate-700/50 text-base font-bold transition-all ${
-                                                        field.value === "PRIORITY" ? "text-emerald-400 border-emerald-500/50 ring-2 ring-emerald-500/20" : "text-white"
-                                                    }`}>
+                                                    <SelectTrigger className={`h-14 rounded-lg border-slate-300 bg-slate-200/50 text-base font-bold transition-all ${field.value === "PRIORITY" ? "text-emerald-400 border-emerald-500/50 ring-2 ring-emerald-500/20" : "text-white"
+                                                        }`}>
                                                         <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-700 bg-slate-800 text-slate-200">
-                                                        <SelectItem value="REGULAR" className="font-bold py-3 focus:bg-slate-700">Regular</SelectItem>
-                                                        <SelectItem value="PRIORITY" className="font-bold py-3 text-emerald-400 focus:bg-slate-700">Priority</SelectItem>
+                                                    <SelectContent className="rounded-lg shadow-2xl border-slate-300 bg-slate-100 text-slate-200">
+                                                        <SelectItem value="REGULAR" className="font-bold py-3 focus:bg-slate-200 text-slate-600">Regular</SelectItem>
+                                                        <SelectItem value="PRIORITY" className="font-bold py-3 focus:bg-slate-200 text-slate-600">Priority</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
@@ -217,14 +214,13 @@ export function TriageForm({
                                         </span>
                                     )}
 
-                                    <Button 
-                                        type="submit" 
-                                        disabled={isPending} 
-                                        className={`h-14 px-8 text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-xl ${
-                                            isPending || submitSuccess
-                                                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                                                : "bg-emerald-500 hover:bg-emerald-400 text-white hover:-translate-y-1 hover:shadow-emerald-500/25"
-                                        }`}
+                                    <Button
+                                        type="submit"
+                                        disabled={isPending}
+                                        className={`h-10 px-4 text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-lg ${isPending || submitSuccess
+                                            ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                            : "bg-emerald-500 hover:bg-emerald-400 text-white hover:-translate-y-1 hover:shadow-emerald-500/25"
+                                            }`}
                                     >
                                         {isPending ? "Submitting..." : (
                                             <span className="flex items-center gap-2">

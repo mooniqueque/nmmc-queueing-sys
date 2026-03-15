@@ -56,32 +56,32 @@ export function ReleasingAssignPanel({
 
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 h-full flex flex-col pt-6 overflow-hidden">
-            
+
             {/* Header */}
             <div className="px-6 lg:px-8 pb-5 flex items-center justify-between border-b border-slate-100">
-                <h3 className="text-[19px] font-black text-slate-800 tracking-tight">Patient Verification & Routing</h3>
+                <h3 className="text-[19px] font-bold text-slate-800 tracking-tight">Patient Verification & Routing</h3>
                 <span className="bg-emerald-500 text-white font-black text-[10px] tracking-widest uppercase px-3 py-1.5 rounded-full shadow-sm shadow-emerald-500/20">
                     Active Processing
                 </span>
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 custom-scrollbar shrink-0">
-                
+
                 {/* Profile Card */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative mb-6 hover:shadow-md transition-shadow">
                     <button className="absolute top-4 right-4 p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors group">
                         <PencilSimple size={20} weight="duotone" className="group-hover:text-emerald-500" />
                     </button>
 
-                    <div className="flex items-start gap-4 mb-5">
+                    <div className="flex items-start gap-4">
                         <div className="w-16 h-16 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center shrink-0">
                             <User size={32} weight="fill" className="text-slate-300" />
                         </div>
                         <div className="pr-8">
-                            <h2 className="text-[22px] leading-tight font-black text-slate-900 mb-1 tracking-tight">
+                            <h2 className="text-[22px] leading-tight font-bold text-slate-900 mb-1 tracking-tight">
                                 {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}
                             </h2>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-bold text-slate-500">
+                            <div className="flex flex-wrap items-center py-1 gap-x-4 gap-y-1 text-[13px] font-bold text-slate-500">
                                 <span>ID: <strong className="text-slate-700 tracking-wide">#{selectedPatient.ticketNumber.toString().padStart(4, '0')}</strong></span>
                                 <span className="opacity-40">•</span>
                                 <span>Gender: <strong className="text-slate-700">{selectedPatient.patient.gender}</strong></span>
@@ -152,7 +152,7 @@ export function ReleasingAssignPanel({
                 <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
                         <Label className="text-[13px] font-bold text-slate-700 tracking-tight mb-2 block">Assign Clinic / Department</Label>
-                        <select 
+                        <select
                             className="w-full bg-white border border-slate-300 text-slate-800 text-[14px] font-bold rounded-xl h-11 px-4 appearance-none outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                             value={selectedDepartmentId}
                             onChange={(e) => {
@@ -176,7 +176,7 @@ export function ReleasingAssignPanel({
                                 </span>
                             )}
                         </Label>
-                        <select 
+                        <select
                             className="w-full bg-white border border-slate-300 text-slate-800 text-[14px] font-bold rounded-xl h-11 px-4 appearance-none outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                             value={selectedQueueOption}
                             onChange={(e) => setSelectedQueueOption(e.target.value)}
@@ -193,7 +193,7 @@ export function ReleasingAssignPanel({
                 {/* Internal Notes */}
                 <div className="mb-6">
                     <Label className="text-[13px] font-bold text-slate-700 tracking-tight mb-2 block">Internal Routing Notes</Label>
-                    <textarea 
+                    <textarea
                         className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-[14px] font-medium rounded-xl p-4 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-inner resize-none h-28 placeholder:text-slate-400 placeholder:italic"
                         placeholder="Add instructions for nursing staff or the receiving clinic..."
                         value={notes}
@@ -204,23 +204,23 @@ export function ReleasingAssignPanel({
 
             {/* Bottom Global Actions */}
             <div className="bg-slate-50 border-t border-slate-200 p-4 lg:p-6 flex items-center justify-between gap-4 mt-auto rounded-b-2xl">
-                <button 
+                <button
                     onClick={onClose}
                     className="text-[14px] font-bold text-slate-500 hover:text-slate-800 transition-colors px-2"
                 >
                     Clear <br /> Selection
                 </button>
-                
+
                 <div className="flex gap-3 w-full justify-end">
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         disabled={!selectedDepartmentId || !selectedQueueOption || isPending}
                         className="h-12 border-emerald-500text-[14px] px-6 text-emerald-600 font-bold uppercase tracking-widest border-2 hover:bg-emerald-50 hidden xl:flex gap-2"
                     >
                         <BookmarkSimple size={18} weight="bold" /> Save Record
                     </Button>
 
-                    <Button 
+                    <Button
                         disabled={!selectedDepartmentId || !selectedQueueOption || isPending}
                         onClick={handleAssign}
                         className="h-12 bg-emerald-500 hover:bg-emerald-400 border-none shadow-lg shadow-emerald-500/20 text-white text-[14px] px-8 font-black uppercase tracking-widest transition-transform active:scale-95 flex-1 max-w-[280px] gap-2"

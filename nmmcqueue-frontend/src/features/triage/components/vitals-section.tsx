@@ -10,67 +10,66 @@ export function VitalsSection() {
     const { register } = useFormContext<TriageFormValues>();
 
     return (
-        <div className="bg-sky-50/50 p-6 rounded-[20px] border border-sky-100 shadow-sm mt-8">
-            <h3 className="flex items-center gap-2 text-[15px] font-black tracking-widest uppercase text-sky-800 mb-6 pb-4 border-b border-sky-200/50">
+        <div className="bg-slate-50/70 p-6 rounded-lg border border-slate-200/60 shadow-sm mt-8">
+            <h3 className="flex items-center gap-2 text-[15px] font-bold tracking-tight uppercase text-slate-800 mb-6 pb-4 border-b border-slate-200/50">
                 <Heartbeat size={22} className="text-sky-600" weight="duotone" />
                 Vital Signs
             </h3>
-            
             <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-1 text-[11px] font-bold text-sky-600 uppercase tracking-wider">
-                        <Drop size={14} weight="fill" className="text-rose-500"/> BP (mmHg)
+                    <Label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <Drop size={14} weight="fill" className="text-slate-500" /> BP (mmHg)
                     </Label>
-                    <Input 
-                        placeholder="120/80" 
-                        className="bg-white pl-4 h-12 rounded-xl border-sky-200 focus:border-sky-500 focus:ring-sky-500/20 shadow-sm text-base font-bold text-slate-800"
-                        {...register("bloodPressure")} 
+                    <Input
+                        placeholder="120/80"
+                        className="bg-white pl-4 h-12 rounded-lg border-slate-200 focus:border-slate-500 focus:ring-slate-500/20 shadow-sm text-base font-bold text-slate-800"
+                        {...register("bloodPressure")}
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-1 text-[11px] font-bold text-sky-600 uppercase tracking-wider">
+                    <Label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         <Waves size={14} weight="bold" /> Heart Rate
                     </Label>
-                    <Input 
-                        type="number" 
-                        placeholder="80" 
-                        className="bg-white pl-4 h-12 rounded-xl border-sky-200 focus:border-sky-500 shadow-sm text-base font-bold text-slate-800"
-                        {...register("heartRate")} 
+                    <Input
+                        type="number"
+                        placeholder="80"
+                        className="bg-white pl-4 h-12 rounded-lg border-slate-200 focus:border-slate-500 shadow-sm text-base font-bold text-slate-800"
+                        {...register("heartRate")}
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-1 text-[11px] font-bold text-sky-600 uppercase tracking-wider">
-                        <Wind size={14} weight="fill" className="text-slate-400" /> Resp Rate
+                    <Label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <Wind size={14} weight="fill" className="text-slate-500" /> Resp Rate
                     </Label>
-                    <Input 
-                        type="number" 
-                        placeholder="18" 
-                        className="bg-white pl-4 h-12 rounded-xl border-sky-200 focus:border-sky-500 shadow-sm text-base font-bold text-slate-800"
-                        {...register("respiratoryRate")} 
+                    <Input
+                        type="number"
+                        placeholder="18"
+                        className="bg-white pl-4 h-12 rounded-lg border-slate-200 focus:border-slate-500 shadow-sm text-base font-bold text-slate-800"
+                        {...register("respiratoryRate")}
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-1 text-[11px] font-bold text-sky-600 uppercase tracking-wider">
-                        <Thermometer size={14} weight="fill" className="text-amber-500" /> Temp (°C)
+                    <Label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <Thermometer size={14} weight="fill" className="text-slate-500" /> Temp (°C)
                     </Label>
-                    <Input 
-                        type="number" 
-                        step="0.1" 
-                        placeholder="37.0" 
-                        className="bg-white pl-4 h-12 rounded-xl border-sky-200 focus:border-sky-500 shadow-sm text-base font-bold text-slate-800"
-                        {...register("temperature")} 
+                    <Input
+                        type="number"
+                        step="0.1"
+                        placeholder="37.0"
+                        className="bg-white pl-4 h-12 rounded-lg border-slate-200 focus:border-slate-500 shadow-sm text-base font-bold text-slate-800"
+                        {...register("temperature")}
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-1 text-[11px] font-bold text-sky-600 uppercase tracking-wider">
-                        <Drop size={14} weight="fill" className="text-cyan-500"/> O2 Sat (%)
+                    <Label className="flex items-center gap-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <Drop size={14} weight="fill" className="text-slate-500" /> O2 Sat (%)
                     </Label>
-                    <Input 
-                        type="number" 
-                        max="100" 
-                        placeholder="98" 
-                        className="bg-white pl-4 h-12 rounded-xl border-sky-200 focus:border-sky-500 shadow-sm text-base font-bold text-slate-800"
-                        {...register("oxygenSat")} 
+                    <Input
+                        type="number"
+                        max="100"
+                        placeholder="98"
+                        className="bg-white pl-4 h-12 rounded-lg border-slate-200 focus:border-slate-500 shadow-sm text-base font-bold text-slate-800"
+                        {...register("oxygenSat")}
                     />
                 </div>
             </div>

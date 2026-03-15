@@ -69,30 +69,30 @@ export function TriageQueueSidebar({
     const isDis = isManualEntry;
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
-            
+        <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
+
             {/* Split Top Header - Matches Releasing closely */}
             <div className="bg-white shrink-0">
                 {/* Header 1: Title and global search */}
                 <div className="border-b border-slate-100 flex flex-col xl:flex-row justify-between items-start xl:items-center px-6 lg:px-8 py-5 gap-4">
                     <div>
-                        <h2 className="text-[20px] font-black text-slate-900 tracking-tight">Pending Triage Queue</h2>
-                        <p className="text-sm text-slate-500 font-medium">
+                        <h2 className="text-m font-bold text-slate-900 uppercase tracking-tight">Pending Triage Queue</h2>
+                        <p className="text-xs text-slate-500 font-medium">
                             Currently <strong className="text-emerald-600 mx-1">{activeQueue.length}</strong> patients waiting
                         </p>
                     </div>
-                
+
                     <div className="flex items-center gap-3 w-full xl:w-auto">
                         <div className="relative w-full xl:w-72">
                             <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} weight="bold" />
-                            <Input 
-                                placeholder="Search by patient name or ticket no..." 
+                            <Input
+                                placeholder="Search by patient name or ticket no..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 h-10 w-full bg-slate-50/50 border-slate-200 text-[13px] font-semibold rounded-xl focus-visible:ring-emerald-500"
+                                className="pl-10 h-10 w-full bg-slate-50/50 border-slate-200 text-[13px] font-semibold rounded-sm focus-visible:ring-emerald-500"
                             />
                         </div>
-                        <button className="h-10 w-10 shrink-0 flex items-center justify-center border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors shadow-sm">
+                        <button className="h-10 w-10 shrink-0 flex items-center justify-center border border-slate-200 rounded-sm hover:bg-slate-50 text-slate-600 transition-colors shadow-sm">
                             <ArrowClockwise size={16} weight="bold" />
                         </button>
                     </div>
@@ -100,34 +100,30 @@ export function TriageQueueSidebar({
 
                 {/* Header 2: Pill Tabs */}
                 <div className="border-b border-slate-100 px-6 lg:px-8 py-3 flex gap-2">
-                    <div className="flex p-1 bg-slate-100/80 rounded-full border border-slate-200/50">
+                    <div className="flex p-1 bg-slate-100/80 rounded-sm border border-slate-200/50">
                         <button
                             onClick={() => setActiveTab("ACTIVE")}
-                            className={`relative flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold rounded-full transition-all duration-300 ${
-                                activeTab === "ACTIVE" 
-                                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20" 
-                                    : "text-slate-500 hover:text-emerald-600 bg-transparent"
-                            }`}
+                            className={`relative flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold rounded-sm transition-all duration-300 ${activeTab === "ACTIVE"
+                                ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                                : "text-slate-500 hover:text-emerald-600 bg-transparent"
+                                }`}
                         >
                             <span>Active</span>
-                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] leading-none transition-colors ${
-                                activeTab === "ACTIVE" ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600"
-                            }`}>
+                            <span className={`px-1.5 py-0.5 rounded-sm text-[10px] leading-none transition-colors ${activeTab === "ACTIVE" ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600"
+                                }`}>
                                 {activeQueue.length}
                             </span>
                         </button>
                         <button
                             onClick={() => setActiveTab("NO_SHOW")}
-                            className={`relative flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold rounded-full transition-all duration-300 ${
-                                activeTab === "NO_SHOW" 
-                                    ? "bg-slate-800 text-white shadow-md shadow-black/10" 
-                                    : "text-slate-500 hover:text-slate-800 bg-transparent"
-                            }`}
+                            className={`relative flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold rounded-sm transition-all duration-300 ${activeTab === "NO_SHOW"
+                                ? "bg-slate-500 text-white shadow-md shadow-black/10"
+                                : "text-slate-500 hover:text-slate-800 bg-transparent"
+                                }`}
                         >
                             <span>No Show</span>
-                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] leading-none transition-colors ${
-                                activeTab === "NO_SHOW" ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600"
-                            }`}>
+                            <span className={`px-1.5 py-0.5 rounded-sm text-[10px] leading-none transition-colors ${activeTab === "NO_SHOW" ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600"
+                                }`}>
                                 {noShowQueue.length}
                             </span>
                         </button>
@@ -147,7 +143,8 @@ export function TriageQueueSidebar({
             <div className="flex-1 overflow-y-auto bg-slate-50/50 relative custom-scrollbar">
                 {isPending && (
                     <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex items-center justify-center">
-                        <span className="text-sm font-bold text-emerald-600 animate-pulse bg-white px-5 py-2.5 rounded-xl shadow-lg border border-emerald-100">
+                        <span className="text-sm font-bold text-emerald-600 animate-pulse bg-white px-5 py-2.5 rounded-sm
+                         shadow-lg border border-emerald-100">
                             Updating Queue...
                         </span>
                     </div>
@@ -171,10 +168,10 @@ export function TriageQueueSidebar({
                                 const isWaitingLong = waitMins > 10;
                                 const isWaitingExtreme = waitMins > 30;
 
-                                const waitColorClasses = isWaitingExtreme 
+                                const waitColorClasses = isWaitingExtreme
                                     ? "bg-red-100/80 text-red-600 border border-red-200 shadow-sm"
-                                    : isWaitingLong 
-                                        ? "bg-amber-100/80 text-amber-700 border border-amber-200 shadow-sm" 
+                                    : isWaitingLong
+                                        ? "bg-amber-100/80 text-amber-700 border border-amber-200 shadow-sm"
                                         : "bg-slate-100 text-slate-500 border border-slate-200/50";
 
                                 return (
@@ -186,12 +183,11 @@ export function TriageQueueSidebar({
                                                 onSelectPatient(visit);
                                             }
                                         }}
-                                        className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px_100px]" : "grid-cols-[70px_1fr_120px_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-px group ${
-                                            isDis
-                                                ? "opacity-50 hover:-translate-y-0 cursor-not-allowed bg-slate-50/50 border-slate-200"
-                                                : isSelected
-                                                    ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
-                                                    : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
+                                        className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px_100px]" : "grid-cols-[70px_1fr_120px_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-px group ${isDis
+                                            ? "opacity-50 hover:-translate-y-0 cursor-not-allowed bg-slate-50/50 border-slate-200"
+                                            : isSelected
+                                                ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
+                                                : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
                                             }`}
                                     >
                                         {/* Ticket */}
@@ -205,8 +201,8 @@ export function TriageQueueSidebar({
                                                 {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
                                             </div>
                                             <div className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                                {visit.patient.gender.substring(0, 1)}, {visit.patient.age}y 
-                                                <span className="opacity-50 mx-0.5">•</span> 
+                                                {visit.patient.gender.substring(0, 1)}, {visit.patient.age}y
+                                                <span className="opacity-50 mx-0.5">•</span>
                                                 <span className="italic">Queued: {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         </div>
@@ -217,7 +213,7 @@ export function TriageQueueSidebar({
                                                 <button
                                                     disabled={isPending}
                                                     onClick={(e) => handleNoShow(visit.id, e)}
-                                                    className="p-2 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 border border-amber-200/50 rounded-lg transition-colors"
+                                                    className="p-2 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 border border-amber-200/50 rounded-sm transition-colors"
                                                     title="Mark as No Show"
                                                 >
                                                     <UserMinus size={16} weight="bold" />
@@ -225,7 +221,7 @@ export function TriageQueueSidebar({
                                                 <button
                                                     disabled={isPending}
                                                     onClick={(e) => handleRemove(visit.id, e)}
-                                                    className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 border border-rose-200/50 rounded-lg transition-colors"
+                                                    className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 border border-rose-200/50 rounded-sm transition-colors"
                                                     title="Remove completely"
                                                 >
                                                     <Trash size={16} weight="bold" />
@@ -236,7 +232,7 @@ export function TriageQueueSidebar({
 
                                         {/* Wait Time Indicator */}
                                         <div className="flex items-center justify-end">
-                                            <div className={`flex items-center justify-center gap-1.5 font-bold px-2.5 py-1 rounded-full text-[11px] w-full max-w-[90px] ${waitColorClasses}`}>
+                                            <div className={`flex items-center justify-center gap-1.5 font-bold px-2.5 py-1 rounded-sm text-[11px] w-full max-w-[90px] ${waitColorClasses}`}>
                                                 <Clock size={12} weight="bold" className="shrink-0" />
                                                 {waitStr}
                                             </div>
@@ -274,7 +270,7 @@ export function TriageQueueSidebar({
                                         <button
                                             disabled={isPending}
                                             onClick={(e) => handleRestore(visit.id, e)}
-                                            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white hover:bg-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                                            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white hover:bg-slate-700 rounded-sm text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
                                         >
                                             <ClockCounterClockwise size={14} weight="bold" />
                                             Restore

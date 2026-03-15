@@ -162,7 +162,7 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
                                                     <CommandItem
                                                         key={dept.id}
                                                         value={dept.name}
-                                                        onSelect={(currentValue) => {
+                                                        onSelect={(currentValue: string) => {
                                                             const actualValue = departments.find(
                                                                 (d) => d.name.toLowerCase() === currentValue.toLowerCase()
                                                             )?.name || currentValue;

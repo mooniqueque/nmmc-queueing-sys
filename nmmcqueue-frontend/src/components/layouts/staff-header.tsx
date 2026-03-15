@@ -12,6 +12,7 @@ import {
 import { authClient } from "@/lib/database/auth-client"
 import { useRouter } from "next/navigation"
 import { MdLogout, MdSettings, MdSupportAgent } from 'react-icons/md'
+import Image from "next/image"
 
 export default function StaffHeader({ title }: { title: string }) {
     const { data } = authClient.useSession()
@@ -32,15 +33,28 @@ export default function StaffHeader({ title }: { title: string }) {
     return (
         <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm shrink-0 w-full'>
             <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold text-emerald-900">{title}</h1>
+                <Image
+                    src="/nmmc-logo.png"
+                    alt="NMMC Logo"
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                />
+                <div className="flex flex-col">
+                    <h2 className="text-sm font-bold text-emerald-800 leading-tight">
+                        Northern Mindanao Medical Center
+                    </h2>
+                    <h1 className="text-xl font-black text-emerald-600">{title}</h1>
+
+                </div>
             </div>
 
             <div className='flex items-center gap-3'>
                 <div className="hidden sm:flex flex-col items-end mr-1">
-                    <span className="text-sm font-bold text-emerald-900">
+                    <span className="text-sm font-black text-emerald-900">
                         {loggedInUser?.name || "Staff"}
                     </span>
-                    <span className="text-xs text-slate-500 uppercase tracking-tighter">
+                    <span className="text-bold font-medium text-slate-500 uppercase tracking-tighter">
                         {loggedInUser?.role || "USER"}
                     </span>
                 </div>

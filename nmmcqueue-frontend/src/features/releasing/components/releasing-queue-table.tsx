@@ -2,7 +2,8 @@
 
 import { Input } from "@/components/ui/input";
 import { VisitWithPatient } from "@/features/triage/types";
-import { CheckCircle, Clock, MagnifyingGlass, WarningCircle, Funnel, ArrowClockwise } from "@phosphor-icons/react";
+import { CheckCircle, Clock, MagnifyingGlass, WarningCircle, Funnel, ArrowClockwise, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { useState, useEffect } from "react";
 
 type QueueCategory = "ALL" | "PRIORITY" | "REGULAR";
 
@@ -25,7 +26,7 @@ interface ReleasingQueueTableProps {
 }
 
 const TABS: { key: QueueCategory; label: string; color: string; activeBg: string; activeText: string }[] = [
-    { key: "ALL", label: "All Patients", color: "text-slate-500 hover:text-slate-800", activeBg: "bg-slate-900", activeText: "text-white" },
+    { key: "ALL", label: "All Patients", color: "text-slate-500 hover:text-slate-800", activeBg: "bg-slate-600", activeText: "text-white" },
     { key: "PRIORITY", label: "Priority", color: "text-slate-500 hover:text-amber-600", activeBg: "bg-amber-500", activeText: "text-white" },
     { key: "REGULAR", label: "Regular", color: "text-slate-500 hover:text-emerald-600", activeBg: "bg-emerald-500", activeText: "text-white" },
 ];
@@ -41,34 +42,45 @@ export function ReleasingQueueTable({
     onSelectPatient,
     isPanelOpen
 }: ReleasingQueueTableProps) {
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 8; // Adjust this number as needed
+
+    // Reset page to 1 when tab changes or search query changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab, searchQuery]);
+
+    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE) || 1;
+    const paginatedItems = items.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
     return (
-        <div className="flex flex-col h-full bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
-            
+        <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative ">
+
             {/* Split Top Header - Matches Reference closely */}
             <div className="bg-white shrink-0">
                 {/* Header 1: Title and global search */}
                 <div className="border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center px-6 lg:px-8 py-5 gap-4">
                     <div>
-                        <h2 className="text-[20px] font-black text-slate-900 tracking-tight">Pending Referral Queue</h2>
+                        <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Pending Referral Queue</h2>
                         <p className="text-sm text-slate-500 font-medium">
                             Currently <strong className="text-emerald-600 mx-1">{counts.ALL}</strong> patients waiting for verification
                         </p>
                     </div>
-                
+
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="relative w-full md:w-80">
                             <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} weight="bold" />
-                            <Input 
-                                placeholder="Search by patient name or ticket no..." 
+                            <Input
+                                placeholder="Search by patient name or ticket no..."
                                 value={searchQuery}
                                 onChange={(e) => onSearchChange(e.target.value)}
-                                className="pl-10 h-10 w-full bg-slate-50/50 border-slate-200 text-[13px] font-semibold rounded-xl focus-visible:ring-emerald-500"
+                                className="pl-10 h-10 w-full bg-slate-50/50 border-slate-200 text-[13px] font-semibold rounded-md focus-visible:ring-emerald-500"
                             />
                         </div>
-                        <button className="h-10 px-4 shrink-0 flex items-center justify-center gap-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 font-bold text-[13px] transition-colors shadow-sm">
+                        <button className="h-10 px-4 shrink-0 flex items-center justify-center gap-2 border border-slate-200 rounded-md hover:bg-slate-50 text-slate-600 font-bold text-[13px] transition-colors shadow-sm">
                             <Funnel size={16} weight="bold" /> Filter
                         </button>
-                        <button className="h-10 w-10 shrink-0 flex items-center justify-center border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors shadow-sm">
+                        <button className="h-10 w-10 shrink-0 flex items-center justify-center border border-slate-200 rounded-md hover:bg-slate-50 text-slate-600 transition-colors shadow-sm">
                             <ArrowClockwise size={16} weight="bold" />
                         </button>
                     </div>
@@ -76,7 +88,7 @@ export function ReleasingQueueTable({
 
                 {/* Header 2: Pill Tabs */}
                 <div className="border-b border-slate-100 px-6 lg:px-8 py-3 flex gap-2">
-                    <div className="flex p-1 bg-slate-100/80 rounded-full border border-slate-200/50">
+                    <div className="flex p-1 bg-slate-100/80 rounded-lg border border-slate-200/50">
                         {TABS.map(tab => {
                             const count = counts[tab.key];
                             const isActive = activeTab === tab.key;
@@ -84,14 +96,14 @@ export function ReleasingQueueTable({
                                 <button
                                     key={tab.key}
                                     onClick={() => onTabChange(tab.key)}
-                                    className={`relative flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold rounded-full transition-all duration-300 ${isActive
-                                            ? `${tab.activeBg} ${tab.activeText} shadow-md shadow-black/5`
-                                            : `bg-transparent ${tab.color}`
+                                    className={`relative flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-300 ${isActive
+                                        ? `${tab.activeBg} ${tab.activeText} shadow-md shadow-black/5`
+                                        : `bg-transparent ${tab.color}`
                                         }`}
                                 >
                                     <span>{tab.label}</span>
                                     {count > 0 && (
-                                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] leading-none transition-colors ${isActive ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600"}`}>
+                                        <span className={`px-1.5 py-0.5 rounded-lg text-[10px] leading-none transition-colors ${isActive ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600"}`}>
                                             {count}
                                         </span>
                                     )}
@@ -119,7 +131,7 @@ export function ReleasingQueueTable({
                     </div>
                 ) : (
                     <div className="flex flex-col">
-                        {items.map(({ visit, category, badges }) => {
+                        {paginatedItems.map(({ visit, category, badges }) => {
                             const isSelected = selectedPatientId === visit.id;
 
                             // Wait time calc
@@ -128,20 +140,19 @@ export function ReleasingQueueTable({
                             const isWaitingLong = waitMins > 10;
                             const isWaitingExtreme = waitMins > 30;
 
-                            const waitColorClasses = isWaitingExtreme 
+                            const waitColorClasses = isWaitingExtreme
                                 ? "bg-red-100/80 text-red-600 border border-red-200 shadow-sm"
-                                : isWaitingLong 
-                                    ? "bg-amber-100/80 text-amber-700 border border-amber-200 shadow-sm" 
+                                : isWaitingLong
+                                    ? "bg-amber-100/80 text-amber-700 border border-amber-200 shadow-sm"
                                     : "bg-slate-100 text-slate-500 border border-slate-200/50";
 
                             return (
                                 <button
                                     key={visit.id}
                                     onClick={() => onSelectPatient(visit)}
-                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[70px_1fr_1fr_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-[1px] ${
-                                        isSelected
-                                            ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
-                                            : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
+                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[70px_1fr_1fr_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-[1px] ${isSelected
+                                        ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
+                                        : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
                                         }`}
                                 >
                                     {/* Ticket (e.g. #082) */}
@@ -155,8 +166,8 @@ export function ReleasingQueueTable({
                                             {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
                                         </div>
                                         <div className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                            {visit.patient.gender.substring(0, 1)}, {visit.patient.age}y 
-                                            <span className="opacity-50 mx-0.5">•</span> 
+                                            {visit.patient.gender.substring(0, 1)}, {visit.patient.age}y
+                                            <span className="opacity-50 mx-0.5">•</span>
                                             <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-slate-100 rounded border border-slate-200">{category}</span>
                                             {badges.map(b => (
                                                 <span key={b} className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
@@ -186,6 +197,34 @@ export function ReleasingQueueTable({
                     </div>
                 )}
             </div>
+
+            {/* Pagination Footer */}
+            {items.length > 0 && (
+                <div className="border-t border-slate-100 p-4 bg-white flex items-center justify-between shrink-0">
+                    <div className="text-xs font-bold text-slate-500">
+                        Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, items.length)} of {items.length} entries
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="p-2 border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <CaretLeft size={16} weight="bold" />
+                        </button>
+                        <div className="text-xs font-bold text-slate-700 mx-2">
+                            Page {currentPage} of {totalPages}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="p-2 border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <CaretRight size={16} weight="bold" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

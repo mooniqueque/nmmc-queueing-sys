@@ -1,25 +1,18 @@
 import { Request, Response } from 'express';
+import { asyncHandler } from '../../middleware/error-handler.js';
 import { monitorService } from './service.js';
 
 class MonitorController {
-    async getWindowStatus(req: Request, res: Response) {
-        try {
-            const status = await monitorService.getWindowStatus();
-            res.status(200).json({ success: true, data: status });
-        } catch (error: any) {
-            res.status(500).json({ success: false, error: error.message });
-        }
-    }
+    getWindowStatus = asyncHandler(async (req: Request, res: Response) => {
+        const status = await monitorService.getWindowStatus();
+        res.status(200).json({ success: true, data: status });
+    });
 
-    async getDepartmentStatus(req: Request, res: Response) {
-        try {
-            const { departmentId } = req.params;
-            const status = await monitorService.getDepartmentStatus(departmentId);
-            res.status(200).json({ success: true, data: status });
-        } catch (error: any) {
-            res.status(500).json({ success: false, error: error.message });
-        }
-    }
+    getDepartmentStatus = asyncHandler(async (req: Request, res: Response) => {
+        const { departmentId } = req.params;
+        const status = await monitorService.getDepartmentStatus(departmentId);
+        res.status(200).json({ success: true, data: status });
+    });
 }
 
 export const monitorController = new MonitorController();

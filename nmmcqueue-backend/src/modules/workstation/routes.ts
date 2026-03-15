@@ -1,8 +1,11 @@
 import { Router } from 'express';
+import { requireAuth, requireRole } from '../../middleware/rbac.js';
 import { workstationController } from './controller.js';
-import { requireRole } from '../../middleware/rbac.js';
 
 export const workstationRouter = Router();
+
+// Require auth for all workstation routes
+workstationRouter.use(requireAuth);
 
 // Publicly available to authenticated users (e.g. to see their own station info or lists)
 workstationRouter.get('/', workstationController.getAll);

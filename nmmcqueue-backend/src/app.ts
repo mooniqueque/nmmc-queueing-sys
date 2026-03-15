@@ -1,5 +1,6 @@
 import cors from 'cors';
 import express from 'express';
+import { errorHandler } from './middleware/error-handler.js';
 import { authRouter, userRouter } from './modules/auth/routes.js';
 import { callerRouter } from './modules/caller/routes.js';
 import { monitorRouter } from './modules/monitor/routes.js';
@@ -30,5 +31,7 @@ app.use('/api/workstations', workstationRouter);
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
+
+app.use(errorHandler);
 
 export default app;

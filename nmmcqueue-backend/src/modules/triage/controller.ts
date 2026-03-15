@@ -1,62 +1,44 @@
 import { Request, Response } from 'express';
+import { asyncHandler } from '../../middleware/error-handler.js';
 import { triageService } from './service.js';
 
 class TriageController {
-    async registerKiosk(req: Request, res: Response) {
-        try {
-            await triageService.registerKioskPatient(req.body);
-            res.status(200).json({ success: true, message: 'Successfully queued for Triage.' });
-        } catch (error: any) {
-            if (error.message === 'ALREADY_IN_QUEUE') {
-                res.status(400).json({ success: false, error: 'Your name is already in the queue.' });
-            } else {
-                res.status(500).json({ success: false, error: error.message || 'Failed to submit registration.' });
-            }
-        }
-    }
+    registerKiosk = asyncHandler(async (req: Request, res: Response) => {
+        await triageService.registerKioskPatient(req.body);
+        res.status(200).json({ success: true, message: 'Successfully queued for Triage.' });
+    });
 
-    async submitTriage(req: Request, res: Response) {
-        try {
-            const userId = (req as any).user?.id;
-            if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
-            await triageService.submitTriageForm(req.body.values, req.body.visitId, userId);
-            res.status(200).json({ success: true });
-        } catch (error: any) {
-            res.status(500).json({ success: false, error: error.message || 'An unexpected error occurred.' });
-        }
-    }
+    submitTriage = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        await triageService.submitTriageForm(req.body.values, req.body.visitId, userId);
+        res.status(200).json({ success: true });
+    });
 
-    async markNoShow(req: Request, res: Response) {
-        try { await triageService.markNoShow(req.params.id); res.status(200).json({ success: true }); }
-        catch (error: any) { res.status(500).json({ success: false, error: error.message }); }
-    }
+    markNoShow = asyncHandler(async (req: Request, res: Response) => {
+        await triageService.markNoShow(req.params.id);
+        res.status(200).json({ success: true });
+    });
 
-    async restoreNoShow(req: Request, res: Response) {
-        try { await triageService.restoreNoShow(req.params.id); res.status(200).json({ success: true }); }
-        catch (error: any) { res.status(500).json({ success: false, error: error.message }); }
-    }
+    restoreNoShow = asyncHandler(async (req: Request, res: Response) => {
+        await triageService.restoreNoShow(req.params.id);
+        res.status(200).json({ success: true });
+    });
 
-    async removeQueue(req: Request, res: Response) {
-        try { await triageService.removeQueue(req.params.id); res.status(200).json({ success: true }); }
-        catch (error: any) { res.status(500).json({ success: false, error: error.message }); }
-    }
+    removeQueue = asyncHandler(async (req: Request, res: Response) => {
+        await triageService.removeQueue(req.params.id);
+        res.status(200).json({ success: true });
+    });
 
-    async getPatientByHospitalId(req: Request, res: Response) {
-        try {
-            const patient = await triageService.getPatientByHospitalId(req.params.id);
-            res.status(200).json({ success: true, data: patient });
-        } catch (error: any) {
-            res.status(404).json({ success: false, error: error.message });
-        }
-    }
-    async getPendingQueue(req: Request, res: Response) {
-        try {
-            const queue = await triageService.getPendingQueue();
-            res.status(200).json({ success: true, data: queue });
-        } catch (error: any) {
-            res.status(500).json({ success: false, error: error.message || 'Failed to fetch queue.' });
-        }
-    }
+    getPatientByHospitalId = asyncHandler(async (req: Request, res: Response) => {
+        const patient = await triageService.getPatientByHospitalId(req.params.id);
+        res.status(200).json({ success: true, data: patient });
+    });
+
+    getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
+        const queue = await triageService.getPendingQueue();
+        res.status(200).json({ success: true, data: queue });
+    });
 }
 
 export const triageController = new TriageController();

@@ -1,5 +1,7 @@
 import { db } from '../../config/database.js';
+import logger from '../../lib/logger.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
+import { AppError } from '../../middleware/error-handler.js';
 import { ticketService } from '../tickets/service.js';
 import { kioskFormSchema, triageFormSchema } from './schema.js';
 
@@ -60,12 +62,12 @@ class TriageService {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const existingVisit = await tx.visit.findFirst({ where: { patientId: patient.id, createdAt: { gte: today }, status: { in: ['KIOSK_SUBMITTED', 'IN_PROGRESS', 'WAITING_CLINIC'] } } });
-            if (existingVisit) throw new Error('ALREADY_IN_QUEUE');
+            if (existingVisit) throw new AppError('ALREADY_IN_QUEUE', 400);
 
             const nextTicket = await ticketService.generateNextTicketNumber(tx);
             const classification = await determineClassification(rawData.categoryIds || []);
             
-            await tx.visit.create({ 
+            const visit = await tx.visit.create({ 
                 data: { 
                     patientId: patient.id, 
                     status: 'KIOSK_SUBMITTED', 
@@ -81,12 +83,21 @@ class TriageService {
                     }
                 } 
             });
+
+            logger.info(`Patient queued via Kiosk: Ticket #${nextTicket}`, {
+                patientId: patient.id,
+                visitId: visit.id,
+                ticketNumber: nextTicket,
+                classification,
+                originStationId: rawData.originStationId
+            });
         });
         emitQueueUpdate();
     }
 
     async submitTriageForm(values: unknown, visitId: string | undefined, userId: string) {
         const validData = await triageFormSchema.parseAsync(values);
+        let affectedPatientId: string | undefined;
         const user = await db.user.findUnique({
             where: { id: userId },
             select: { workstationId: true }
@@ -106,6 +117,7 @@ class TriageService {
             if (!patient) {
                 patient = await db.patient.create({ data: { firstName: validData.firstName!, middleName: validData.middleName, lastName: validData.lastName!, dateOfBirth: new Date(validData.dateOfBirth!), gender: validData.gender!, address: validData.address, birthPlace: validData.birthPlace, religion: validData.religion, civilStatus: validData.civilStatus } });
             }
+            affectedPatientId = patient.id;
             await db.$transaction(async (tx) => {
                 const nextTicket = await ticketService.generateNextTicketNumber(tx);
                 await tx.visit.create({ 
@@ -127,6 +139,7 @@ class TriageService {
             if (!visitId) throw new Error('No Visit ID provided for queue patient.');
             const existingVisit = await db.visit.findUnique({ where: { id: visitId }, select: { patientId: true } });
             if (!existingVisit) throw new Error('Visit not found.');
+            affectedPatientId = existingVisit.patientId;
             const dob = validData.dateOfBirth ? new Date(validData.dateOfBirth) : undefined;
             await db.$transaction([
                 db.patient.update({ where: { id: existingVisit.patientId }, data: { firstName: validData.firstName, middleName: validData.middleName, lastName: validData.lastName, dateOfBirth: dob, gender: validData.gender, address: validData.address, birthPlace: validData.birthPlace, religion: validData.religion, civilStatus: validData.civilStatus } }),
@@ -146,6 +159,14 @@ class TriageService {
                 }),
             ]);
         }
+        
+        logger.info(`Triage completed for Visit ID: ${visitId || 'Walk-In'}`, {
+            visitId,
+            userId,
+            isManualEntry: validData.isManualEntry,
+            patientId: affectedPatientId
+        });
+
         // Notify all SSE listeners that the queue has changed (Releasing window needs this)
         emitQueueUpdate();
     }

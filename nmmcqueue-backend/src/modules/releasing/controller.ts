@@ -1,44 +1,30 @@
 import { Request, Response } from 'express';
+import { asyncHandler } from '../../middleware/error-handler.js';
 import { releasingService } from './service.js';
 
 class ReleasingController {
-    async getPendingQueue(req: Request, res: Response) {
-        try {
-            const queue = await releasingService.getPendingQueue();
-            res.status(200).json({ success: true, data: queue });
-        } catch (error: any) {
-            res.status(500).json({ success: false, error: error.message });
-        }
-    }
+    getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
+        const queue = await releasingService.getPendingQueue();
+        res.status(200).json({ success: true, data: queue });
+    });
 
-    async assignTicket(req: Request, res: Response) {
-        try {
-            await releasingService.assignTicket(req.params.id, req.body, (req as any).user?.id);
-            res.status(200).json({ success: true, message: 'Ticket assigned and sent to clinic.' });
-        } catch (error: any) {
-            res.status(400).json({ success: false, error: error.message });
-        }
-    }
+    assignTicket = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        await releasingService.assignTicket(req.params.id, req.body, userId);
+        res.status(200).json({ success: true, message: 'Ticket assigned and sent to clinic.' });
+    });
 
-    async callTicket(req: Request, res: Response) {
-        try {
-            const userId = (req as any).user?.id;
-            const updated = await releasingService.callTicket(req.params.id, userId);
-            res.status(200).json({ success: true, data: updated });
-        } catch (error: any) {
-            res.status(400).json({ success: false, error: error.message });
-        }
-    }
+    callTicket = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        const updated = await releasingService.callTicket(req.params.id, userId);
+        res.status(200).json({ success: true, data: updated });
+    });
 
-    async noShowTicket(req: Request, res: Response) {
-        try {
-            const userId = (req as any).user?.id;
-            const updated = await releasingService.noShowTicket(req.params.id, userId);
-            res.status(200).json({ success: true, data: updated });
-        } catch (error: any) {
-            res.status(400).json({ success: false, error: error.message });
-        }
-    }
+    noShowTicket = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        const updated = await releasingService.noShowTicket(req.params.id, userId);
+        res.status(200).json({ success: true, data: updated });
+    });
 }
 
 export const releasingController = new ReleasingController();

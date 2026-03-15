@@ -1,43 +1,27 @@
 import { Request, Response } from 'express';
+import { asyncHandler } from '../../middleware/error-handler.js';
 import { workstationService } from './service.js';
-import { WorkstationType } from '@prisma/client';
 
 class WorkstationController {
-    async getAll(req: Request, res: Response) {
-        try {
-            const stations = await workstationService.getAll();
-            res.status(200).json({ success: true, data: stations });
-        } catch (error: any) {
-            res.status(500).json({ success: false, error: error.message });
-        }
-    }
+    getAll = asyncHandler(async (req: Request, res: Response) => {
+        const stations = await workstationService.getAll();
+        res.status(200).json({ success: true, data: stations });
+    });
 
-    async create(req: Request, res: Response) {
-        try {
-            const station = await workstationService.create(req.body);
-            res.status(201).json({ success: true, data: station });
-        } catch (error: any) {
-            res.status(500).json({ success: false, error: error.message });
-        }
-    }
+    create = asyncHandler(async (req: Request, res: Response) => {
+        const station = await workstationService.create(req.body);
+        res.status(201).json({ success: true, data: station });
+    });
 
-    async update(req: Request, res: Response) {
-        try {
-            const station = await workstationService.update(req.params.id, req.body);
-            res.status(200).json({ success: true, data: station });
-        } catch (error: any) {
-            res.status(500).json({ success: false, error: error.message });
-        }
-    }
+    update = asyncHandler(async (req: Request, res: Response) => {
+        const station = await workstationService.update(req.params.id, req.body);
+        res.status(200).json({ success: true, data: station });
+    });
 
-    async delete(req: Request, res: Response) {
-        try {
-            await workstationService.delete(req.params.id);
-            res.status(200).json({ success: true });
-        } catch (error: any) {
-            res.status(500).json({ success: false, error: error.message });
-        }
-    }
+    delete = asyncHandler(async (req: Request, res: Response) => {
+        await workstationService.delete(req.params.id);
+        res.status(200).json({ success: true });
+    });
 }
 
 export const workstationController = new WorkstationController();

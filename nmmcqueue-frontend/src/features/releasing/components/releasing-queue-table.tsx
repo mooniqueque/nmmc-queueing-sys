@@ -152,7 +152,7 @@ export function ReleasingQueueTable({
                                 <button
                                     key={visit.id}
                                     onClick={() => onSelectPatient(visit)}
-                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[70px_1fr_1fr_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-[1px] ${isSelected
+                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[70px_1fr_1fr_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-px ${isSelected
                                         ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
                                         : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
                                         }`}
@@ -168,6 +168,8 @@ export function ReleasingQueueTable({
                                             {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
                                         </div>
                                         <div className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                            {visit.patient.gender.substring(0, 1)}, {calculateAge(visit.patient.dateOfBirth)}y
+                                            <span className="opacity-50 mx-0.5">•</span>
                                             {visit.patient.gender.substring(0, 1)}, {calculateAge(visit.patient.dateOfBirth)}y
                                             <span className="opacity-50 mx-0.5">•</span>
                                             <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-slate-100 rounded border border-slate-200">{category}</span>

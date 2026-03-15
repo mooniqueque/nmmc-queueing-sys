@@ -31,7 +31,7 @@ export default function StaffHeader({ title }: { title: string }) {
     }
 
     return (
-        <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm shrink-0 w-full'>
+        <header className='bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100 px-6 py-4 flex items-center justify-between shadow-sm shrink-0 w-full'>
             <div className="flex items-center gap-3">
                 <Image
                     src="/nmmc-logo.png"

@@ -1,3 +1,59 @@
+export enum UserRole {
+    ADMIN = "ADMIN",
+    TRIAGE_NURSE = "TRIAGE_NURSE",
+    WINDOW_CLERK = "WINDOW_CLERK",
+    CLINIC_CALLER = "CLINIC_CALLER"
+}
+
+export enum VisitStatus {
+    PENDING_TRIAGE = "PENDING_TRIAGE",
+    KIOSK_SUBMITTED = "KIOSK_SUBMITTED",
+    WAITING_WINDOW = "WAITING_WINDOW",
+    WAITING_CLINIC = "WAITING_CLINIC",
+    IN_PROGRESS = "IN_PROGRESS",
+    COMPLETED = "COMPLETED",
+    NO_SHOW = "NO_SHOW"
+}
+
+export enum VisitClassification {
+    REGULAR = "REGULAR",
+    PRIORITY = "PRIORITY"
+}
+
+export interface PriorityCategory {
+    id: string;
+    name: string;
+    code: string;
+    isPriority: boolean;
+    departmentId?: string;
+    parentId?: string;
+    children?: PriorityCategory[];
+}
+
+export interface VisitPriorityCategory {
+    visitId: string;
+    categoryId: string;
+    category: PriorityCategory;
+}
+
+export enum WorkstationType {
+    WINDOW = "WINDOW",
+    TRIAGE = "TRIAGE",
+    CALLER = "CALLER",
+    KIOSK = "KIOSK"
+}
+
+export interface WorkStation {
+    id: string;
+    name: string;
+    type: WorkstationType;
+    stationNo: number;
+    isActive: boolean;
+    departmentId?: string;
+    department?: Department;
+    pairedStationId?: string;
+}
+
 export interface Department {
     id: string;
     name: string;
@@ -10,8 +66,11 @@ export interface User {
     id: string;
     email: string;
     name: string;
-    role: string;
-    department: string;
+    role: UserRole;
+    department?: string;
+    departmentId?: string;
+    workstationId?: string;
+    workstation?: WorkStation;
     isActive: boolean;
     isApproved: boolean;
     createdAt: Date;
@@ -26,19 +85,21 @@ export interface Patient {
     middleName: string | null;
     contactNo?: string | null;
     dateOfBirth: Date | string;
-    age: number;
     gender: string;
     address?: string;
     birthPlace?: string;
     religion?: string;
     civilStatus?: string;
+    // Note: age is computed on frontend from dateOfBirth
 }
 
 export interface Visit {
     id: string;
     patientId: string;
     departmentId?: string;
-    status: string;
+    status: VisitStatus;
+    classification: VisitClassification;
+    categories: VisitPriorityCategory[];
     ticketNumber: number;
     hasAppointment: boolean;
     isReferred: boolean;
@@ -59,7 +120,15 @@ export interface Visit {
     disposition?: string;
     triagedAt?: Date | string;
     triagedByUserId?: string;
+    calledAt?: Date | string;
+    calledByUserId?: string;
+    windowNumber?: number;
     queueDate?: Date | string;
     createdAt: Date;
     updatedAt: Date;
+    patient: Patient;
+    originStationId?: string;
+    triageStationId?: string;
+    originStation?: WorkStation;
+    triageStation?: WorkStation;
 }

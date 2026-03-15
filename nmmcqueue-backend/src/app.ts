@@ -1,11 +1,13 @@
 import cors from 'cors';
 import express from 'express';
+import { errorHandler } from './middleware/error-handler.js';
 import { authRouter, userRouter } from './modules/auth/routes.js';
 import { callerRouter } from './modules/caller/routes.js';
 import { monitorRouter } from './modules/monitor/routes.js';
 import { releasingRouter } from './modules/releasing/routes.js';
 import { sharedRouter } from './modules/shared/routes.js';
 import { triageRouter } from './modules/triage/routes.js';
+import { workstationRouter } from './modules/workstation/routes.js';
 
 export const app = express();
 app.use(cors({
@@ -24,9 +26,12 @@ app.use('/api/releasing', releasingRouter);
 app.use('/api/caller', callerRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
+app.use('/api/workstations', workstationRouter);
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
+
+app.use(errorHandler);
 
 export default app;

@@ -17,3 +17,5 @@ userRouter.post('/:id/approve', authController.approveUser);
 userRouter.post('/:id/reject', authController.rejectUser);
 userRouter.put('/:id/role', authController.updateUserRole);
 userRouter.put('/:id/status', authController.toggleUserStatus);
+userRouter.put('/:id/department', authController.updateUserDepartment);
+userRouter.put('/:id/workstation', authController.updateUserWorkstation);

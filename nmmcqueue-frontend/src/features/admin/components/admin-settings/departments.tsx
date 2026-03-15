@@ -10,9 +10,10 @@ import { Trash } from "@phosphor-icons/react";
 import { useState } from "react";
 import { createQueueOption, deleteQueueOption } from "../../queue-option-actions";
 
-const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"] as const;
 
-type QueueOptionsByDepartment = Record<string, string[]>;
+import { PriorityCategory } from "@/types/models";
+
+type QueueOptionsByDepartment = Record<string, PriorityCategory[]>;
 
 type DepartmentSettingsProps = {
     initialDepartments: Department[];
@@ -23,22 +24,6 @@ function normalizeDepartmentKey(value: string) {
     return value.trim().toUpperCase();
 }
 
-function orderOptions(values: string[]) {
-    const unique = Array.from(
-        new Set(
-            values
-                .map((value) => value.trim().toUpperCase())
-                .filter((value) => value.length > 0)
-        )
-    );
-    const defaultsInOrder = DEFAULT_QUEUE_OPTIONS.filter((option) => unique.includes(option));
-    const defaultSet = new Set<string>(DEFAULT_QUEUE_OPTIONS);
-    const custom = unique
-        .filter((option) => !defaultSet.has(option))
-        .sort((left, right) => left.localeCompare(right));
-
-    return [...defaultsInOrder, ...custom];
-}
 
 export default function DepartmentSettings({
     initialDepartments,
@@ -46,7 +31,9 @@ export default function DepartmentSettings({
 }: DepartmentSettingsProps) {
     const [name, setName] = useState("");
     const [code, setCode] = useState("");
-    const [queueOptionInput, setQueueOptionInput] = useState("");
+    const [queueNameInput, setQueueNameInput] = useState("");
+    const [queueCodeInput, setQueueCodeInput] = useState("");
+    const [isPriorityInput, setIsPriorityInput] = useState(false);
     const [selectedDepartmentId, setSelectedDepartmentId] = useState(initialDepartments[0]?.id ?? "");
     const [queueOptionsByDepartment, setQueueOptionsByDepartment] = useState(initialQueueOptionsByDepartment);
     const [loading, setLoading] = useState(false);
@@ -56,8 +43,8 @@ export default function DepartmentSettings({
 
     const selectedDepartment = initialDepartments.find((department) => department.id === selectedDepartmentId);
     const selectedDepartmentKey = selectedDepartment ? normalizeDepartmentKey(selectedDepartment.name) : "";
-    const queueOptions = selectedDepartment
-        ? (queueOptionsByDepartment[selectedDepartmentKey] ?? DEFAULT_QUEUE_OPTIONS)
+    const categories = selectedDepartment
+        ? (queueOptionsByDepartment[selectedDepartmentKey] ?? [])
         : [];
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -81,12 +68,19 @@ export default function DepartmentSettings({
             setQueueError("Select a department first.");
             return;
         }
+        if (!queueNameInput || !queueCodeInput) {
+            setQueueError("Name and Code are required.");
+            return;
+        }
 
         setQueueLoading(true);
         setQueueError("");
 
-        const normalized = queueOptionInput.trim().toUpperCase();
-        const result = await createQueueOption(selectedDepartment.name, normalized);
+        const result = await createQueueOption(selectedDepartment.name, {
+            name: queueNameInput.trim(),
+            code: queueCodeInput.trim().toUpperCase(),
+            isPriority: isPriorityInput
+        });
 
         if (!result.success) {
             setQueueError(result.error || "Failed to add queue option.");
@@ -94,37 +88,30 @@ export default function DepartmentSettings({
             return;
         }
 
-        const next = orderOptions([...queueOptions, normalized]);
         setQueueOptionsByDepartment((prev) => ({
             ...prev,
-            [selectedDepartmentKey]: next
+            [selectedDepartmentKey]: [...(prev[selectedDepartmentKey] ?? []), result.data]
         }));
-
-        setQueueOptionInput("");
+        setQueueNameInput("");
+        setQueueCodeInput("");
+        setIsPriorityInput(false);
         setQueueLoading(false);
     };
 
-    const handleDeleteQueueOption = async (option: string) => {
-        if (!selectedDepartment) {
-            setQueueError("Select a department first.");
-            return;
-        }
+    const handleDeleteQueueOption = async (id: string) => {
+        if (!selectedDepartment) return;
 
         setQueueLoading(true);
-        setQueueError("");
+        const result = await deleteQueueOption(id);
 
-        const result = await deleteQueueOption(selectedDepartment.name, option);
-        if (!result.success) {
-            setQueueError(result.error || "Failed to remove queue option.");
-            setQueueLoading(false);
-            return;
+        if (result.success) {
+            setQueueOptionsByDepartment((prev) => ({
+                ...prev,
+                [selectedDepartmentKey]: prev[selectedDepartmentKey].filter((opt) => opt.id !== id),
+            }));
+        } else {
+            setQueueError(result.error || "Failed to delete queue option.");
         }
-
-        const next = queueOptions.filter((item) => item !== option);
-        setQueueOptionsByDepartment((prev) => ({
-            ...prev,
-            [selectedDepartmentKey]: next
-        }));
         setQueueLoading(false);
     };
 
@@ -212,22 +199,39 @@ export default function DepartmentSettings({
                             </select>
                         </div>
 
-                        <div className="flex gap-2">
-                            <Input
-                                id="queue-option"
-                                placeholder="e.g. PRIORITY"
-                                value={queueOptionInput}
-                                onChange={(e) => setQueueOptionInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        handleAddQueueOption();
-                                    }
-                                }}
-                                className="border-slate-300 focus-visible:ring-emerald-500 uppercase font-bold text-slate-800"
-                            />
-                            <Button type="button" variant="outline" onClick={handleAddQueueOption} className="font-bold border-slate-300" disabled={queueLoading || !selectedDepartment}>
-                                Add
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] uppercase font-bold text-slate-500">Name</Label>
+                                    <Input
+                                        placeholder="e.g. Fasting"
+                                        value={queueNameInput}
+                                        onChange={(e) => setQueueNameInput(e.target.value)}
+                                        className="border-slate-300 focus-visible:ring-emerald-500 font-bold text-slate-800"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] uppercase font-bold text-slate-500">Code</Label>
+                                    <Input
+                                        placeholder="e.g. FAST"
+                                        value={queueCodeInput}
+                                        onChange={(e) => setQueueCodeInput(e.target.value)}
+                                        className="border-slate-300 focus-visible:ring-emerald-500 uppercase font-bold text-slate-800"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input 
+                                    type="checkbox" 
+                                    id="isPriority" 
+                                    checked={isPriorityInput} 
+                                    onChange={(e) => setIsPriorityInput(e.target.checked)}
+                                    className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+                                />
+                                <Label htmlFor="isPriority" className="text-sm font-bold text-slate-700">Mark as Priority Class</Label>
+                            </div>
+                            <Button type="button" onClick={handleAddQueueOption} className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold" disabled={queueLoading || !selectedDepartment}>
+                                Add Priority Category
                             </Button>
                         </div>
 
@@ -237,25 +241,33 @@ export default function DepartmentSettings({
                             </div>
                         )}
 
-                        <div className="flex flex-wrap gap-2 min-h-8">
-                            {queueOptions.length === 0 ? (
-                                <span className="text-xs text-slate-500">No queue options for this department.</span>
+                        <div className="flex flex-col gap-2 min-h-8">
+                            {categories.length === 0 ? (
+                                <span className="text-xs text-slate-500">No priority categories for this department.</span>
                             ) : (
-                                queueOptions.map((option) => (
-                                    <div key={option} className="flex items-center gap-1 bg-slate-100 text-slate-700 font-bold px-2 py-1 rounded text-xs">
-                                        <span>{option}</span>
+                                categories.map((cat) => (
+                                    <div key={cat.id} className="flex items-center justify-between bg-slate-50 border border-slate-200 p-2 rounded-md group">
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-slate-800 text-sm">{cat.name}</span>
+                                                <span className="text-[10px] font-mono bg-slate-200 px-1 rounded text-slate-600">{cat.code}</span>
+                                                {cat.isPriority && (
+                                                    <span className="text-[9px] bg-red-100 text-red-600 font-bold px-1 rounded border border-red-200">PRIORITY</span>
+                                                )}
+                                            </div>
+                                        </div>
                                         <button
                                             type="button"
-                                            onClick={() => handleDeleteQueueOption(option)}
-                                            className="text-slate-500 hover:text-red-600"
-                                            aria-label={`Remove ${option}`}
+                                            onClick={() => handleDeleteQueueOption(cat.id)}
+                                            className="text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
-                                            ×
+                                            <Trash size={16} />
                                         </button>
                                     </div>
                                 ))
                             )}
                         </div>
+
                     </CardContent>
                 </Card>
             </div>

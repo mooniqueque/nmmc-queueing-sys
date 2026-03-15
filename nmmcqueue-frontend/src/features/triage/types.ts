@@ -1,8 +1,9 @@
-import { Department, Patient, Visit } from "@/types/models";
+import { Department, Patient, Visit, WorkStation } from "@/types/models";
 
 export type VisitWithPatient = Visit & {
     patient: Patient;
     department?: Department | null;
     referredFrom?: Department | null;
-    priorityClass?: string | null;
+    originStation?: WorkStation | null;
+    triageStation?: WorkStation | null;
 };

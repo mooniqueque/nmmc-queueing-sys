@@ -1,6 +1,7 @@
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '@prisma/client';
 
+
 const connectionString = process.env.DATABASE_URL || '';
 
 let poolOptions: { host: string; port: number; user: string; password: string; database: string; connectionLimit: number; } | {} = {};

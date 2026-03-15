@@ -4,26 +4,27 @@ import { useTransition, useState } from "react";
 import { markNoShow, removeQueue, restoreNoShow } from "../actions";
 import { useTriageQueue } from "../hooks";
 import { VisitWithPatient } from "../types";
-import { CheckCircle, Clock, ClockCounterClockwise, Trash, UserMinus, MagnifyingGlass, Funnel, ArrowClockwise } from "@phosphor-icons/react";
+import { useTriageStore } from "../store/use-triage-store";
+import { CheckCircle, Clock, ClockCounterClockwise, Trash, UserMinus, MagnifyingGlass, ArrowClockwise, Desktop } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
+import { calculateAge } from "@/lib/utils";
+
+import { SessionUser } from "@/types/auth";
 
 interface TriageQueueSidebarProps {
     initialQueue: VisitWithPatient[];
-    isManualEntry: boolean;
-    selectedPatientId: string | undefined;
-    onSelectPatient: (patient: VisitWithPatient | null) => void;
-    onError: (err: string) => void;
-    isPanelOpen?: boolean;
+    user?: SessionUser;
 }
 
 export function TriageQueueSidebar({
     initialQueue,
-    isManualEntry,
-    selectedPatientId,
-    onSelectPatient,
-    onError,
-    isPanelOpen
+    user
 }: TriageQueueSidebarProps) {
+    const { selectedPatient, isManualEntry, isPanelOpen, setSelectedPatient, setSubmitError } = useTriageStore();
+    const selectedPatientId = selectedPatient?.id;
+    const onSelectPatient = setSelectedPatient;
+    const onError = setSubmitError;
+
     const { activeQueue, noShowQueue, activeTab, setActiveTab } = useTriageQueue(initialQueue);
     const [isPending, startTransition] = useTransition();
     const [searchQuery, setSearchQuery] = useState("");
@@ -66,7 +67,18 @@ export function TriageQueueSidebar({
         );
     });
 
-    const isDis = isManualEntry;
+    const myStationId = user?.workstationId;
+    const pairedStationId = user?.workstation?.pairedStationId;
+
+    const myStationQueue = filteredActiveQueue.filter(v =>
+        (pairedStationId && v.originStationId === pairedStationId) ||
+        (!pairedStationId && v.originStationId === myStationId)
+    );
+
+    const otherStationQueue = filteredActiveQueue.filter(v =>
+        (pairedStationId && v.originStationId !== pairedStationId) ||
+        (!pairedStationId && v.originStationId !== myStationId)
+    );
 
     return (
         <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
@@ -159,87 +171,61 @@ export function TriageQueueSidebar({
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            {filteredActiveQueue.map((visit) => {
-                                const isSelected = selectedPatientId === visit.id;
-
-                                // Wait time calc
-                                const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
-                                const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins} mins`;
-                                const isWaitingLong = waitMins > 10;
-                                const isWaitingExtreme = waitMins > 30;
-
-                                const waitColorClasses = isWaitingExtreme
-                                    ? "bg-red-100/80 text-red-600 border border-red-200 shadow-sm"
-                                    : isWaitingLong
-                                        ? "bg-amber-100/80 text-amber-700 border border-amber-200 shadow-sm"
-                                        : "bg-slate-100 text-slate-500 border border-slate-200/50";
-
-                                return (
-                                    <div
-                                        key={visit.id}
-                                        onClick={() => {
-                                            if (!isDis) {
-                                                onError("");
-                                                onSelectPatient(visit);
-                                            }
-                                        }}
-                                        className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px_100px]" : "grid-cols-[70px_1fr_120px_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-px group ${isDis
-                                            ? "opacity-50 hover:-translate-y-0 cursor-not-allowed bg-slate-50/50 border-slate-200"
-                                            : isSelected
-                                                ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
-                                                : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
-                                            }`}
-                                    >
-                                        {/* Ticket */}
-                                        <div className={`text-[15px] font-black transition-colors ${isSelected ? 'text-emerald-600' : 'text-emerald-500/80'}`}>
-                                            #{visit.ticketNumber.toString().padStart(3, '0')}
-                                        </div>
-
-                                        {/* Name & Demographics */}
-                                        <div className="min-w-0 pr-4 flex flex-col justify-center">
-                                            <div className={`font-black text-[14px] leading-tight truncate ${isSelected ? 'text-emerald-950' : 'text-slate-800'}`}>
-                                                {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
-                                            </div>
-                                            <div className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                                {visit.patient.gender.substring(0, 1)}, {visit.patient.age}y
-                                                <span className="opacity-50 mx-0.5">•</span>
-                                                <span className="italic">Queued: {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Buttons (Hover to reveal, unless disabled) */}
-                                        {!isDis && (
-                                            <div className={`flex items-center justify-end gap-2 transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden group-hover:opacity-100 group-hover:h-auto group-focus-within:opacity-100 group-focus-within:h-auto'}`}>
-                                                <button
-                                                    disabled={isPending}
-                                                    onClick={(e) => handleNoShow(visit.id, e)}
-                                                    className="p-2 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 border border-amber-200/50 rounded-sm transition-colors"
-                                                    title="Mark as No Show"
-                                                >
-                                                    <UserMinus size={16} weight="bold" />
-                                                </button>
-                                                <button
-                                                    disabled={isPending}
-                                                    onClick={(e) => handleRemove(visit.id, e)}
-                                                    className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 border border-rose-200/50 rounded-sm transition-colors"
-                                                    title="Remove completely"
-                                                >
-                                                    <Trash size={16} weight="bold" />
-                                                </button>
-                                            </div>
-                                        )}
-                                        {isDis && <div />} {/* Empty spacer */}
-
-                                        {/* Wait Time Indicator */}
-                                        <div className="flex items-center justify-end">
-                                            <div className={`flex items-center justify-center gap-1.5 font-bold px-2.5 py-1 rounded-sm text-[11px] w-full max-w-[90px] ${waitColorClasses}`}>
-                                                <Clock size={12} weight="bold" className="shrink-0" />
-                                                {waitStr}
-                                            </div>
-                                        </div>
+                            {/* MY STATION SECTION */}
+                            {myStationQueue.length > 0 && (
+                                <>
+                                    <div className="px-6 lg:px-8 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Your Station</span>
                                     </div>
-                                );
-                            })}
+                                    {myStationQueue.map((visit) => (
+                                        <PatientRow
+                                            key={visit.id}
+                                            visit={visit}
+                                            isSelected={selectedPatientId === visit.id}
+                                            isPending={isPending}
+                                            isDis={isManualEntry}
+                                            isPanelOpen={isPanelOpen}
+                                            onSelect={() => {
+                                                if (!isManualEntry) {
+                                                    setSubmitError("");
+                                                    setSelectedPatient(visit);
+                                                }
+                                            }}
+                                            onNoShow={handleNoShow}
+                                            onRemove={handleRemove}
+                                        />
+                                    ))}
+                                </>
+                            )}
+
+                            {/* OTHER STATIONS SECTION */}
+                            {otherStationQueue.length > 0 && (
+                                <>
+                                    <div className="px-6 lg:px-8 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2 mt-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Other Stations / Overflow</span>
+                                    </div>
+                                    {otherStationQueue.map((visit) => (
+                                        <PatientRow
+                                            key={visit.id}
+                                            visit={visit}
+                                            isSelected={selectedPatientId === visit.id}
+                                            isPending={isPending}
+                                            isDis={isManualEntry}
+                                            isPanelOpen={isPanelOpen}
+                                            onSelect={() => {
+                                                if (!isManualEntry) {
+                                                    setSubmitError("");
+                                                    setSelectedPatient(visit);
+                                                }
+                                            }}
+                                            onNoShow={handleNoShow}
+                                            onRemove={handleRemove}
+                                        />
+                                    ))}
+                                </>
+                            )}
                         </div>
                     )
                 ) : (
@@ -281,6 +267,124 @@ export function TriageQueueSidebar({
                         </div>
                     )
                 )}
+            </div>
+        </div>
+    );
+}
+
+function PatientRow({
+    visit,
+    isSelected,
+    isPending,
+    isDis,
+    isPanelOpen,
+    onSelect,
+    onNoShow,
+    onRemove
+}: {
+    visit: VisitWithPatient;
+    isSelected: boolean;
+    isPending: boolean;
+    isDis: boolean;
+    isPanelOpen: boolean;
+    onSelect: () => void;
+    onNoShow: (id: string, e: React.MouseEvent) => void;
+    onRemove: (id: string, e: React.MouseEvent) => void;
+}) {
+    // Wait time calc
+    const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
+    const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins} mins`;
+    const isWaitingLong = waitMins > 10;
+    const isWaitingExtreme = waitMins > 30;
+
+    const waitColorClasses = isWaitingExtreme
+        ? "bg-red-100/80 text-red-600 border border-red-200 shadow-sm"
+        : isWaitingLong
+            ? "bg-amber-100/80 text-amber-700 border border-amber-200 shadow-sm"
+            : "bg-slate-100 text-slate-500 border border-slate-200/50";
+
+    return (
+        <div
+            onClick={onSelect}
+            className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px_100px]" : "grid-cols-[70px_1fr_120px_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-px group ${isDis
+                    ? "opacity-50 hover:translate-y-0 cursor-not-allowed bg-slate-50/50 border-slate-200"
+                    : isSelected
+                        ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
+                        : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
+                }`}
+        >
+            {/* Ticket */}
+            <div className={`flex flex-col gap-1 ${isSelected ? 'text-emerald-600' : 'text-emerald-500/80'}`}>
+                <div className="text-[15px] font-black transition-colors">
+                    #{visit.ticketNumber.toString().padStart(3, '0')}
+                </div>
+                {visit.categories && visit.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                        {visit.categories.map((vc) => (
+                            <span
+                                key={vc.categoryId}
+                                className={`text-[8px] font-black px-1 rounded border uppercase tracking-tighter ${vc.category?.isPriority
+                                        ? "bg-red-50 text-red-600 border-red-200"
+                                        : "bg-slate-50 text-slate-500 border-slate-200"
+                                    }`}
+                            >
+                                {vc.category?.code || vc.category?.name?.substring(0, 3)}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Name & Demographics */}
+            <div className="min-w-0 pr-4 flex flex-col justify-center gap-1">
+                <div className={`font-black text-[14px] leading-tight truncate ${isSelected ? 'text-emerald-950' : 'text-slate-800'}`}>
+                    {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 flex-wrap">
+                        {visit.patient.gender.substring(0, 1)}, {calculateAge(visit.patient.dateOfBirth)}y
+                        <span className="opacity-50 mx-0.5">•</span>
+                        <span className="italic">Queued: {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+
+                    {visit.originStation && (
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-black uppercase tracking-wider border border-slate-200">
+                            <Desktop size={10} weight="bold" />
+                            {visit.originStation.name}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Action Buttons (Hover to reveal, unless disabled) */}
+            {!isDis && (
+                <div className={`flex items-center justify-end gap-2 transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden group-hover:opacity-100 group-hover:h-auto group-focus-within:opacity-100 group-focus-within:h-auto'}`}>
+                    <button
+                        disabled={isPending}
+                        onClick={(e) => onNoShow(visit.id, e)}
+                        className="p-2 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 border border-amber-200/50 rounded-lg transition-colors"
+                        title="Mark as No Show"
+                    >
+                        <UserMinus size={16} weight="bold" />
+                    </button>
+                    <button
+                        disabled={isPending}
+                        onClick={(e) => onRemove(visit.id, e)}
+                        className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 border border-rose-200/50 rounded-lg transition-colors"
+                        title="Remove completely"
+                    >
+                        <Trash size={16} weight="bold" />
+                    </button>
+                </div>
+            )}
+            {isDis && <div />}
+
+            {/* Wait Time Indicator */}
+            <div className="flex items-center justify-end">
+                <div className={`flex items-center justify-center gap-1.5 font-bold px-2.5 py-1 rounded-full text-[11px] w-full max-w-[90px] ${waitColorClasses}`}>
+                    <Clock size={12} weight="bold" className="shrink-0" />
+                    {waitStr}
+                </div>
             </div>
         </div>
     );

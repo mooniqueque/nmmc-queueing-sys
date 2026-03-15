@@ -2,12 +2,13 @@
 
 import { Input } from "@/components/ui/input";
 import { VisitWithPatient } from "@/features/triage/types";
-import { CheckCircle, Clock, MagnifyingGlass, WarningCircle, Funnel, ArrowClockwise, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CheckCircle, Clock, MagnifyingGlass, Funnel, ArrowClockwise, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { useState, useEffect } from "react";
+import { calculateAge } from "@/lib/utils";
 
-type QueueCategory = "ALL" | "PRIORITY" | "REGULAR";
+export type QueueCategory = "ALL" | "PRIORITY" | "REGULAR" | "NO_SHOW";
 
-interface QueueItem {
+export interface QueueItem {
     visit: VisitWithPatient;
     category: Exclude<QueueCategory, "ALL">;
     badges: string[];
@@ -29,6 +30,7 @@ const TABS: { key: QueueCategory; label: string; color: string; activeBg: string
     { key: "ALL", label: "All Patients", color: "text-slate-500 hover:text-slate-800", activeBg: "bg-slate-600", activeText: "text-white" },
     { key: "PRIORITY", label: "Priority", color: "text-slate-500 hover:text-amber-600", activeBg: "bg-amber-500", activeText: "text-white" },
     { key: "REGULAR", label: "Regular", color: "text-slate-500 hover:text-emerald-600", activeBg: "bg-emerald-500", activeText: "text-white" },
+    { key: "NO_SHOW", label: "No Show", color: "text-slate-500 hover:text-rose-600", activeBg: "bg-rose-500", activeText: "text-white" },
 ];
 
 export function ReleasingQueueTable({
@@ -166,9 +168,19 @@ export function ReleasingQueueTable({
                                             {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
                                         </div>
                                         <div className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                            {visit.patient.gender.substring(0, 1)}, {visit.patient.age}y
+                                            {visit.patient.gender.substring(0, 1)}, {calculateAge(visit.patient.dateOfBirth)}y
                                             <span className="opacity-50 mx-0.5">•</span>
                                             <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-slate-100 rounded border border-slate-200">{category}</span>
+                                            {visit.status === 'IN_PROGRESS' && (
+                                                <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded animate-pulse">
+                                                    CALLED
+                                                </span>
+                                            )}
+                                            {visit.status === 'NO_SHOW' && (
+                                                <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-rose-100 text-rose-700 border border-rose-200 rounded">
+                                                    NO-SHOW
+                                                </span>
+                                            )}
                                             {badges.map(b => (
                                                 <span key={b} className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
                                                     {b}

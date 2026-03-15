@@ -1,25 +1,19 @@
 import { db } from '../../config/database.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
 
-const DEFAULT_QUEUE_OPTIONS = ['REGULAR', 'CHILD', 'ER-REF', 'FT', 'REFERRALS'];
 const normalizeOption = (v: string) => v.trim().toUpperCase();
 const normalizeDepartmentKey = (v: string) => v.trim().toUpperCase();
-const isDefaultOption = (v: string) => DEFAULT_QUEUE_OPTIONS.includes(v);
-function orderOptions(values: string[]) {
-    const unique = Array.from(new Set(values.map(normalizeOption).filter(v => v.length > 0)));
-    const defaults = DEFAULT_QUEUE_OPTIONS.filter(o => unique.includes(o));
-    const custom = unique.filter(o => !isDefaultOption(o)).sort((a, b) => a.localeCompare(b));
-    return [...defaults, ...custom];
-}
-function getEffectiveOptions(stored: string[]) { return stored.length > 0 ? orderOptions(stored) : [...DEFAULT_QUEUE_OPTIONS]; }
 
 class CallerService {
     async getDepartments() { return await db.department.findMany({ orderBy: { name: 'asc' } }); }
     async createDepartment(name: string, code: string) { return await db.department.create({ data: { name: name.trim().toUpperCase(), code: code.trim().toUpperCase() } }); }
     async deleteDepartment(id: string) { await db.department.delete({ where: { id } }); }
     async getQueueOptions(departmentName: string) {
-        const dept = await db.department.findUnique({ where: { name: departmentName.trim() }, select: { queueOptions: { select: { option: true } } } });
-        return getEffectiveOptions(dept ? dept.queueOptions.map(q => normalizeOption(q.option)) : []);
+        const dept = await db.department.findUnique({ 
+            where: { name: departmentName.trim().toUpperCase() }, 
+            select: { priorityCategories: { select: { id: true, name: true, code: true, isPriority: true, parentId: true } } } 
+        });
+        return dept ? dept.priorityCategories : [];
     }
     async getPendingQueue(departmentName?: string) {
         const today = new Date();
@@ -48,78 +42,93 @@ class CallerService {
                 patient: true,
                 department: true,
                 referredFrom: true,
+                categories: {
+                    include: {
+                        category: true
+                    }
+                }
             },
-            orderBy: { ticketNumber: 'asc' },
+            orderBy: [
+                { classification: 'desc' },
+                { ticketNumber: 'asc' },
+            ],
         });
     }
 
     async getQueueOptionsByDepartment(names: string[]) {
-        const trimmed = Array.from(new Set(names.map(n => n.trim()).filter(n => n.length > 0)));
-        const depts = await db.department.findMany({ where: { name: { in: trimmed } }, select: { name: true, queueOptions: { select: { option: true } } } });
-        const byKey = Object.fromEntries(depts.map(d => [normalizeDepartmentKey(d.name), getEffectiveOptions(d.queueOptions.map(q => normalizeOption(q.option)))]));
-        return Object.fromEntries(trimmed.map(n => { const k = normalizeDepartmentKey(n); return [k, byKey[k] ?? [...DEFAULT_QUEUE_OPTIONS]]; }));
+        const trimmed = Array.from(new Set(names.map(n => n.trim().toUpperCase()).filter(n => n.length > 0)));
+        const depts = await db.department.findMany({ 
+            where: { name: { in: trimmed } }, 
+            select: { name: true, priorityCategories: { select: { id: true, name: true, code: true, isPriority: true, parentId: true } } } 
+        });
+        const byKey = Object.fromEntries(depts.map(d => [normalizeDepartmentKey(d.name), d.priorityCategories]));
+        return Object.fromEntries(trimmed.map(n => { const k = normalizeDepartmentKey(n); return [k, byKey[k] ?? []]; }));
     }
-    async createQueueOption(departmentName: string, option: string) {
-        const normalized = normalizeOption(option);
-        if (!normalized) throw new Error('Queue option cannot be empty.');
-        const dept = await db.department.findUnique({ where: { name: departmentName.trim() }, select: { id: true, queueOptions: { select: { option: true } } } });
+    async createQueueOption(departmentName: string, data: { name: string, code: string, isPriority: boolean, parentId?: string }) {
+        const dept = await db.department.findUnique({ where: { name: departmentName.trim().toUpperCase() }, select: { id: true } });
         if (!dept) throw new Error('Department not found.');
-        const effective = getEffectiveOptions(dept.queueOptions.map(i => normalizeOption(i.option)));
-        if (effective.includes(normalized)) throw new Error('Queue option already exists.');
-        await this.replaceDepartmentOptions(dept.id, orderOptions([...effective, normalized]));
-    }
-    async deleteQueueOption(departmentName: string, option: string) {
-        const normalized = normalizeOption(option);
-        if (!normalized) throw new Error('Queue option cannot be empty.');
-        const dept = await db.department.findUnique({ where: { name: departmentName.trim() }, select: { id: true, queueOptions: { select: { option: true } } } });
-        if (!dept) throw new Error('Department not found.');
-        const effective = getEffectiveOptions(dept.queueOptions.map(i => normalizeOption(i.option)));
-        const next = effective.filter(v => v !== normalized);
-        if (next.length === effective.length) throw new Error('Queue option not found.');
-        await this.replaceDepartmentOptions(dept.id, next);
-    }
-    async replaceDepartmentOptions(departmentId: string, options: string[]) {
-        const next = orderOptions(options);
-        await db.$transaction(async (tx) => {
-            await tx.laneOption.deleteMany({ where: { departmentId } });
-            if (next.length > 0) await tx.laneOption.createMany({ data: next.map(option => ({ departmentId, option })), skipDuplicates: true });
+        
+        return await db.priorityCategory.create({
+            data: {
+                name: data.name,
+                code: data.code.trim().toUpperCase(),
+                isPriority: data.isPriority,
+                departmentId: dept.id,
+                parentId: data.parentId
+            }
         });
     }
 
-    async callPatient(visitId: string) {
+    async deleteQueueOption(id: string) {
+        await db.priorityCategory.delete({ where: { id } });
+    }
+
+    async callPatient(visitId: string, userId?: string, windowNumber?: number) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         const updated = await db.visit.update({
             where: { id: visitId },
-            data: { status: 'IN_PROGRESS' }
+            data: { 
+                status: 'IN_PROGRESS',
+                calledAt: new Date(),
+                calledByUserId: userId,
+                windowNumber: windowNumber,
+                statusHistory: { create: { status: 'IN_PROGRESS', changedBy: userId } }
+            }
         });
         if (updated.departmentId) emitQueueUpdate(updated.departmentId);
         return updated;
     }
 
-    async servePatient(visitId: string) {
+    async servePatient(visitId: string, userId?: string) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         const updated = await db.visit.update({
             where: { id: visitId },
-            data: { status: 'COMPLETED' }
+            data: { 
+                status: 'COMPLETED',
+                statusHistory: { create: { status: 'COMPLETED', changedBy: userId } }
+            }
         });
         if (updated.departmentId) emitQueueUpdate(updated.departmentId);
         return updated;
     }
 
-    async noShowPatient(visitId: string) {
+    async noShowPatient(visitId: string, userId?: string) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         const updated = await db.visit.update({
             where: { id: visitId },
-            data: { status: 'NO_SHOW' }
+            data: { 
+                status: 'NO_SHOW',
+                statusHistory: { create: { status: 'NO_SHOW', changedBy: userId } }
+            }
         });
         if (updated.departmentId) emitQueueUpdate(updated.departmentId);
         return updated;
     }
 
-    async transferPatient(visitId: string, targetDepartmentId: string) {
+    async transferPatient(visitId: string, targetDepartmentId: string, userId?: string) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         if (visit.departmentId === targetDepartmentId) throw new Error('Patient is already in this department');
@@ -130,7 +139,8 @@ class CallerService {
                 status: 'WAITING_CLINIC', 
                 departmentId: targetDepartmentId,
                 isReferred: true,
-                referredFromId: visit.departmentId
+                referredFromId: visit.departmentId,
+                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
             }
         });
         
@@ -152,12 +162,15 @@ class CallerService {
         console.log(`[SMS MOCK] Sending SMS to ${contactNo}: "Please proceed to the clinic, it is almost your turn."`);
         return { success: true, message: 'Notification sent successfully' };
     }
-    async restorePatient(visitId: string) {
+    async restorePatient(visitId: string, userId?: string) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
         const updated = await db.visit.update({
             where: { id: visitId },
-            data: { status: 'WAITING_CLINIC' }
+            data: { 
+                status: 'WAITING_CLINIC',
+                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
+            }
         });
         if (updated.departmentId) emitQueueUpdate(updated.departmentId);
         return updated;

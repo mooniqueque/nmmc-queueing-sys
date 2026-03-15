@@ -23,9 +23,8 @@ export async function getQueueOptions(
         `${API_URL}/shared/queue-options?departmentName=${encodeURIComponent(departmentName)}`,
         options
     );
-    if (!res.ok) return ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
     const json = await res.json();
-    return json.data;
+    return json.success ? json.data : [];
 }
 
 export async function getQueueOptionsByDepartment(

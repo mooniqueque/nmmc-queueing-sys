@@ -12,7 +12,7 @@ callerRouter.get('/departments', requireAuth, callerController.getDepartments);
 callerRouter.post('/departments', requireRole(['ADMIN']), callerController.createDepartment);
 callerRouter.delete('/departments/:id', requireRole(['ADMIN']), callerController.deleteDepartment);
 callerRouter.post('/queue-options', requireRole(['ADMIN']), callerController.createQueueOption);
-callerRouter.delete('/queue-options', requireRole(['ADMIN']), callerController.deleteQueueOption);
+callerRouter.delete('/queue-options/:id', requireRole(['ADMIN']), callerController.deleteQueueOption);
 
 // Caller operational routes (only CLINIC_CALLER can perform these actions)
 callerRouter.post('/visit/:visitId/call', requireRole(['CLINIC_CALLER']), callerController.callPatient);

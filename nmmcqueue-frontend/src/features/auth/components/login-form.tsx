@@ -36,7 +36,7 @@ export default function LoginForm() {
     const form = useForm<LoginSchemaType>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
-            email: "",
+            username: "",
             password: "",
         },
     })
@@ -44,12 +44,12 @@ export default function LoginForm() {
 
     async function onSubmit(values: z.infer<typeof loginSchema>) {
         setIsLoading(true);
-        const { error } = await authClient.signIn.email({
-            email: values.email,
+        const { error } = await authClient.signIn.username({
+            username: values.username,
             password: values.password,
         });
         if (error) {
-            alert(error.message || "Invalid email or Password");
+            alert(error.message || "Invalid Username or Password");
             setIsLoading(false);
         }
         else {
@@ -76,17 +76,17 @@ export default function LoginForm() {
                                         Login to your NMMC Queue Account
                                     </p>
                                 </div>
-                                {/* Email Field */}
+                                {/* Username Field */}
                                 <FormField
                                     control={form.control}
-                                    name="email"
+                                    name="username"
                                     render={({ field }) => (
                                         <FormItem className="mb-4">
-                                            <FormLabel>Email</FormLabel>
+                                            <FormLabel>Username</FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    placeholder="m@example.com"
-                                                    type="email"
+                                                    placeholder="jhondoe"
+                                                    type="text"
                                                     {...field}
                                                 />
                                             </FormControl>

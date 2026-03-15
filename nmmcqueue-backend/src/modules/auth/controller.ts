@@ -92,7 +92,13 @@ class AuthController {
     async getAllUsers(req: Request, res: Response) {
         try {
             if ((req as any).user?.role !== 'ADMIN') return res.status(401).json({ success: false, error: 'Unauthorized' });
-            const users = await db.user.findMany({ orderBy: { createdAt: 'desc' } });
+            const users = await db.user.findMany({ 
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    workstation: true,
+                    dept: true
+                }
+            });
             res.status(200).json({ success: true, data: users });
         } catch {
             res.status(500).json({ success: false, error: 'Unable to retrieve user list' });

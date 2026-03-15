@@ -2,6 +2,7 @@
 import * as authApi from "@/features/auth/api";
 import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
+import { API_URL } from "@/lib/api";
 
 export async function getAllUsers() {
     return authApi.getAllUsers({ headers: await getServerHeaders() });
@@ -56,7 +57,7 @@ export async function updateUserDepartment(userId: string, department: string) {
 }
 
 export async function updateUserWorkstation(userId: string, workstationId: string) {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001"}/api/users/${userId}/workstation`, {
+    const response = await fetch(`${API_URL}/users/${userId}/workstation`, {
         method: "PUT",
         headers: {
             ...(await getServerHeaders()),

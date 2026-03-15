@@ -5,10 +5,8 @@ import { callerController } from '../caller/controller.js';
 export const sharedRouter = Router();
 
 // ─── Public Reference Data ─────────────────────────────────────
-// These endpoints serve read-only lookup data:
-// Require at least a valid session for all shared reference data
-// Unapproved users are blocked by requireAuth
-sharedRouter.use(requireAuth);
+// These endpoints serve read-only lookup data needed by public Kiosks
+// and authenticated staff.
 
 sharedRouter.get('/departments', callerController.getDepartments);
 sharedRouter.get('/queue-options', callerController.getQueueOptions);

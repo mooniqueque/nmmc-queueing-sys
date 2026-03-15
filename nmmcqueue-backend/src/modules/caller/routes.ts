@@ -14,10 +14,10 @@ callerRouter.delete('/departments/:id', requireRole(['ADMIN']), callerController
 callerRouter.post('/queue-options', requireRole(['ADMIN']), callerController.createQueueOption);
 callerRouter.delete('/queue-options/:id', requireRole(['ADMIN']), callerController.deleteQueueOption);
 
-// Caller operational routes (only CLINIC_CALLER can perform these actions)
-callerRouter.post('/visit/:visitId/call', requireRole(['CLINIC_CALLER']), callerController.callPatient);
-callerRouter.post('/visit/:visitId/serve', requireRole(['CLINIC_CALLER']), callerController.servePatient);
-callerRouter.post('/visit/:visitId/no-show', requireRole(['CLINIC_CALLER']), callerController.noShowPatient);
-callerRouter.post('/visit/:visitId/transfer', requireRole(['CLINIC_CALLER']), callerController.transferPatient);
-callerRouter.post('/visit/:visitId/restore', requireRole(['CLINIC_CALLER']), callerController.restorePatient);
-callerRouter.post('/visit/:visitId/notify', requireRole(['CLINIC_CALLER']), callerController.notifyPatient);
+// Caller operational routes (Available to all operational staff)
+callerRouter.post('/visit/:visitId/call', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.callPatient);
+callerRouter.post('/visit/:visitId/serve', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.servePatient);
+callerRouter.post('/visit/:visitId/no-show', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.noShowPatient);
+callerRouter.post('/visit/:visitId/transfer', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.transferPatient);
+callerRouter.post('/visit/:visitId/restore', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.restorePatient);
+callerRouter.post('/visit/:visitId/notify', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.notifyPatient);

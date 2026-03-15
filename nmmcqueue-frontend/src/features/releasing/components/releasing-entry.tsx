@@ -1,14 +1,26 @@
 "use client";
 
-import { VisitWithPatient } from "@/features/triage/types";
-import { PriorityCategory, Department } from "@/types/models";
-import { useState } from "react";
-import { useReleasingQueue } from "../hooks";
-import { QueueCategory, ReleasingQueueTable } from "./releasing-queue-table";
-import { ReleasingAssignPanel } from "./releasing-assign-panel";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VisitWithPatient } from "@/features/triage/types";
 import { calculateAge } from "@/lib/utils";
-import { Queue, ChartBar } from "@phosphor-icons/react";
+import { Department, PriorityCategory } from "@/types/models";
+import { ArrowsCounterClockwise, ChartBar, Queue } from "@phosphor-icons/react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { resetDailyQueue } from "../actions";
+import { useReleasingQueue } from "../hooks";
+import { ReleasingAssignPanel } from "./releasing-assign-panel";
+import { QueueCategory, ReleasingQueueTable } from "./releasing-queue-table";
 
 // ─── Auto-categorization logic ────────────────────────────────
 
@@ -64,6 +76,25 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const [selectedPatient, setSelectedPatient] = useState<VisitWithPatient | null>(null);
     const [activeTab, setActiveTab] = useState<QueueCategory>("ALL");
     const [searchQuery, setSearchQuery] = useState("");
+    const [isResetting, setIsResetting] = useState(false);
+    const [resetDialogOpen, setResetDialogOpen] = useState(false);
+
+    const handleReset = async () => {
+        setIsResetting(true);
+        try {
+            const res = await resetDailyQueue();
+            if (res.success) {
+                toast.success("Queue Reset", { description: "Daily sequence and visits have been reset successfully." });
+                setResetDialogOpen(false);
+            } else {
+                toast.error("Reset Failed", { description: res.message || "Could not reset queue." });
+            }
+        } catch (err) {
+            toast.error("Error", { description: "An unexpected error occurred during reset." });
+        } finally {
+            setIsResetting(false);
+        }
+    };
 
     // Categorize each visit
     const categorized = activeQueue.map(visit => ({
@@ -129,8 +160,45 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                 </TabsTrigger>
                             </TabsList>
                         </div>
-                        <div className="text-right">
-                           {/* Station info could go here */}
+                        <div className="flex items-center gap-4">
+                            <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="rounded-xl font-bold bg-white text-rose-600 border-rose-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition-all gap-2 h-10 shadow-sm border-2">
+                                        <ArrowsCounterClockwise size={18} weight="bold" className={isResetting ? "animate-spin" : ""} />
+                                        <span>Reset Daily Queue</span>
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md rounded-[2rem] p-8 border-0 shadow-2xl">
+                                    <DialogHeader className="pt-2">
+                                        <div className="size-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 mb-6 mx-auto">
+                                            <ArrowsCounterClockwise size={32} weight="duotone" />
+                                        </div>
+                                        <DialogTitle className="text-center text-2xl font-black text-slate-800 tracking-tight mb-2">Are you absolutely sure?</DialogTitle>
+                                        <DialogDescription className="text-center text-slate-500 font-medium leading-relaxed">
+                                            This action will reset the ticket sequence to <span className="font-bold text-slate-800">1</span> and clear all pending visits from the queue. This is irreversible.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter className="mt-8 flex-col sm:flex-row gap-3">
+                                        <Button 
+                                            variant="ghost" 
+                                            onClick={() => setResetDialogOpen(false)}
+                                            className="w-full sm:flex-1 h-12 rounded-2xl font-bold text-slate-600 hover:bg-slate-50"
+                                        >
+                                            Nevermind
+                                        </Button>
+                                        <Button 
+                                            onClick={handleReset}
+                                            disabled={isResetting}
+                                            className="w-full sm:flex-1 h-12 rounded-2xl font-black bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-200"
+                                        >
+                                            {isResetting ? "Resetting..." : "Yes, Reset All"}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            <div className="text-right">
+                                {/* Station info could go here */}
+                            </div>
                         </div>
                     </div>
 
@@ -168,7 +236,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                     </TabsContent>
 
                     <TabsContent value="reports" className="mt-6 focus-visible:outline-none">
-                        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center flex flex-col items-center justify-center min-h-[400px] shadow-sm">
+                        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center flex flex-col items-center justify-center min-h-100 shadow-sm">
                             <ChartBar size={64} weight="duotone" className="text-slate-200 mb-4" />
                             <h3 className="text-xl font-bold text-slate-800">Registration Reports</h3>
                             <p className="text-slate-500 max-w-sm mt-1">Detailed analytics for window processing times and patient throughput will be available soon.</p>

@@ -1,12 +1,13 @@
 "use server";
 import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
+import { API_URL } from "@/lib/api";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
+const BACKEND_URL = API_URL;
 
 export async function getWorkstations() {
     try {
-        const response = await fetch(`${BACKEND_URL}/api/workstations`, {
+        const response = await fetch(`${BACKEND_URL}/workstations`, {
             headers: await getServerHeaders(),
         });
         return await response.json();
@@ -18,7 +19,7 @@ export async function getWorkstations() {
 
 export async function createWorkstation(data: { name: string, type: string, stationNo: number, departmentId?: string }) {
     try {
-        const response = await fetch(`${BACKEND_URL}/api/workstations`, {
+        const response = await fetch(`${BACKEND_URL}/workstations`, {
             method: "POST",
             headers: {
                 ...(await getServerHeaders()),
@@ -37,7 +38,7 @@ export async function createWorkstation(data: { name: string, type: string, stat
 
 export async function updateWorkstation(id: string, data: Partial<{ name: string, type: string, stationNo: number, departmentId?: string }>) {
     try {
-        const response = await fetch(`${BACKEND_URL}/api/workstations/${id}`, {
+        const response = await fetch(`${BACKEND_URL}/workstations/${id}`, {
             method: "PUT",
             headers: {
                 ...(await getServerHeaders()),
@@ -56,7 +57,7 @@ export async function updateWorkstation(id: string, data: Partial<{ name: string
 
 export async function deleteWorkstation(id: string) {
     try {
-        const response = await fetch(`${BACKEND_URL}/api/workstations/${id}`, {
+        const response = await fetch(`${BACKEND_URL}/workstations/${id}`, {
             method: "DELETE",
             headers: await getServerHeaders(),
         });

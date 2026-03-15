@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+import { API_URL } from "@/lib/api";
+
 /**
  * A generic hook to subscribe to the backend SSE stream 
  * and trigger a router refresh when updates occur.
@@ -14,7 +16,7 @@ export function useLiveQueue(topic?: string) {
     const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const backendUrl = API_URL;
         
         // Append topic if we are listening to a specific department
         const url = topic 

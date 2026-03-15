@@ -58,6 +58,7 @@ export interface Department {
     id: string;
     name: string;
     code: string;
+    videoUrl?: string;
     createdAt: Date;
     updatedAt: Date;
 }

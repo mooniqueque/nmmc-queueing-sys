@@ -6,7 +6,17 @@ const normalizeDepartmentKey = (v: string) => v.trim().toUpperCase();
 
 class CallerService {
     async getDepartments() { return await db.department.findMany({ orderBy: { name: 'asc' } }); }
-    async createDepartment(name: string, code: string) { return await db.department.create({ data: { name: name.trim().toUpperCase(), code: code.trim().toUpperCase() } }); }
+    async createDepartment(name: string, code: string) { 
+        const trimmedName = name.trim().toUpperCase();
+        const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return await db.department.create({ 
+            data: { 
+                name: trimmedName, 
+                code: code.trim().toUpperCase(),
+                slug
+            } 
+        }); 
+    }
     async deleteDepartment(id: string) { await db.department.delete({ where: { id } }); }
     async getQueueOptions(departmentName: string) {
         const dept = await db.department.findUnique({ 
@@ -96,7 +106,7 @@ class CallerService {
                 statusHistory: { create: { status: 'IN_PROGRESS', changedBy: userId } }
             }
         });
-        if (updated.departmentId) emitQueueUpdate(updated.departmentId);
+        if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
         return updated;
     }
 
@@ -110,7 +120,7 @@ class CallerService {
                 statusHistory: { create: { status: 'COMPLETED', changedBy: userId } }
             }
         });
-        if (updated.departmentId) emitQueueUpdate(updated.departmentId);
+        if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
         return updated;
     }
 
@@ -124,7 +134,7 @@ class CallerService {
                 statusHistory: { create: { status: 'NO_SHOW', changedBy: userId } }
             }
         });
-        if (updated.departmentId) emitQueueUpdate(updated.departmentId);
+        if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
         return updated;
     }
 
@@ -144,8 +154,8 @@ class CallerService {
             }
         });
         
-        if (visit.departmentId) emitQueueUpdate(visit.departmentId);
-        emitQueueUpdate(targetDepartmentId);
+        if (visit.departmentId) await emitQueueUpdate(visit.departmentId);
+        await emitQueueUpdate(targetDepartmentId);
         return updated;
     }
 
@@ -172,7 +182,7 @@ class CallerService {
                 statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
             }
         });
-        if (updated.departmentId) emitQueueUpdate(updated.departmentId);
+        if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
         return updated;
     }
 }

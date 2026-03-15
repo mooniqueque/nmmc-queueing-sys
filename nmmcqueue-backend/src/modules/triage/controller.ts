@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../middleware/error-handler.js';
-import { triageService } from './service.js';
+import { triageService } from './service';
 
 class TriageController {
     registerKiosk = asyncHandler(async (req: Request, res: Response) => {

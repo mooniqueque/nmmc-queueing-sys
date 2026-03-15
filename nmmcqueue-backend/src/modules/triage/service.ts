@@ -168,7 +168,7 @@ class TriageService {
         });
 
         // Notify all SSE listeners that the queue has changed (Releasing window needs this)
-        emitQueueUpdate();
+        await emitQueueUpdate();
     }
 
     async getPendingQueue() {

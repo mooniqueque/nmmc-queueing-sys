@@ -8,8 +8,7 @@ class TicketService {
         const sequence = await tx.sequence.upsert({
             where: { name: 'DAILY_QUEUE' },
             update: { 
-                value: { increment: 1 },
-                updatedAt: new Date() // Force an update to ensure locking
+                value: { increment: 1 }
             },
             create: { name: 'DAILY_QUEUE', value: 1 },
         });
@@ -19,10 +18,24 @@ class TicketService {
 
     /**
      * Resets the daily queue sequence. 
-     * To be called via a cron job or manual admin trigger at 12:00 AM.
+     * To be called via manual admin trigger at 12:00 AM (or whenever audits are done).
      */
     async resetDailySequence() {
-        // Implementation for daily reset
+        const { db } = await import('../../config/database.js');
+        
+        await db.$transaction(async (tx) => {
+            // 1. Reset the sequence to 0
+            await tx.sequence.upsert({
+                where: { name: 'DAILY_QUEUE' },
+                update: { value: 0 },
+                create: { name: 'DAILY_QUEUE', value: 0 }
+            });
+
+            // 2. Clear all visits that are in a "queueable" state for today
+            // Note: We might want to mark them as 'CANCELLED' or just keep them but they won't show 
+            // because the reset usually happens between shifts.
+            // For a hard reset, we'll keep the records but they won't interfere with the new sequence.
+        });
     }
 }
 

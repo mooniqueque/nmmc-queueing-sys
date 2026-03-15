@@ -8,6 +8,7 @@ import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useCurrentTime } from "@/hooks/use-current-time";
+import { API_URL } from "@/lib/api";
 
 export default function QueueMonitor({
     departmentName,
@@ -21,6 +22,21 @@ export default function QueueMonitor({
     // Live Queue Hook
     const { activeQueue } = useClinicQueue(departmentName, initialQueue || []);
 
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Fetch department video info
+        const loadVideo = async () => {
+            const { getDepartmentsVideos } = await import('@/features/monitoring/actions');
+            const res = await getDepartmentsVideos();
+            if (res.success) {
+                const dept = res.data.find((d: any) => d.name === departmentName);
+                if (dept) setVideoUrl(dept.videoUrl);
+            }
+        };
+        loadVideo();
+    }, [departmentName]);
+
     const formatTime = (date: Date) => {
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     };
@@ -31,6 +47,11 @@ export default function QueueMonitor({
             month: "short",
             day: "numeric",
         }).toUpperCase();
+    };
+
+    const getFullVideoUrl = (url: string) => {
+        const backendUrl = API_URL.replace('/api', '');
+        return `${backendUrl}${url}`;
     };
 
     // Calculate dynamically from the active array filtering for the target department
@@ -148,10 +169,24 @@ export default function QueueMonitor({
                     <Card className="h-[65%] bg-black rounded-xl overflow-hidden relative shadow-lg group">
                         {/* Thumbnail / Play Button */}
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
-                            <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 ring-4 ring-white/10 group-hover:scale-110 transition-transform duration-300">
-                                <Play size={50} className="text-white ml-2" weight="fill" />
-                            </div>
-                            <div className="absolute bottom-4 left-6 text-white/50 text-xs font-medium uppercase tracking-widest">Promotional Video</div>
+                            {videoUrl ? (
+                                <video 
+                                    key={videoUrl}
+                                    src={getFullVideoUrl(videoUrl)} 
+                                    className="w-full h-full object-cover"
+                                    autoPlay
+                                    muted
+                                    loop
+                                    playsInline
+                                />
+                            ) : (
+                                <>
+                                    <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 ring-4 ring-white/10 group-hover:scale-110 transition-transform duration-300">
+                                        <Play size={50} className="text-white ml-2" weight="fill" />
+                                    </div>
+                                    <div className="absolute bottom-4 left-6 text-white/50 text-xs font-medium uppercase tracking-widest">Promotional Video</div>
+                                </>
+                            )}
                         </div>
                     </Card>
 

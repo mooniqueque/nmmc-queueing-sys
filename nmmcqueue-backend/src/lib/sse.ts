@@ -42,12 +42,28 @@ export const setupSSEConnection = (req: Request, res: Response) => {
     });
 };
 
-export const emitQueueUpdate = (topic?: string) => {
-    // Always emit a global update so everyone knows *something* happened (useful for overall counters)
+import { db } from '../config/database.js';
+
+export const emitQueueUpdate = async (departmentId?: string) => {
+    // Always emit a global update so everyone knows *something* happened
     eventBus.emit(GLOBAL_TOPIC);
 
-    // If a specific topic (departmentId) is provided, emit there too
-    if (topic && topic !== 'global') {
-        eventBus.emit(`queue-updated:${topic}`);
+    if (departmentId && departmentId !== 'global') {
+        // Emit to the ID-based topic for backward compatibility
+        eventBus.emit(`queue-updated:${departmentId}`);
+
+        // Try to find the slug and emit to it as well
+        try {
+            const department = await db.department.findUnique({
+                where: { id: departmentId },
+                select: { slug: true }
+            });
+
+            if (department?.slug) {
+                eventBus.emit(`queue-updated:${department.slug}`);
+            }
+        } catch (error) {
+            console.error("Failed to fetch department slug for SSE broadcast:", error);
+        }
     }
 };

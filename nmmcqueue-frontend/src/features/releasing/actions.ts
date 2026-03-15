@@ -1,6 +1,6 @@
 "use server";
-import { getServerHeaders } from "@/lib/api/server";
 import * as releasingApi from "@/features/releasing/api";
+import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
 
 export async function getPendingQueue() {
@@ -22,6 +22,18 @@ export async function noShowTicket(visitId: string) {
         headers: await getServerHeaders(),
     });
     if (result.success) revalidatePath("/releasing", "page");
+    return result;
+}
+
+export async function resetDailyQueue() {
+    const result = await releasingApi.resetDailyQueue({
+        headers: await getServerHeaders(),
+    });
+    if (result.success) {
+        revalidatePath("/releasing", "page");
+        revalidatePath("/kiosk", "page");
+        revalidatePath("/triage", "page");
+    }
     return result;
 }
 

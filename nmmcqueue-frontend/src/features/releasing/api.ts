@@ -43,3 +43,11 @@ export async function assignTicket(
     });
     return res.json();
 }
+
+export async function resetDailyQueue(options?: RequestInit) {
+    const res = await fetch(`${API_URL}/tickets/reset`, {
+        method: "POST",
+        ...options,
+    });
+    return res.json();
+}

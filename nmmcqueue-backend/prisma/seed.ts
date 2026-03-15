@@ -73,11 +73,19 @@ async function main() {
             // Generate a simple code if one doesn't exist, e.g. INTERNAL MEDICINE -> INT
             const code = name.replace(/[^A-Z]/g, '').substring(0, 4) || name.substring(0, 4);
             
+            // Generate slug from name: "Internal Medicine" -> "internal-medicine"
+            const slug = deptString.toLowerCase()
+                .trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/[\s_-]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+
             const dept = await prisma.department.upsert({
                 where: { name },
-                update: {},
-                create: { name, code }
+                update: { slug, code },
+                create: { name, slug, code }
             });
+            deptMap[deptString] = dept.id;
         }
         console.log(`✅ ${allDepts.length} departments synchronized`);
 

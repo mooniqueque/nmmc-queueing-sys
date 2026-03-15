@@ -1,17 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { API_URL } from "@/lib/api";
+import { getServerHeaders } from "@/lib/api/server";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-
-async function getServerHeaders() {
-    const { headers } = await import("next/headers");
-    const h = await headers();
-    return {
-        "Authorization": h.get("Authorization") || "",
-        "Cookie": h.get("Cookie") || "",
-    };
-}
+const BACKEND_URL = API_URL;
 
 export async function getReleasingQueue() {
     try {

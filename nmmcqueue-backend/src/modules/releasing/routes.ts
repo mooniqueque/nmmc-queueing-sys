@@ -4,7 +4,7 @@ import { releasingController } from './controller.js';
 
 export const releasingRouter = Router();
 
-releasingRouter.use(requireRole(['WINDOW_CLERK', 'ADMIN', 'TRIAGE_NURSE']));
+releasingRouter.use(requireRole(['WINDOW_CLERK', 'TRIAGE_NURSE', 'CLINIC_CALLER']));
 
 releasingRouter.get('/pending', releasingController.getPendingQueue);
 releasingRouter.post('/:id/call', releasingController.callTicket);

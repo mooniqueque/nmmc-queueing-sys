@@ -45,13 +45,58 @@ class MonitorService {
         return status;
     }
 
-    async getDepartmentStatus(departmentId: string) {
+    async getDepartmentStatus(slugOrId: string) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        // Find all workstations of type CALLER for this department
+        // 1. Fetch Department Info by slug (or fallback to ID for compatibility)
+        const department = await db.department.findFirst({
+            where: {
+                OR: [
+                    { slug: slugOrId },
+                    { id: slugOrId }
+                ]
+            },
+            select: { id: true, name: true, code: true }
+        });
+
+        if (!department) return [];
+
+        const departmentId = department.id;
+
+        // 2. Find all visits currently being served in this department
+        const activeVisits = await db.visit.findMany({
+            where: {
+                departmentId,
+                status: 'IN_PROGRESS',
+                createdAt: { gte: today, lt: tomorrow }
+            },
+            orderBy: { calledAt: 'asc' },
+            select: { 
+                ticketNumber: true, 
+                classification: true,
+                categories: {
+                    include: {
+                        category: true
+                    }
+                }
+            }
+        });
+
+        if (activeVisits.length > 0) {
+            return activeVisits.map((visit) => ({
+                windowName: department?.code || department?.name || 'CLINIC',
+                stationNo: 1, // Default to 1 as it's a centralized caller
+                ticketNumber: String(visit.ticketNumber).padStart(3, '0'),
+                classification: visit.classification,
+                categories: visit.categories.map(vc => vc.category)
+            }));
+        }
+
+        // 3. Fallback: Check for workstations if no visits are active 
+        // (Allows the monitor to show "Wait..." rows if stations are defined but idle)
         const stations = await db.workStation.findMany({
             where: { 
                 departmentId,
@@ -61,12 +106,11 @@ class MonitorService {
             orderBy: { stationNo: 'asc' }
         });
 
-        // For each station, find the currently serving ticket (IN_PROGRESS)
         const status = await Promise.all(stations.map(async (station) => {
             const currentVisit = await db.visit.findFirst({
                 where: {
                     departmentId,
-                    windowNumber: station.stationNo, // Using windowNumber as the station identifier for visits
+                    windowNumber: station.stationNo,
                     status: 'IN_PROGRESS',
                     createdAt: { gte: today, lt: tomorrow }
                 },
@@ -92,6 +136,20 @@ class MonitorService {
         }));
 
         return status;
+    }
+
+    async getDepartmentsVideos() {
+        return await db.department.findMany({
+            select: { id: true, name: true, slug: true, videoUrl: true },
+            orderBy: { name: 'asc' }
+        });
+    }
+
+    async updateDepartmentVideo(departmentId: string, videoUrl: string) {
+        return await db.department.update({
+            where: { id: departmentId },
+            data: { videoUrl }
+        });
     }
 }
 

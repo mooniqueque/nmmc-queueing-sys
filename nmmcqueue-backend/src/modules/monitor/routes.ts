@@ -1,10 +1,20 @@
 import { Router } from 'express';
+import { requireRole } from '../../middleware/rbac.js';
+import { monitorController, videoUploadController, upload } from './controller.js';
 import { setupSSEConnection } from '../../lib/sse.js';
-import { monitorController } from './controller.js';
 
 export const monitorRouter = Router();
 
-// Publicly accessible for TV displays
+// Public routes
+monitorRouter.get('/departments-videos', videoUploadController.getDepartmentsVideos);
+monitorRouter.get('/windows', videoUploadController.getWindowStatus);
+monitorRouter.get('/department/:slug', monitorController.getDepartmentStatus);
 monitorRouter.get('/stream', setupSSEConnection);
-monitorRouter.get('/windows', monitorController.getWindowStatus);
-monitorRouter.get('/department/:departmentId', monitorController.getDepartmentStatus);
+
+// Protected Admin routes for video management
+monitorRouter.post(
+    '/upload-video', 
+    requireRole(['ADMIN']), 
+    upload.single('video'), 
+    videoUploadController.uploadVideo
+);

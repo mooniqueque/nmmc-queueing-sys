@@ -26,8 +26,9 @@ export const requireRole = (roles: string[]) => {
                 return res.status(401).json({ success: false, error: 'Authentication Required' });
             }
             (req as any).user = session.user;
-            if (!roles.includes((session.user as any).role)) {
-                return res.status(403).json({ success: false, error: `Forbidden: role ${(session.user as any).role} lacks permission` });
+            const userRole = (session.user as any).role;
+            if (userRole !== 'ADMIN' && !roles.includes(userRole)) {
+                return res.status(403).json({ success: false, error: `Forbidden: role ${userRole} lacks permission` });
             }
             next();
         } catch {

@@ -46,7 +46,7 @@ class ReleasingService {
             }
         });
 
-        emitQueueUpdate('WINDOW'); // Special channel for window monitor
+        await emitQueueUpdate('WINDOW');
         return updated;
     }
 
@@ -58,7 +58,7 @@ class ReleasingService {
                 statusHistory: { create: { status: 'NO_SHOW', changedBy: userId } }
             }
         });
-        emitQueueUpdate('WINDOW');
+        await emitQueueUpdate('WINDOW');
         return updated;
     }
 
@@ -88,8 +88,8 @@ class ReleasingService {
         });
 
         // Emit targeted update to this specific department
-        emitQueueUpdate(data.departmentId);
-        emitQueueUpdate('WINDOW'); // Clear from window monitor
+        await emitQueueUpdate(data.departmentId);
+        await emitQueueUpdate('WINDOW'); // Clear from window monitor
     }
 }
 

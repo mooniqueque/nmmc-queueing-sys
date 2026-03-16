@@ -21,3 +21,5 @@ yarn-debug.log*
 
 # prisma generated
 /src/generated/prisma
+
+/dist

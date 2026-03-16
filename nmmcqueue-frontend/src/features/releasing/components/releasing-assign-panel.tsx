@@ -33,7 +33,7 @@ export function ReleasingAssignPanel({
     const [isPending, startTransition] = useTransition();
 
     const activeDepartment = departments.find(d => d.id === selectedDepartmentId);
-    
+
     const queueOptions = useMemo(() => {
         if (!activeDepartment) return [];
         return queueOptionsByDepartment[activeDepartment.name.toUpperCase()] || [];
@@ -89,7 +89,7 @@ export function ReleasingAssignPanel({
 
             {/* Header */}
             <div className="px-6 lg:px-8 pb-5 flex items-center justify-between border-b border-slate-100">
-                <h3 className="text-[19px] font-black text-slate-800 tracking-tight">Patient Verification & Routing</h3>
+                <h3 className="text-[19px] font-bold text-slate-800 tracking-tight">Patient Verification & Routing</h3>
                 <button
                     onClick={onClose}
                     className="p-2 hover:bg-slate-100 rounded-full transition-colors"
@@ -115,10 +115,10 @@ export function ReleasingAssignPanel({
                             <User size={32} weight="fill" className="text-slate-300" />
                         </div>
                         <div className="pr-8">
-                            <h2 className="text-[22px] leading-tight font-black text-slate-900 mb-1 tracking-tight">
+                            <h2 className="text-[22px] leading-tight font-bold text-slate-900 mb-1 tracking-tight">
                                 {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}
                             </h2>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] font-bold text-slate-500">
+                            <div className="flex flex-wrap items-center py-1 gap-x-4 gap-y-1 text-[13px] font-bold text-slate-500">
                                 <span>ID: <strong className="text-slate-700 tracking-wide">#{selectedPatient.ticketNumber.toString().padStart(4, '0')}</strong></span>
                                 <span className="opacity-40">•</span>
                                 <span>Gender: <strong className="text-slate-700">{selectedPatient.patient.gender}</strong></span>

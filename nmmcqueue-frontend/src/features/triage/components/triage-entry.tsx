@@ -16,9 +16,9 @@ export function TriageEntry({ initialQueue, user }: TriageEntryProps) {
     const { isPanelOpen } = useTriageStore();
 
     return (
-        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-50/50 p-6 lg:p-8 gap-6">
+        <div className="flex flex-col lg:flex-row items-start min-h-[calc(100vh-80px)] w-full bg-slate-50/50 p-6 lg:p-8 gap-6">
             {/* Left Box: Queue Table */}
-            <div className={`flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isPanelOpen ? "lg:w-[45%]" : "w-full"}`}>
+            <div className={`flex flex-col sticky top-24 h-[calc(100vh-8rem)] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-10 ${isPanelOpen ? "lg:w-[45%]" : "w-full"}`}>
                 <TriageQueueSidebar
                     initialQueue={initialQueue}
                     user={user}

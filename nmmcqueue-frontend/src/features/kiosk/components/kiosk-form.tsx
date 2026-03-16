@@ -1,5 +1,7 @@
 "use client"
 
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,8 @@ const initialState: KioskFormValues = {
 };
 
 export function KioskForm() {
+    const searchParams = useSearchParams();
+    const isRegistered = searchParams.get("type") === "registered";
     const [isLoading, setIsLoading] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -56,7 +60,7 @@ export function KioskForm() {
                 console.error("Failed to parse saved draft", e);
             }
         }
-        
+
         // Fetch categories (assume "TRIAGE" or "GENERAL" for kiosk)
         getQueueOptions("TRIAGE").then(cats => {
             setAvailableCategories(cats);
@@ -83,7 +87,7 @@ export function KioskForm() {
                 ...prev,
                 [name]: value
             }));
-            
+
             // Clear error when field changes
             if (errors[name as keyof KioskFormValues]) {
                 setErrors(prev => ({ ...prev, [name]: undefined }));
@@ -139,7 +143,7 @@ export function KioskForm() {
             return;
         }
 
-        setIsSearching(true); 
+        setIsSearching(true);
         setMessage(null);
         const result = await getPatientByHospitalId(formData.hospitalId);
         setIsSearching(false);
@@ -172,7 +176,7 @@ export function KioskForm() {
 
     async function onSubmit(e: FormEvent) {
         e.preventDefault();
-        
+
         // Manual Validation using Zod
         const result = kioskFormSchema.safeParse(formData);
         if (!result.success) {
@@ -186,14 +190,14 @@ export function KioskForm() {
             return;
         }
 
-        setIsLoading(true); 
+        setIsLoading(true);
         setMessage(null);
         const submitResult = await registerKioskPatient(formData);
         setIsLoading(false);
 
         if (submitResult.success) {
             setMessage({ type: 'success', text: submitResult.message! });
-            
+
             // Requirements Check:
             // 5. When the form is successfully submitted, clear the stored data from localStorage
             localStorage.removeItem('kiosk-registration-draft');
@@ -216,11 +220,11 @@ export function KioskForm() {
                 </CardTitle>
                 <div className="text-sm font-mono text-slate-500">
                     {currentTime ? (
-                        `${currentTime.toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
+                        `${currentTime.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
                         })} | ${currentTime.toLocaleTimeString()}`
                     ) : (
                         '\u00A0'
@@ -231,11 +235,10 @@ export function KioskForm() {
             {/* CARD CONTENT */}
             <CardContent className="pt-3">
                 {message && (
-                    <div className={`p-3 mb-6 border-l-4 text-sm ${
-                        message.type === 'success' 
-                        ? 'bg-green-50 border-green-500 text-green-800' 
+                    <div className={`p-3 mb-6 border-l-4 text-sm ${message.type === 'success'
+                        ? 'bg-green-50 border-green-500 text-green-800'
                         : 'bg-red-50 border-red-500 text-red-800'
-                    }`}>
+                        }`}>
                         {message.text}
                     </div>
                 )}
@@ -267,8 +270,8 @@ export function KioskForm() {
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {availableCategories.map(cat => (
                                         <div key={cat.id} className="flex items-center space-x-2 bg-white p-2 rounded border border-slate-200 shadow-sm hover:border-emerald-300 transition-colors">
-                                            <Checkbox 
-                                                id={`cat-${cat.id}`} 
+                                            <Checkbox
+                                                id={`cat-${cat.id}`}
                                                 checked={(formData.categoryIds || []).includes(cat.id)}
                                                 onCheckedChange={() => handleCategoryToggle(cat.id)}
                                             />
@@ -283,14 +286,14 @@ export function KioskForm() {
                     </div>
 
                     {/* Section: Returning Patient Search */}
-                    <div className="flex items-end gap-2 border-b pb-6">
+                    {isRegistered && (<div className="flex items-end gap-2 border-b pb-6">
                         <div className="flex-1 space-y-2">
                             <Label htmlFor="hospitalId" className="text-xs font-semibold text-slate-500 uppercase">Hospital ID (Returning Patients Only)</Label>
-                            <Input 
-                                id="hospitalId" 
+                            <Input
+                                id="hospitalId"
                                 name="hospitalId"
-                                placeholder="NMMC-XXXX" 
-                                className="max-w-xs bg-white" 
+                                placeholder="NMMC-XXXX"
+                                className="max-w-xs bg-white"
                                 value={formData.hospitalId}
                                 onChange={handleChange}
                             />
@@ -299,6 +302,8 @@ export function KioskForm() {
                             {isSearching ? "Searching..." : "Search Records"}
                         </Button>
                     </div>
+                    )}
+
 
                     {/* Section: Patient Demographics */}
                     <div className="space-y-4">
@@ -373,11 +378,11 @@ export function KioskForm() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="gender">Gender *</Label>
-                                <select 
-                                    id="gender" 
-                                    name="gender" 
-                                    value={formData.gender || ''} 
-                                    onChange={handleChange} 
+                                <select
+                                    id="gender"
+                                    name="gender"
+                                    value={formData.gender || ''}
+                                    onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                                 >
                                     <option value="">Select Gender</option>
@@ -389,11 +394,11 @@ export function KioskForm() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="civilStatus">Civil Status *</Label>
-                                <select 
-                                    id="civilStatus" 
-                                    name="civilStatus" 
-                                    value={formData.civilStatus || ''} 
-                                    onChange={handleChange} 
+                                <select
+                                    id="civilStatus"
+                                    name="civilStatus"
+                                    value={formData.civilStatus || ''}
+                                    onChange={handleChange}
                                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                                 >
                                     <option value="">Select Status</option>
@@ -413,8 +418,15 @@ export function KioskForm() {
                         </div>
                     </div>
 
-                    <div className="pt-6 border-t mt-8">
-                        <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={isLoading}>
+                    <div className="pt-6 border-t mt-8 flex gap-4">
+                        {/* Cancel / Back Button Container -> takes up 1/3 of the space */}
+                        <Link href="/kiosk" className="w-1/3">
+                            <Button type="button" variant="outline" className="w-full h-12 text-base font-semibold border-slate-300 text-slate-700">
+                                Back
+                            </Button>
+                        </Link>
+                        {/* Submit Button Container -> takes up 2/3 of the space */}
+                        <Button type="submit" className="w-2/3 h-12 text-base font-semibold bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
                             {isLoading ? "Submitting Form..." : "Submit Registration"}
                         </Button>
                     </div>

@@ -56,14 +56,14 @@ export default function AdminSidebar() {
         { label: 'Reset Services', href: '/admin-resetserv' },
         { label: 'Workstation Settings', href: '/admin-workstations' },
         { label: 'Department Settings', href: '/admin-departments' },
-        { label: 'Manage Releasing', href: '/admin-releasing' },
+        { label: 'Manage Releasing', href: '/manage-releasing' },
         { label: 'Monitor Settings', href: '/admin-monisetting' },
     ];
 
     return (
         <Sidebar className="border-r bg-emerald-50/50">
             <SidebarContent>
-                <div className="p-4 flex items-center gap-2 mb-4">
+                <div className="p-4 flex items-center gap-2 mb-2">
                     <div className="h-10 w-10 flex items-center justify-center relative">
                         <Image
                             src="/logo.png"
@@ -96,8 +96,8 @@ export default function AdminSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
 
-                <SidebarGroup className="mt-4">
-                    <SidebarGroupLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-4 mb-2">
+                <SidebarGroup className="mt-2">
+                    <SidebarGroupLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-4 mb-1">
                         Admin Settings
                     </SidebarGroupLabel>
                     <SidebarMenu>

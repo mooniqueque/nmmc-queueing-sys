@@ -51,6 +51,7 @@ export const triageFormRequestSchema = z.object({
             triageRemarks: z.string().optional(),
             disposition: z.string().optional(),
             hasAppointment: z.boolean().default(false),
+            departmentId: z.string().optional(),
             categoryIds: z.array(z.string()).optional(),
         }),
     }),

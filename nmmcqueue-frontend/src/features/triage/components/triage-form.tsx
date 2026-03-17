@@ -10,10 +10,10 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { submitTriageForm } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
-import { ClipboardText, CaretDoubleRight, PaperPlaneRight, WarningCircle, Tag } from "@phosphor-icons/react";
+import { CaretDoubleRight, PaperPlaneRight, WarningCircle, Tag } from "@phosphor-icons/react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getQueueOptions } from "@/features/shared/api";
-import { PriorityCategory } from "@/types/models";
+import { getQueueOptions, getDepartments } from "@/features/shared/api";
+import { PriorityCategory, Department } from "@/types/models";
 
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
@@ -30,9 +30,13 @@ export function TriageForm() {
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
 
     useEffect(() => {
         getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
+        getDepartments().then(res => {
+            if (res.success) setDepartments(res.data);
+        });
     }, []);
 
     const methods = useForm<z.input<typeof triageFormSchema>, unknown, TriageFormValues>({
@@ -44,6 +48,7 @@ export function TriageForm() {
             bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
             hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
             priorityClass: "REGULAR",
+            departmentId: "",
             categoryIds: []
         }
     });
@@ -57,6 +62,7 @@ export function TriageForm() {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: "REGULAR",
+                departmentId: "",
                 categoryIds: []
             });
         } else if (selectedPatient) {
@@ -75,6 +81,7 @@ export function TriageForm() {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: selectedPatient.classification || "REGULAR",
+                departmentId: selectedPatient.departmentId || "",
                 categoryIds: selectedPatient.categories?.map(c => c.categoryId) || []
             });
         } else {
@@ -188,6 +195,29 @@ export function TriageForm() {
                                                     <SelectContent className="rounded-lg border-border bg-background">
                                                         <SelectItem value="REGULAR" className="font-bold py-2 text-xs">Regular</SelectItem>
                                                         <SelectItem value="PRIORITY" className="font-bold py-2 text-xs text-primary">Priority</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="w-56">
+                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 block pl-1">
+                                            Assign Clinical Dept
+                                        </Label>
+                                        <Controller
+                                            control={methods.control}
+                                            name="departmentId"
+                                            render={({ field }) => (
+                                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                                    <SelectTrigger className="h-10 rounded-lg border-border bg-background text-xs font-bold transition-all focus:ring-primary/20">
+                                                        <SelectValue placeholder="Select Dept..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-lg border-border bg-background">
+                                                        {departments.map((dept) => (
+                                                            <SelectItem key={dept.id} value={dept.id} className="font-bold py-2 text-xs">
+                                                                {dept.name}
+                                                            </SelectItem>
+                                                        ))}
                                                     </SelectContent>
                                                 </Select>
                                             )}

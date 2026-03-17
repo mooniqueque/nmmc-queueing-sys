@@ -109,6 +109,7 @@ class TriageService {
             hasCough: validData.hasCough, hasColds: validData.hasColds, hasRashes: validData.hasRashes,
             isInfectious: validData.isInfectious, chiefComplaint: validData.chiefComplaint, medicalHistory: validData.medicalHistory,
             triageRemarks: validData.triageRemarks, disposition: validData.disposition, hasAppointment: validData.hasAppointment,
+            departmentId: validData.departmentId,
             triagedAt: new Date(), triagedByUserId: userId, triageStationId: user?.workstationId, status: 'WAITING_WINDOW',
         };
         if (validData.isManualEntry) {

@@ -27,7 +27,7 @@ export function ReleasingAssignPanel({
     onClose,
     onAssignComplete
 }: ReleasingAssignPanelProps) {
-    const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
+    const [selectedDepartmentId, setSelectedDepartmentId] = useState(selectedPatient.departmentId || "");
     const [selectedQueueOption, setSelectedQueueOption] = useState("");
     const [notes, setNotes] = useState("");
     const [isPending, startTransition] = useTransition();
@@ -207,19 +207,25 @@ export function ReleasingAssignPanel({
                 <div className="space-y-4 mb-8">
                     <div>
                         <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Clinic / Department</Label>
-                        <select
-                            className="w-full bg-background border border-border text-foreground text-sm font-bold rounded-lg h-10 px-4 appearance-none outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                            value={selectedDepartmentId}
-                            onChange={(e) => {
-                                setSelectedDepartmentId(e.target.value);
-                                setSelectedQueueOption("");
-                            }}
-                        >
-                            <option value="" disabled>Select Department...</option>
-                            {departments.map((dept) => (
-                                <option key={dept.id} value={dept.id}>{dept.name}</option>
-                            ))}
-                        </select>
+                        {selectedPatient.departmentId ? (
+                            <div className="w-full bg-muted/50 border border-border text-primary text-sm font-bold rounded-lg h-10 px-4 flex items-center shadow-inner">
+                                {selectedPatient.department?.name || "Assigned by Triage"}
+                            </div>
+                        ) : (
+                            <select
+                                className="w-full bg-background border border-border text-foreground text-sm font-bold rounded-lg h-10 px-4 appearance-none outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                                value={selectedDepartmentId}
+                                onChange={(e) => {
+                                    setSelectedDepartmentId(e.target.value);
+                                    setSelectedQueueOption("");
+                                }}
+                            >
+                                <option value="" disabled>Select Department...</option>
+                                {departments.map((dept) => (
+                                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     <div>

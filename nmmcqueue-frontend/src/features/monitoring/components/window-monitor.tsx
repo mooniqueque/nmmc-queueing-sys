@@ -1,13 +1,13 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
 import { getDepartmentsVideos } from "@/features/monitoring/actions";
+import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
 import { useCurrentTime } from "@/hooks/use-current-time";
+import { API_URL } from "@/lib/api";
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { API_URL } from "@/lib/api";
 
 export default function WindowMonitor() {
     const currentTime = useCurrentTime();
@@ -121,8 +121,8 @@ export default function WindowMonitor() {
                     <Card className="flex-1 bg-black rounded-[2rem] overflow-hidden relative shadow-2xl group border-12 border-white ring-1 ring-slate-200">
                         <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
                             {videoUrl ? (
-                                <video 
-                                    src={getFullVideoUrl(videoUrl)} 
+                                <video
+                                    src={getFullVideoUrl(videoUrl)}
                                     className="w-full h-full object-cover"
                                     autoPlay
                                     muted
@@ -154,9 +154,9 @@ export default function WindowMonitor() {
             {/* MARQUEE FOOTER */}
             <footer className="bg-emerald-950 py-3 px-8 shrink-0 overflow-hidden whitespace-nowrap">
                 <div className="animate-marquee inline-block">
-                    <span className="text-emerald-100 font-bold uppercase tracking-widest mx-12">Welcome to Northern Mindanao Medical Center</span>
-                    <span className="text-emerald-400 font-black uppercase tracking-widest mx-12">Health is Wealth • Serbisyo Para sa Lahat</span>
-                    <span className="text-emerald-100 font-bold uppercase tracking-widest mx-12">Window Service Hours: 8:00 AM - 5:00 PM</span>
+                    <span className="text-emerald-100 font-bold uppercase tracking-widest mx-12">REG 51</span>
+                    <span className="text-emerald-400 font-black uppercase tracking-widest mx-12">REG 59</span>
+                    <span className="text-emerald-100 font-bold uppercase tracking-widest mx-12">REG 67</span>
                 </div>
             </footer>
 

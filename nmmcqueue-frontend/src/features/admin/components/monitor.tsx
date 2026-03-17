@@ -1,24 +1,24 @@
 "use client";
 
 import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
-import { VisitWithPatient } from "@/features/triage/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { AdminHeader } from "@/components/layouts/admin-header";
+import { SessionUser } from "@/types/auth";
+import { cn } from "@/lib/utils";
+import { VisitWithPatient } from "@/features/triage/types";
 import { Play } from "@phosphor-icons/react";
-import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useCurrentTime } from "@/hooks/use-current-time";
 import { API_URL } from "@/lib/api";
 
 export default function QueueMonitor({
     departmentName,
     initialQueue,
+    loggedInUser,
 }: {
     departmentName: string;
     initialQueue?: VisitWithPatient[];
+    loggedInUser: SessionUser;
 }) {
-    const currentTime = useCurrentTime();
-
     // Live Queue Hook
     const { activeQueue } = useClinicQueue(departmentName, initialQueue || []);
 
@@ -37,18 +37,6 @@ export default function QueueMonitor({
         loadVideo();
     }, [departmentName]);
 
-    const formatTime = (date: Date) => {
-        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    };
-
-    const formatDate = (date: Date) => {
-        return date.toLocaleDateString([], {
-            weekday: "long",
-            month: "short",
-            day: "numeric",
-        }).toUpperCase();
-    };
-
     const getFullVideoUrl = (url: string) => {
         const backendUrl = API_URL.replace('/api', '');
         return `${backendUrl}${url}`;
@@ -61,12 +49,15 @@ export default function QueueMonitor({
     const currentTicket = departmentQueue.length > 0 ? `P-${departmentQueue[0].ticketNumber}` : "NONE";
 
     // Map backend data to UI expected shapes for Monitor
-    const UPCOMING_QUEUE = departmentQueue.slice(1, 5).map((v: VisitWithPatient) => ({
-        ticket: `P-${v.ticketNumber}`,
-        category: v.priorityClass || "REGULAR",
-        type: v.priorityClass?.includes('FT') || v.priorityClass?.includes('ER') ? 'urgent' :
-            v.priorityClass?.includes('PRIO') || v.priorityClass?.includes('CHILD') || v.priorityClass?.includes('SR') ? 'priority' : 'regular'
-    }));
+    const UPCOMING_QUEUE = departmentQueue.slice(1, 5).map((v: VisitWithPatient) => {
+        const priorityCode = v.categories?.[0]?.category?.code || "REGULAR";
+        return {
+            ticket: `P-${v.ticketNumber}`,
+            category: priorityCode,
+            type: priorityCode.includes('FT') || priorityCode.includes('ER') ? 'urgent' :
+                priorityCode.includes('PRIO') || priorityCode.includes('CHILD') || priorityCode.includes('SR') ? 'priority' : 'regular'
+        };
+    });
 
     const SERVING_LIST = [
         { service: departmentName, ticket: currentTicket },
@@ -90,138 +81,100 @@ export default function QueueMonitor({
     };
 
     return (
-        <div className="w-full h-screen bg-white flex flex-col font-sans text-slate-800 overflow-hidden">
+        <div className="w-full h-screen bg-background flex flex-col overflow-hidden">
             {/* HEADER */}
-            <header className="bg-white shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-10 border-b border-emerald-100/50 w-full shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <SidebarTrigger className="w-12 h-12 text-emerald-800 scale-125" />
-                    </div>
-                    <div className="flex gap-2">
-                        <div className="relative w-15 h-15">
-                            <Image
-                                src="/doh-logo.svg"
-                                alt="Department of Health Logo"
-                                fill
-                                className="object-contain drop-shadow-md"
-                            />
-                        </div>
-                        <div className="relative w-16 h-16">
-                            <Image
-                                src="/nmmc-logo.png"
-                                alt="NMMC Logo"
-                                fill
-                                className="object-contain drop-shadow-md"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <h2 className="text-sm font-bold text-emerald-800 uppercase tracking-widest leading-none">Department of Health</h2>
-                        <h1 className="text-2xl font-extrabold text-emerald-950 tracking-tight">Northern Mindanao Medical Center</h1>
-                    </div>
-                </div>
-                <div className="text-right">
-                    <div className="text-4xl font-black text-emerald-800 tabular-nums tracking-tight leading-none">
-                        {currentTime ? formatTime(currentTime) : '\xC2\xA0'}
-                    </div>
-                    <div className="text-sm font-bold text-emerald-600 uppercase tracking-wider mt-1">
-                        {currentTime ? formatDate(currentTime) : '\xC2\xA0'}
-                    </div>
-                </div>
-            </header>
+            <AdminHeader 
+                user={loggedInUser} 
+                title="Queue Monitor" 
+                subtitle={departmentName}
+            />
 
-
-            <main className="flex-1 px-6 pt-5 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden pb-6">
+            <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-3 gap-8 overflow-hidden">
                 {/* LEFT COLUMN: Service List */}
-                <div className="col-span-1 flex flex-col gap-3 h-full overflow-hidden">
-                    <div className="flex justify-between px-4 py-3 bg-emerald-800 text-white rounded-t-xl font-bold uppercase tracking-wider text-sm shadow-md shrink-0">
-                        <span>Service</span>
+                <div className="col-span-1 flex flex-col h-full overflow-hidden border rounded-3xl bg-card shadow-xl shadow-primary/5">
+                    <div className="flex justify-between px-8 py-5 bg-primary text-primary-foreground font-black uppercase tracking-widest text-xs">
+                        <span>Station</span>
                         <span>Now Serving</span>
                     </div>
 
-                    {/* The List of Cards */}
-                    <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-2 pb-2">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                         {SERVING_LIST.map((item, index) => (
-                            <Card key={index} className="border-0 shadow-sm rounded-lg overflow-hidden ring-1 ring-emerald-50 bg-white hover:shadow-md transition-all shrink-0">
-                                <CardContent className="p-0 flex flex-row items-stretch h-14">
-                                    {/* Service Name (Left Side) - Slightly darker bg for contrast */}
-                                    <div className="w-1/2 flex items-center justify-start px-4 border-r border-slate-100 ">
-                                        <span className="text-sm font-bold uppercase leading-tight line-clamp-2">
-                                            {item.service}
-                                        </span>
-                                    </div>
-                                    {/* Ticket Number (Right Side) */}
-                                    <div className="w-1/2 flex items-center justify-center bg-white">
-                                        <span className="text-2xl font-black text-emerald-800 tracking-tighter">
-                                            {item.ticket}
-                                        </span>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <div key={index} className="flex items-center justify-between p-6 px-8 bg-background border rounded-2xl transition-all hover:bg-accent/5">
+                                <span className="text-sm font-bold uppercase tracking-tight line-clamp-2 w-1/2">
+                                    {item.service}
+                                </span>
+                                <span className="text-5xl font-black text-primary tracking-tighter tabular-nums w-1/2 text-right">
+                                    {item.ticket}
+                                </span>
+                            </div>
                         ))}
                     </div>
                 </div>
 
                 {/* RIGHT COLUMN: Video & Upcoming */}
-                <div className="col-span-2 flex flex-col gap-6 h-full">
-
+                <div className="col-span-2 flex flex-col gap-8 h-full">
                     {/* TOP: Video Player */}
-                    <Card className="h-[65%] bg-black rounded-xl overflow-hidden relative shadow-lg group">
-                        {/* Thumbnail / Play Button */}
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+                    <Card className="h-[60%] bg-black rounded-3xl overflow-hidden relative shadow-2xl group border-0">
+                        <div className="absolute inset-0 flex items-center justify-center bg-muted/10">
                             {videoUrl ? (
                                 <video 
                                     key={videoUrl}
                                     src={getFullVideoUrl(videoUrl)} 
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-contain"
                                     autoPlay
                                     muted
                                     loop
                                     playsInline
                                 />
                             ) : (
-                                <>
-                                    <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 ring-4 ring-white/10 group-hover:scale-110 transition-transform duration-300">
-                                        <Play size={50} className="text-white ml-2" weight="fill" />
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+                                        <Play size={40} className="text-primary ml-1" weight="fill" />
                                     </div>
-                                    <div className="absolute bottom-4 left-6 text-white/50 text-xs font-medium uppercase tracking-widest">Promotional Video</div>
-                                </>
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Awaiting Video Stream</span>
+                                </div>
                             )}
                         </div>
                     </Card>
 
-                    {/* BOTTOM LIST, UPCOMING QUEUE*/}
-                    <Card className="flex-1 bg-white border-0 shadow-md rounded-lg flex flex-col">
-                        <CardHeader className="bg-white py-2 px-6">
-                            <CardTitle className="text-slate-700 uppercase tracking-widest text-sm font-bold flex items-center gap-2">
-                                <div className="flex space-x-1">
-                                    {/*ARROW*/}
-                                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-emerald-600 border-b-[6px] border-b-transparent"></div>
-                                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-emerald-600 border-b-[6px] border-b-transparent"></div>
+                    {/* BOTTOM: UPCOMING QUEUE */}
+                    <Card className="flex-1 rounded-3xl flex flex-col border shadow-xl shadow-primary/5">
+                        <CardHeader className="py-5 px-8 border-b">
+                            <CardTitle className="text-xs font-black uppercase tracking-[0.25em] flex items-center gap-3">
+                                <div className="flex gap-1.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
                                 </div>
-                                Next in Line / Upcoming
+                                Next in Line
                             </CardTitle>
                         </CardHeader>
 
-                        <CardContent>
-                            <div className="flex gap-4 min-w-full px-2 py-2">
-                                {UPCOMING_QUEUE.map((item, index) => (
-                                    <div key={index} className={`flex-shrink-0 w-48 h-28 rounded-xl flex flex-col items-center justify-center shadow-sm relative overflow-hidden group transition-colors ${getTicketStyle(item.type)}`}>
-                                        <div className="text-2xl font-extrabold tracking-tight z-10">{item.ticket}</div>
-                                        <div className={`text-[10px] font-bold uppercase tracking-widest mt-1 z-10 ${getLabelStyle(item.type)}`}>{item.category}</div>
-
-                                        {/* Indicator Line */}
-                                        <div className={`absolute bottom-0 left-0 w-full h-1 bg-current opacity-30`}></div>
-                                    </div>
-                                ))}
+                        <CardContent className="flex-1 flex items-center justify-center overflow-hidden p-0">
+                            <div className="flex gap-6 px-8 py-4 overflow-x-auto w-full custom-scrollbar no-scrollbar">
+                                {UPCOMING_QUEUE.length > 0 ? (
+                                    UPCOMING_QUEUE.map((item: { ticket: string, category: string, type: string }, index: number) => (
+                                        <div 
+                                            key={index} 
+                                            className={cn(
+                                                "shrink-0 w-56 h-32 rounded-3xl flex flex-col items-center justify-center shadow-lg relative overflow-hidden transition-all hover:scale-110",
+                                                getTicketStyle(item.type)
+                                            )}
+                                        >
+                                            <div className="text-4xl font-black tabular-nums tracking-tighter mb-1">{item.ticket}</div>
+                                            <div className={cn("text-[10px] font-black uppercase tracking-widest", getLabelStyle(item.type))}>
+                                                {item.category}
+                                            </div>
+                                            <div className="absolute bottom-0 left-0 w-full h-1.5 bg-current opacity-20" />
+                                        </div>
+                                    ))
+                                ) : (
+                                    <span className="text-sm font-medium text-muted-foreground opacity-50 uppercase tracking-widest">No upcoming tickets</span>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
-
                 </div>
             </main>
-
-
         </div>
     );
 }

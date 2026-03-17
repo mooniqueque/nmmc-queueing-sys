@@ -4,17 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { StatsCard } from './stats-card';
 import React from 'react';
 import {
-    Activity,
     AlertTriangle,
     Clock,
     Users,
-    TrendingUp,
-    UserCheck,
-    LucideIcon
+    TrendingUp
 } from "lucide-react";
 import dynamic from 'next/dynamic';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { AdminHeader } from "@/components/layouts/admin-header";
 import { SessionUser } from "@/types/auth";
 import { getBarChartOptions, getDonutChartOptions } from './triage-chart';
 import { VolumeData, CategoryData, DestinationData, TriageActivity, TriageKPIs } from '../types';
@@ -45,19 +41,6 @@ const DEFAULT_CATEGORY_DATA: CategoryData[] = [
     { name: 'Non-Urgent', value: 65, color: '#10b981' }, // emerald-500
 ];
 
-const DEFAULT_DESTINATION_DATA: DestinationData[] = [
-    { name: 'ER', value: 12, color: '#ef4444' },
-    { name: 'OPD - Internal Med', value: 45, color: '#3b82f6' },
-    { name: 'OPD - Pediatrics', value: 32, color: '#8b5cf6' },
-    { name: 'OPD - Surgery', value: 19, color: '#f97316' },
-];
-
-const DEFAULT_ACTIVITIES: TriageActivity[] = [
-    { id: 'TRG-0108', time: '10 mins ago', patient: 'J. Doe', type: 'Urgent' },
-    { id: 'TRG-0107', time: '15 mins ago', patient: 'M. Smith', type: 'Non-Urgent' },
-    { id: 'TRG-0106', time: '22 mins ago', patient: 'A. Johnson', type: 'Emergency' },
-    { id: 'TRG-0105', time: '30 mins ago', patient: 'R. Davis', type: 'Non-Urgent' },
-];
 
 const DEFAULT_KPIS: TriageKPIs = {
     totalTriagedToday: 108,
@@ -68,27 +51,13 @@ const DEFAULT_KPIS: TriageKPIs = {
     currentlyWaiting: 15
 };
 
-const getActivityConfig = (type: TriageActivity['type']): { icon: LucideIcon, colorClass: string, badgeClass: string } => {
-    switch (type) {
-        case 'Emergency':
-            return { icon: Activity, colorClass: 'bg-red-100 text-red-600', badgeClass: 'bg-red-50 text-red-700 border border-red-200' };
-        case 'Urgent':
-            return { icon: AlertTriangle, colorClass: 'bg-yellow-100 text-yellow-600', badgeClass: 'bg-yellow-50 text-yellow-700 border border-yellow-200' };
-        case 'Non-Urgent':
-        default:
-            return { icon: UserCheck, colorClass: 'bg-emerald-100 text-emerald-600', badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200' };
-    }
-};
 
 
 export default function TriageNurseStats({
     loggedInUser,
     volumeData = DEFAULT_VOLUME_DATA,
     categoryData = DEFAULT_CATEGORY_DATA,
-    destinationData = DEFAULT_DESTINATION_DATA,
-    recentActivities = DEFAULT_ACTIVITIES,
     kpis = DEFAULT_KPIS,
-    totalPatients = 108
 }: TriageNurseStatsProps & {
     loggedInUser?: SessionUser
 }) {
@@ -101,64 +70,50 @@ export default function TriageNurseStats({
 
     return (
         <div className="flex flex-1 flex-col">
-            {/*HEADER*/}
-            <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
-                <div className="flex items-center gap-3">
-                    <SidebarTrigger />
-                    <h1 className="text-xl font-bold text-black">Triage Statistics</h1>
-                </div>
-                <div className='flex items-center gap-3'>
-                    <div className="hidden sm:flex sm:flex-col items-end mr-1">
-                        <span className="text-sm font-bold text-black">{loggedInUser.name}</span>
-                        <span className="text-xs text-black font-medium uppercase tracking-tighter">{loggedInUser.role}</span>
-                    </div>
-                    <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
-                        <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
-                            {loggedInUser.name?.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
-                </div>
-            </header>
+            {/* HEADER */}
+            <AdminHeader 
+                user={loggedInUser} 
+                title="Triage Statistics" 
+            />
 
-            <main className='p-6 space-y-6 bg-slate-50/50 px-10'>
+            <main className="flex-1 p-6 lg:p-10 space-y-8">
                 {/* TOP KPI STATS ROW */}
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatsCard
                         label="Total Triaged Today"
                         value={kpis.totalTriagedToday.toString()}
-                        icon={<Users size={28} className="text-white" />}
-                        color="bg-emerald-600"
+                        icon={<Users size={24} />}
+                        color="bg-primary text-primary-foreground"
                     />
                     <StatsCard
                         label="Currently Waiting"
                         value={kpis.currentlyWaiting.toString()}
-                        icon={<Clock size={28} className="text-white" />}
-                        color="bg-amber-500"
+                        icon={<Clock size={24} />}
+                        color="bg-amber-500/10 text-amber-600"
                     />
                     <StatsCard
-                        label="Avg Triage Time (min)"
-                        value={kpis.avgTriageTimeMins.toString()}
-                        icon={<TrendingUp size={28} className="text-white" />}
-                        color="bg-blue-500"
+                        label="Avg Triage Time"
+                        value={`${kpis.avgTriageTimeMins}m`}
+                        icon={<TrendingUp size={24} />}
+                        color="bg-blue-500/10 text-blue-600"
                     />
                     <StatsCard
                         label="Emergent Cases"
                         value={kpis.emergentCases.toString()}
-                        icon={<AlertTriangle size={28} className="text-white" />}
-                        color="bg-red-500"
+                        icon={<AlertTriangle size={24} />}
+                        color="bg-red-500/10 text-red-600"
                     />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
                     {/* Patient Volume Bar Chart */}
-                    <Card className="shadow-sm border-0 ring-1 ring-slate-200">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-bold text-slate-800">Patient Volume Today</CardTitle>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-semibold">Patient Volume Today</CardTitle>
                             <CardDescription>Hourly breakdown of arriving patients</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-[300px] w-full mt-4">
+                            <div className="h-[300px] w-full pt-4">
                                 <Chart
                                     options={getBarChartOptions(volumeData)}
                                     series={barChartSeries}
@@ -171,13 +126,13 @@ export default function TriageNurseStats({
                     </Card>
 
                     {/* Triage Categories Donut Chart */}
-                    <Card className="shadow-sm border-0 ring-1 ring-slate-200">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-bold text-slate-800">Triage Categories</CardTitle>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base font-semibold">Triage Categories</CardTitle>
                             <CardDescription>Distribution of patient urgency</CardDescription>
                         </CardHeader>
                         <CardContent className="flex justify-center items-center">
-                            <div className="h-[300px] w-full max-w-[400px] mt-4">
+                            <div className="h-[300px] w-full max-w-[400px] pt-4">
                                 <Chart
                                     options={getDonutChartOptions(categoryData)}
                                     series={donutChartSeries}

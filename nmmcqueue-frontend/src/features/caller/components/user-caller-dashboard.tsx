@@ -134,76 +134,78 @@ export default function UserCallerDashboard({
 
 
     return (
-        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-50/50 p-6 lg:p-8 gap-6">
+        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-background p-6 lg:p-8 gap-6">
             
             {/* LEFT PANE: Waitlist (35%) */}
-            <div className="flex flex-col w-full lg:w-[35%] xl:w-[30%] bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden shrink-0">
+            <div className="flex flex-col w-full lg:w-[35%] xl:w-[30%] bg-card rounded-xl border border-border overflow-hidden shrink-0">
                 {/* Header */}
-                <div className="px-6 py-6 border-b border-emerald-100 bg-linear-to-br from-emerald-800 to-emerald-900 text-white flex justify-between items-center shrink-0">
+                <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center shrink-0">
                     <div>
-                        <h2 className="text-[18px] font-black tracking-tight">{department}</h2>
-                        <p className="text-[11px] font-bold text-emerald-200/80 mt-0.5 flex items-center gap-2">
-                             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {waitingList.length} Active</span>
-                             <span className="opacity-40">•</span>
-                             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> {noShowList.length} No Shows</span>
-                        </p>
+                        <h2 className="text-lg font-bold tracking-tight text-foreground">{department}</h2>
+                        <div className="flex items-center gap-3 mt-1">
+                             <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary" /> {waitingList.length} Active
+                             </span>
+                             <span className="w-1 h-1 rounded-full bg-border" />
+                             <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                                <span className="w-1.5 h-1.5 rounded-full bg-destructive" /> {noShowList.length} No Shows
+                             </span>
+                        </div>
                     </div>
                     {/* Status Display */}
-                    <div className="flex flex-col items-end gap-1.5">
-                        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
-                            <div className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-rose-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]'}`} />
-                            <span className="text-[10px] font-black tracking-widest uppercase text-emerald-50">
-                                {isAvailable ? 'Online' : 'Offline'}
-                            </span>
-                        </div>
+                    <div className="flex items-center gap-2 bg-background px-3 py-1.5 rounded-full border border-border shadow-sm">
+                        <div className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-primary shadow-[0_0_8px_rgba(16,185,129,0.3)]' : 'bg-destructive'}`} />
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-foreground">
+                            {isAvailable ? 'Online' : 'Offline'}
+                        </span>
                     </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex px-4 pt-4 border-b border-slate-100 bg-white gap-2">
+                <div className="flex border-b border-border bg-background">
                     <button
                         onClick={() => setActiveTab("pending")}
-                        className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative ${
-                            activeTab === "pending" ? "text-emerald-800" : "text-slate-400 hover:text-slate-600"
+                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${
+                            activeTab === "pending" ? "text-primary" : "text-muted-foreground hover:text-foreground"
                         }`}
                     >
                         Active ({waitingList.length})
                         {activeTab === "pending" && (
-                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-t-full" />
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
                         )}
                     </button>
                     <button
                         onClick={() => setActiveTab("referrals")}
-                        className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative ${
-                            activeTab === "referrals" ? "text-emerald-800" : "text-slate-400 hover:text-slate-600"
+                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${
+                            activeTab === "referrals" ? "text-primary" : "text-muted-foreground hover:text-foreground"
                         }`}
                     >
                         Referrals ({referralList.length})
                         {activeTab === "referrals" && (
-                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-t-full" />
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
                         )}
                     </button>
                     <button
                         onClick={() => setActiveTab("noshow")}
-                        className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-widest transition-all relative ${
-                            activeTab === "noshow" ? "text-emerald-800" : "text-slate-400 hover:text-slate-600"
+                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${
+                            activeTab === "noshow" ? "text-primary" : "text-muted-foreground hover:text-foreground"
                         }`}
                     >
                         No Shows ({noShowList.length})
                         {activeTab === "noshow" && (
-                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-rose-500 rounded-t-full" />
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-destructive" />
                         )}
                     </button>
                 </div>
 
                 {/* List Body */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50">
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
                     {activeTab === "pending" ? (
                         waitingList.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-                                <CheckCircle size={48} className="mb-4 text-emerald-500/20" weight="duotone" />
-                                <p className="text-lg font-bold text-slate-600">Queue is Clear</p>
-                                <p className="text-sm font-medium text-slate-400 mt-1">No patients waiting for this clinic.</p>
+                                <CheckCircle size={48} className="mb-4 text-primary/20" weight="duotone" />
+                                <p className="text-lg font-bold text-foreground">Queue is Clear</p>
+                                <p className="text-sm font-medium text-muted-foreground mt-1">No patients waiting for this clinic.</p>
                             </div>
                         ) : (
                             <div className="flex flex-col">
@@ -215,30 +217,31 @@ export default function UserCallerDashboard({
                                     return (
                                         <div 
                                             key={visit.id} 
-                                            className={`p-5 border-b border-slate-200/60 relative transition-all ${
-                                                isNext ? "bg-white shadow-[inset_4px_0_0_#10b981]" : "bg-transparent opacity-80 hover:bg-white hover:opacity-100"
+                                            className={`p-5 border-b border-border relative transition-all group ${
+                                                isNext ? "bg-muted/30" : "bg-transparent hover:bg-muted/10"
                                             }`}
                                         >
+                                            {isNext && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`text-[17px] font-black ${isNext ? "text-emerald-600" : "text-slate-500"}`}>
+                                                    <span className={`text-base font-bold ${isNext ? "text-primary" : "text-muted-foreground"}`}>
                                                         #{visit.ticketNumber.toString().padStart(3, '0')}
                                                     </span>
                                                     {isNext && (
-                                                        <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                                                        <span className="bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-primary/20">
                                                             Next
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100/80 border border-slate-200 text-slate-500 text-[11px] font-bold">
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] font-bold border border-border">
                                                     <Clock size={12} weight="bold" /> {waitStr}
                                                 </div>
                                             </div>
                                             
                                             <div className="flex justify-between items-end">
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-[14px] text-slate-800 leading-tight">
-                                                        {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
+                                                    <span className="font-bold text-sm text-foreground transition-colors group-hover:text-primary">
+                                                        {visit.patient.lastName}, <span className="text-muted-foreground font-medium">{visit.patient.firstName}</span>
                                                     </span>
                                                 </div>
                                             </div>
@@ -250,9 +253,9 @@ export default function UserCallerDashboard({
                     ) : activeTab === "referrals" ? (
                         referralList.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-                                <ArrowUpRight size={48} className="mb-4 text-emerald-500/20" weight="duotone" />
-                                <p className="text-lg font-bold text-slate-600">No Referrals</p>
-                                <p className="text-sm font-medium text-slate-400 mt-1">No incoming referrals right now.</p>
+                                <ArrowUpRight size={48} className="mb-4 text-primary/20" weight="duotone" />
+                                <p className="text-lg font-bold text-foreground">No Referrals</p>
+                                <p className="text-sm font-medium text-muted-foreground mt-1">No incoming referrals right now.</p>
                             </div>
                         ) : (
                             <div className="flex flex-col">
@@ -261,20 +264,21 @@ export default function UserCallerDashboard({
                                     return (
                                         <div 
                                             key={visit.id} 
-                                            className={`p-5 border-b border-slate-200/60 relative transition-all ${
-                                                isNext ? "bg-white shadow-[inset_4px_0_0_#10b981]" : "bg-transparent opacity-80 hover:bg-white"
+                                            className={`p-5 border-b border-border relative transition-all group ${
+                                                isNext ? "bg-muted/30" : "bg-transparent hover:bg-muted/10"
                                             }`}
                                         >
+                                            {isNext && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
                                             <div className="flex justify-between items-start mb-1">
-                                                <span className={`text-[17px] font-black ${isNext ? "text-emerald-600" : "text-slate-500"}`}>
+                                                <span className={`text-base font-bold ${isNext ? "text-primary" : "text-muted-foreground"}`}>
                                                     #{visit.ticketNumber.toString().padStart(3, '0')}
                                                 </span>
-                                                <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-emerald-100">
-                                                    Referred from: {visit.referredFrom?.name || "N/A"}
+                                                <span className="bg-muted text-muted-foreground text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-border">
+                                                    From: {visit.referredFrom?.name || "N/A"}
                                                 </span>
                                             </div>
-                                            <span className="font-bold text-[14px] text-slate-800">
-                                                {visit.patient.lastName}, {visit.patient.firstName}
+                                            <span className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+                                                {visit.patient.lastName}, <span className="text-muted-foreground font-medium">{visit.patient.firstName}</span>
                                             </span>
                                         </div>
                                     );
@@ -284,18 +288,18 @@ export default function UserCallerDashboard({
                     ) : (
                         noShowList.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-                                <UserMinus size={48} className="mb-4 text-slate-200" weight="duotone" />
-                                <p className="text-lg font-bold text-slate-400">No Show list empty</p>
+                                <UserMinus size={48} className="mb-4 text-muted/30" weight="duotone" />
+                                <p className="text-lg font-bold text-muted-foreground">No Show list empty</p>
                             </div>
                         ) : (
                             <div className="flex flex-col">
                                 {noShowList.map((visit) => (
                                     <div 
                                         key={visit.id} 
-                                        className="p-5 border-b border-slate-200/60 bg-white/50 hover:bg-white transition-all group"
+                                        className="p-5 border-b border-border bg-card/50 hover:bg-muted/10 transition-all group"
                                     >
                                         <div className="flex justify-between items-start mb-2">
-                                            <span className="text-[17px] font-black text-rose-400">
+                                            <span className="text-base font-bold text-destructive">
                                                 #{visit.ticketNumber.toString().padStart(3, '0')}
                                             </span>
                                             <Button
@@ -303,13 +307,13 @@ export default function UserCallerDashboard({
                                                 variant="outline"
                                                 onClick={() => handleRestore(visit.id)}
                                                 disabled={isProcessing}
-                                                className="h-8 px-3 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest"
+                                                className="h-8 px-3 border-border bg-background text-foreground hover:bg-muted rounded-lg text-[10px] font-bold uppercase tracking-widest"
                                             >
                                                 Restore
                                             </Button>
                                         </div>
-                                        <span className="font-bold text-[14px] text-slate-600 group-hover:text-slate-900 transition-colors">
-                                            {visit.patient.lastName}, {visit.patient.firstName}
+                                        <span className="font-bold text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                                            {visit.patient.lastName}, <span className="font-medium">{visit.patient.firstName}</span>
                                         </span>
                                     </div>
                                 ))}
@@ -320,34 +324,34 @@ export default function UserCallerDashboard({
             </div>
 
             {/* RIGHT PANE: Active Consultation (65%) */}
-            <div className="flex flex-col flex-1 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
+            <div className="flex flex-col flex-1 bg-card rounded-xl border border-border overflow-hidden relative shadow-sm">
                 
                 {(!inProgressVisit && !nextVisit) ? (
-                    <div className="flex flex-col items-center justify-center h-full p-12 text-center bg-slate-50/50">
-                        <div className="w-24 h-24 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center mb-6">
-                            <Users size={40} className="text-slate-300" weight="duotone" />
+                    <div className="flex flex-col items-center justify-center h-full p-12 text-center bg-muted/5">
+                        <div className="w-20 h-20 bg-background rounded-full border border-border flex items-center justify-center mb-6 shadow-sm">
+                            <Users size={32} className="text-muted/30" weight="duotone" />
                         </div>
-                        <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">You are all caught up!</h2>
-                        <p className="text-slate-500 font-medium">There are currently no patients assigned to {department}.</p>
+                        <h2 className="text-xl font-bold text-foreground mb-1 tracking-tight">You are all caught up!</h2>
+                        <p className="text-muted-foreground text-sm">There are currently no patients assigned to {department}.</p>
                     </div>
                 ) : (
                     <>
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 xl:p-12 relative w-full">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 lg:p-10 relative w-full bg-background/50">
                             <div className="max-w-4xl mx-auto">
                                 
                                 {/* Status Header */}
-                                <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
-                                    <h3 className="text-[13px] font-black uppercase tracking-widest text-slate-400">
+                                <div className="flex items-center justify-between mb-10 pb-6 border-b border-border">
+                                    <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mr-auto p-1 border-l-2 border-primary/30 pl-3">
                                         {inProgressVisit ? "Active Consultation" : "Up Next"}
                                     </h3>
                                     {inProgressVisit ? (
-                                        <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full border border-emerald-200/50">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                            <span className="text-[11px] font-black uppercase tracking-widest">In Progress</span>
+                                        <div className="flex items-center gap-2 bg-primary/5 text-primary px-3 py-1.5 rounded-full border border-primary/20">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                            <span className="text-[10px] font-bold uppercase tracking-widest">In Progress</span>
                                         </div>
                                     ) : (
-                                        <div className="flex items-center gap-2 bg-amber-50 text-amber-600 px-3 py-1.5 rounded-full border border-amber-200/50">
-                                            <span className="text-[11px] font-black uppercase tracking-widest">Waiting to be called</span>
+                                        <div className="flex items-center gap-2 bg-orange-500/5 text-orange-600 px-3 py-1.5 rounded-full border border-orange-500/10">
+                                            <span className="text-[10px] font-bold uppercase tracking-widest">Waiting to be called</span>
                                         </div>
                                     )}
                                 </div>
@@ -397,45 +401,43 @@ export default function UserCallerDashboard({
                                             </div>
 
                                             {/* Advanced Triage Info (Passed from previous step) */}
-                                            <h4 className="text-[13px] font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                                <Info size={18} className="text-emerald-500" /> Intake Information
+                                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                                <Info size={16} className="text-primary" /> Intake Information
                                             </h4>
                                             
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm border-t-2 border-t-emerald-500">
-                                                    <span className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-2 block">Chief Complaint</span>
-                                                    <p className="text-[15px] font-bold text-slate-800 leading-snug">
-                                                        {activeTarget.chiefComplaint || "No complaint recorded."}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+                                                <div className="bg-card border border-border p-6 rounded-xl shadow-sm border-t-2 border-t-primary/50">
+                                                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-3 block">Chief Complaint</span>
+                                                    <p className="text-sm font-medium text-foreground leading-relaxed italic">
+                                                        &quot;{activeTarget.chiefComplaint || "No complaint recorded."}&quot;
                                                     </p>
                                                 </div>
-                                                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm border-t-2 border-t-rose-500 flex items-center justify-between">
+                                                <div className="bg-card border border-border p-6 rounded-xl shadow-sm border-t-2 border-t-destructive flex items-center justify-between">
                                                     <div className="flex flex-col">
-                                                        <span className="text-[11px] font-black text-rose-600/60 uppercase tracking-widest mb-1">Blood Pressure</span>
-                                                        <span className="text-2xl font-black text-rose-600 tracking-tighter">
-                                                            {activeTarget.bloodPressure || "--/--"} <span className="text-[12px] font-bold text-slate-400 tracking-normal ml-1">mmHg</span>
+                                                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Blood Pressure</span>
+                                                        <span className="text-2xl font-bold text-destructive tracking-tighter">
+                                                            {activeTarget.bloodPressure || "--/--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">mmHg</span>
                                                         </span>
                                                     </div>
-                                                    <Heartbeat size={36} weight="duotone" className="text-rose-500/20" />
+                                                    <Heartbeat size={32} weight="duotone" className="text-destructive/20" />
                                                 </div>
-                                                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm border-t-2 border-t-emerald-400 flex items-center justify-between">
+                                                <div className="bg-card border border-border p-6 rounded-xl shadow-sm border-t-2 border-t-primary flex items-center justify-between">
                                                     <div className="flex flex-col">
-                                                        <span className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Temperature</span>
-                                                        <span className="text-2xl font-black text-slate-800 tracking-tighter">
-                                                            {activeTarget.temperature || "--"} <span className="text-[12px] font-bold text-slate-400 tracking-normal ml-1">°C</span>
+                                                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Temperature</span>
+                                                        <span className="text-2xl font-bold text-foreground tracking-tighter">
+                                                            {activeTarget.temperature || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">°C</span>
                                                         </span>
                                                     </div>
-                                                    <Thermometer size={36} weight="duotone" className="text-emerald-500/20" />
+                                                    <Thermometer size={32} weight="duotone" className="text-primary/20" />
                                                 </div>
-                                                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm border-t-2 border-t-indigo-400 flex items-center justify-between">
+                                                <div className="bg-card border border-border p-6 rounded-xl shadow-sm border-t-2 border-t-blue-500/50 flex items-center justify-between">
                                                     <div className="flex flex-col">
-                                                        <span className="text-[11px] font-black text-indigo-600/60 uppercase tracking-widest mb-1">Heart Rate</span>
-                                                        <span className="text-2xl font-black text-slate-800 tracking-tighter">
-                                                            {activeTarget.heartRate || "--"} <span className="text-[12px] font-bold text-slate-400 tracking-normal ml-1">bpm</span>
+                                                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Heart Rate</span>
+                                                        <span className="text-2xl font-bold text-foreground tracking-tighter">
+                                                            {activeTarget.heartRate || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">bpm</span>
                                                         </span>
                                                     </div>
-                                                    <div className="text-indigo-200 text-[10px] font-black uppercase tracking-widest transform rotate-90 origin-right">
-                                                        PULSE
-                                                    </div>
+                                                    <Info size={32} weight="duotone" className="text-blue-500/10" />
                                                 </div>
                                             </div>
 
@@ -446,27 +448,27 @@ export default function UserCallerDashboard({
                         </div>
 
                         {/* Unified Action Footer */}
-                        <div className="bg-white/80 backdrop-blur-md border-t border-emerald-100 p-6 lg:p-8 shrink-0 relative z-10">
+                        <div className="bg-background/80 backdrop-blur-md border-t border-border p-6 lg:p-8 shrink-0 relative z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
                             <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-4 w-full">
                                 
                                 {/* Secondary Actions */}
-                                <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar justify-start">
+                                <div className="flex gap-3 w-full md:w-auto justify-start">
                                     <Button 
                                         variant="outline" 
                                         onClick={() => setReferralModalOpen(true)}
                                         disabled={isProcessing}
-                                        className="h-14 px-5 border-emerald-100 bg-emerald-50/30 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 rounded-xl font-bold uppercase tracking-widest text-[12px] shrink-0 transition-all active:scale-95"
+                                        className="h-12 px-6 border-border bg-background text-foreground hover:bg-muted rounded-xl font-bold uppercase tracking-widest text-[11px] shrink-0 transition-all active:scale-95 shadow-sm"
                                     >
-                                        <ArrowSquareOut size={18} weight="bold" className="mr-2" /> Referral
+                                        <ArrowSquareOut size={16} weight="bold" className="mr-2 text-primary" /> Referral
                                     </Button>
  
                                     <Button 
                                         variant="outline" 
                                         onClick={handleNoShow}
                                         disabled={isProcessing}
-                                        className="h-14 px-5 border-rose-100 bg-rose-50/30 text-rose-600 hover:bg-rose-100 hover:text-rose-700 rounded-xl font-bold uppercase tracking-widest text-[12px] shrink-0 transition-all active:scale-95"
+                                        className="h-12 px-6 border-border bg-background text-destructive hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 rounded-xl font-bold uppercase tracking-widest text-[11px] shrink-0 transition-all active:scale-95 shadow-sm"
                                     >
-                                        <UserMinus size={18} weight="bold" className="mr-2" /> No Show
+                                        <UserMinus size={16} weight="bold" className="mr-2" /> No Show
                                     </Button>
                                     
                                 </div>
@@ -477,17 +479,17 @@ export default function UserCallerDashboard({
                                         <Button 
                                             onClick={handleServe} 
                                             disabled={isProcessing}
-                                            className="w-full md:w-auto h-14 px-10 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 rounded-xl font-black uppercase tracking-widest text-[14px] transition-all hover:-translate-y-1 active:scale-[0.98]"
+                                            className="w-full md:w-auto h-12 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:-translate-y-0.5 active:scale-[0.98]"
                                         >
-                                            <CheckCircle size={20} weight="fill" className="mr-2" /> Complete Consultation
+                                            <CheckCircle size={18} weight="fill" className="mr-2" /> Mark Served
                                         </Button>
                                     ) : (
                                         <Button 
                                             onClick={handleCallNext} 
                                             disabled={isProcessing || !nextVisit}
-                                            className="w-full md:w-auto h-14 px-10 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 rounded-xl font-black uppercase tracking-widest text-[15px] transition-all hover:-translate-y-1 active:scale-[0.98] animate-in fade-in zoom-in duration-300"
+                                            className="w-full md:w-auto h-12 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:-translate-y-0.5 active:scale-[0.98] animate-in fade-in zoom-in duration-300"
                                         >
-                                            <SpeakerHigh size={20} weight="fill" className="mr-2" /> Call patient to clinic
+                                            <SpeakerHigh size={18} weight="fill" className="mr-2" /> Call Patient
                                         </Button>
                                     )}
                                 </div>
@@ -500,25 +502,25 @@ export default function UserCallerDashboard({
 
             {/* Referral Modal */}
             <Dialog open={isReferralModalOpen} onOpenChange={setReferralModalOpen}>
-                <DialogContent className="sm:max-w-[425px] rounded-3xl p-8">
+                <DialogContent className="sm:max-w-md rounded-2xl p-8 border-border">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Refer Patient</DialogTitle>
-                        <p className="text-slate-500 font-medium text-sm mt-1">
+                        <DialogTitle className="text-xl font-bold text-foreground tracking-tight">Refer Patient</DialogTitle>
+                        <p className="text-muted-foreground font-medium text-sm mt-1">
                             Choose the department you want to refer this patient to.
                         </p>
                     </DialogHeader>
                     
-                    <div className="py-6">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Select Department</label>
+                    <div className="py-8">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 block">Target Department</label>
                         <Select onValueChange={setTargetDeptId} value={targetDeptId}>
-                            <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50 font-bold focus:ring-emerald-500">
-                                <SelectValue placeholder="Choose target department..." />
+                            <SelectTrigger className="h-12 rounded-xl border-border bg-muted/30 font-bold focus:ring-primary/20">
+                                <SelectValue placeholder="Choose department..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                            <SelectContent className="rounded-xl border-border shadow-xl">
                                 {allDepartments
                                     .filter(d => d.name.toUpperCase() !== department.toUpperCase())
                                     .map(dept => (
-                                        <SelectItem key={dept.id} value={dept.id} className="font-bold text-slate-700 p-3 rounded-lg focus:bg-emerald-50 focus:text-emerald-900 group">
+                                        <SelectItem key={dept.id} value={dept.id} className="font-bold text-foreground p-3 rounded-lg focus:bg-primary/5 focus:text-primary group">
                                             {dept.name}
                                         </SelectItem>
                                     ))
@@ -527,21 +529,21 @@ export default function UserCallerDashboard({
                         </Select>
                     </div>
 
-                    <DialogFooter className="flex gap-3 pt-4 sm:justify-start">
+                    <DialogFooter className="flex gap-3 sm:justify-end">
                         <Button
-                            className="flex-1 h-12 rounded-xl bg-emerald-500 hover:bg-emerald-400 font-black uppercase tracking-widest"
-                            onClick={handleReferral}
-                            disabled={isProcessing || !targetDeptId}
-                        >
-                            {isProcessing ? "Processing..." : "Confirm Referral"}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="h-12 rounded-xl border-slate-200 font-bold px-6"
+                            variant="ghost"
+                            className="h-12 rounded-xl border-border font-bold px-6"
                             onClick={() => setReferralModalOpen(false)}
                             disabled={isProcessing}
                         >
                             Cancel
+                        </Button>
+                        <Button
+                            className="h-12 rounded-xl bg-primary hover:bg-primary/90 font-bold uppercase tracking-widest px-8 shadow-md shadow-primary/10"
+                            onClick={handleReferral}
+                            disabled={isProcessing || !targetDeptId}
+                        >
+                            {isProcessing ? "Processing..." : "Confirm Referral"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

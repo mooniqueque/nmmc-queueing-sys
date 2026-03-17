@@ -85,16 +85,19 @@ export function ReleasingAssignPanel({
     const isNoShow = selectedPatient.status === 'NO_SHOW';
 
     return (
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 h-full flex flex-col pt-6 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border h-full flex flex-col pt-4 overflow-hidden shadow-sm">
 
             {/* Header */}
-            <div className="px-6 lg:px-8 pb-5 flex items-center justify-between border-b border-slate-100">
-                <h3 className="text-[19px] font-bold text-slate-800 tracking-tight">Patient Verification & Routing</h3>
+            <div className="px-6 lg:px-8 pb-4 flex items-center justify-between border-b border-border">
+                <div className="flex flex-col">
+                    <h3 className="text-base font-bold text-foreground tracking-tight">Patient Verification</h3>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">Routing & Assignment</p>
+                </div>
                 <button
                     onClick={onClose}
-                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                    className="p-1.5 hover:bg-muted rounded-md transition-colors text-muted-foreground"
                 >
-                    <X size={20} weight="bold" />
+                    <X size={18} weight="bold" />
                 </button>
             </div>
 
@@ -102,47 +105,47 @@ export function ReleasingAssignPanel({
 
                 {/* Status Alert */}
                 {isNoShow && (
-                    <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-700 font-bold text-sm">
-                        <WarningCircle size={20} weight="fill" />
+                    <div className="mb-6 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2.5 text-destructive font-bold text-xs">
+                        <WarningCircle size={16} weight="fill" />
                         Patient was previously marked as NO-SHOW.
                     </div>
                 )}
 
                 {/* Profile Card */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative mb-6 hover:shadow-md transition-shadow">
+                <div className="bg-muted/30 border border-border rounded-xl p-5 relative mb-6">
                     <div className="flex items-start gap-4 mb-5">
-                        <div className="w-16 h-16 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-center shrink-0">
-                            <User size={32} weight="fill" className="text-slate-300" />
+                        <div className="w-14 h-14 bg-background rounded-lg border border-border flex items-center justify-center shrink-0">
+                            <User size={28} weight="bold" className="text-muted-foreground/40" />
                         </div>
-                        <div className="pr-8">
-                            <h2 className="text-[22px] leading-tight font-bold text-slate-900 mb-1 tracking-tight">
+                        <div className="min-w-0 pr-6">
+                            <h2 className="text-xl font-bold text-foreground leading-tight truncate">
                                 {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}
                             </h2>
-                            <div className="flex flex-wrap items-center py-1 gap-x-4 gap-y-1 text-[13px] font-bold text-slate-500">
-                                <span>ID: <strong className="text-slate-700 tracking-wide">#{selectedPatient.ticketNumber.toString().padStart(4, '0')}</strong></span>
-                                <span className="opacity-40">•</span>
-                                <span>Gender: <strong className="text-slate-700">{selectedPatient.patient.gender}</strong></span>
-                                <span className="opacity-40">•</span>
-                                <span>Age: <strong className="text-slate-700">{calculateAge(selectedPatient.patient.dateOfBirth)}y</strong></span>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
+                                <span>Ticket: <strong className="text-primary">#{selectedPatient.ticketNumber.toString().padStart(3, '0')}</strong></span>
+                                <span className="w-1 h-1 rounded-full bg-border" />
+                                <span>{selectedPatient.patient.gender}</span>
+                                <span className="w-1 h-1 rounded-full bg-border" />
+                                <span>{calculateAge(selectedPatient.patient.dateOfBirth)}y</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="mb-4">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Chief Complaint</span>
-                        <p className="text-[14px] font-medium text-slate-700 italic">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 block">Chief Complaint</span>
+                        <p className="text-xs font-medium text-foreground italic leading-relaxed">
                             &ldquo;{selectedPatient.chiefComplaint || 'No complaint specified'}&rdquo;
                         </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                         {selectedPatient.classification === 'PRIORITY' && (
-                            <span className="bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-sm shadow-rose-500/20">
+                            <span className="bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-primary/20">
                                 PRIORITY
                             </span>
                         )}
                         {badges.map(b => (
-                            <span key={b} className="bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded border border-blue-200">
+                            <span key={b} className="bg-muted text-muted-foreground text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-border">
                                 {b}
                             </span>
                         ))}
@@ -150,19 +153,19 @@ export function ReleasingAssignPanel({
                 </div>
 
                 {/* Quick Actions (Call / No-Show) */}
-                <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="grid grid-cols-2 gap-3 mb-8">
                     {!isCalled ? (
                         <Button
                             onClick={handleCall}
                             disabled={isPending}
-                            className="h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest gap-2 rounded-2xl shadow-lg shadow-emerald-600/20"
+                            className="h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-widest text-xs gap-2 rounded-xl shadow-sm"
                         >
-                            <BellRinging size={24} weight="fill" />
+                            <BellRinging size={18} weight="bold" />
                             Call Patient
                         </Button>
                     ) : (
-                        <div className="h-14 bg-emerald-50 border-2 border-emerald-200 rounded-2xl flex items-center justify-center gap-2 text-emerald-700 font-black uppercase tracking-widest text-xs animate-pulse">
-                            <Phone size={24} weight="fill" />
+                        <div className="h-12 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center gap-2 text-primary font-bold uppercase tracking-widest text-[10px] animate-pulse">
+                            <Phone size={18} weight="bold" />
                             Currently Serving
                         </div>
                     )}
@@ -171,57 +174,41 @@ export function ReleasingAssignPanel({
                         variant="outline"
                         onClick={handleNoShow}
                         disabled={isPending || isNoShow}
-                        className="h-14 border-slate-200 text-slate-600 font-bold uppercase tracking-widest gap-2 rounded-2xl hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200"
+                        className="h-12 border-border text-muted-foreground font-bold uppercase tracking-widest text-xs gap-2 rounded-xl hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 transition-all shadow-sm"
                     >
-                        <X size={20} weight="bold" />
+                        <X size={16} weight="bold" />
                         No Show
                     </Button>
                 </div>
 
                 {/* Vitals Ribbon */}
-                <div className="grid grid-cols-4 gap-3 mb-8">
-                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex flex-col justify-center">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Blood Pressure</span>
-                        <div className="flex items-baseline gap-1">
-                            <span className={`text-[20px] font-black tracking-tighter ${selectedPatient.bloodPressure ? 'text-rose-600' : 'text-slate-300'}`}>
+                <div className="grid grid-cols-2 gap-3 mb-8">
+                    <div className="bg-card border border-border p-3 rounded-lg flex flex-col justify-center">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Blood Pressure</span>
+                        <div className="flex items-baseline gap-1.5">
+                            <span className={`text-lg font-bold tracking-tight ${selectedPatient.bloodPressure ? 'text-foreground' : 'text-muted/30'}`}>
                                 {selectedPatient.bloodPressure || "--/--"}
                             </span>
-                            <span className="text-[10px] font-bold text-slate-400">mmHg</span>
+                            <span className="text-[10px] font-medium text-muted-foreground">mmHg</span>
                         </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex flex-col justify-center">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Temperature</span>
-                        <div className="flex items-baseline gap-1">
-                            <span className={`text-[20px] font-black tracking-tighter ${selectedPatient.temperature ? 'text-slate-800' : 'text-slate-300'}`}>
+                    <div className="bg-card border border-border p-3 rounded-lg flex flex-col justify-center">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Temperature</span>
+                        <div className="flex items-baseline gap-1.5">
+                            <span className={`text-lg font-bold tracking-tight ${selectedPatient.temperature ? 'text-foreground' : 'text-muted/30'}`}>
                                 {selectedPatient.temperature || "--"}
                             </span>
-                            <span className="text-[10px] font-bold text-slate-400">°C</span>
-                        </div>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex flex-col justify-center">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Heart Rate</span>
-                        <div className="flex items-baseline gap-1">
-                            <span className={`text-[20px] font-black tracking-tighter ${selectedPatient.heartRate ? 'text-slate-800' : 'text-slate-300'}`}>
-                                {selectedPatient.heartRate || "--"}
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-400">bpm</span>
-                        </div>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl flex flex-col justify-center">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Weight</span>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-[20px] font-black tracking-tighter text-slate-300">--</span>
-                            <span className="text-[10px] font-bold text-slate-400">kg</span>
+                            <span className="text-[10px] font-medium text-muted-foreground">°C</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Routing Selects */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="space-y-4 mb-8">
                     <div>
-                        <Label className="text-[13px] font-bold text-slate-700 tracking-tight mb-2 block">Assign Clinic / Department</Label>
+                        <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Clinic / Department</Label>
                         <select
-                            className="w-full bg-white border border-slate-300 text-slate-800 text-[14px] font-bold rounded-xl h-11 px-4 appearance-none outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
+                            className="w-full bg-background border border-border text-foreground text-sm font-bold rounded-lg h-10 px-4 appearance-none outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
                             value={selectedDepartmentId}
                             onChange={(e) => {
                                 setSelectedDepartmentId(e.target.value);
@@ -236,16 +223,16 @@ export function ReleasingAssignPanel({
                     </div>
 
                     <div>
-                        <Label className="text-[13px] font-bold text-slate-700 tracking-tight mb-2 flex items-center justify-between">
-                            Priority Type
+                        <div className="flex items-center justify-between mb-2">
+                            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Priority Type</Label>
                             {recommendedOption && (
-                                <span className="text-[9px] uppercase tracking-widest text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
                                     Suggested: {recommendedOption.name}
                                 </span>
                             )}
-                        </Label>
+                        </div>
                         <select
-                            className="w-full bg-white border border-slate-300 text-slate-800 text-[14px] font-bold rounded-xl h-11 px-4 appearance-none outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
+                            className="w-full bg-background border border-border text-foreground text-sm font-bold rounded-lg h-10 px-4 appearance-none outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-sm disabled:opacity-50"
                             value={selectedQueueOption}
                             onChange={(e) => setSelectedQueueOption(e.target.value)}
                             disabled={!selectedDepartmentId}
@@ -259,11 +246,11 @@ export function ReleasingAssignPanel({
                 </div>
 
                 {/* Internal Notes */}
-                <div className="mb-6">
-                    <Label className="text-[13px] font-bold text-slate-700 tracking-tight mb-2 block">Internal Routing Notes</Label>
+                <div className="mb-8">
+                    <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Internal Routing Notes</Label>
                     <textarea
-                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-[14px] font-medium rounded-xl p-4 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-inner resize-none h-28 placeholder:text-slate-400 placeholder:italic"
-                        placeholder="Add instructions for nursing staff or the receiving clinic..."
+                        className="w-full bg-muted/50 border border-border text-foreground text-xs font-medium rounded-lg p-3 outline-none focus:bg-background focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-inner resize-none h-24 placeholder:text-muted-foreground/50 italic"
+                        placeholder="Add instructions for receiving clinic..."
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                     />
@@ -271,23 +258,23 @@ export function ReleasingAssignPanel({
             </div>
 
             {/* Bottom Global Actions */}
-            <div className="bg-slate-50 border-t border-slate-200 p-4 lg:p-6 flex items-center justify-between gap-4 mt-auto rounded-b-2xl">
+            <div className="bg-muted/10 border-t border-border p-5 lg:p-6 flex items-center justify-between gap-4 mt-auto">
                 <button
                     onClick={onClose}
-                    className="text-[14px] font-bold text-slate-500 hover:text-slate-800 transition-colors px-2"
+                    className="text-[10px] font-bold text-muted-foreground hover:text-foreground uppercase tracking-widest transition-all"
                 >
-                    Clear <br /> Selection
+                    Clear Selection
                 </button>
 
-                <div className="flex gap-3 w-full justify-end">
+                <div className="flex gap-2 w-auto justify-end">
                     <Button
                         disabled={!selectedDepartmentId || !selectedQueueOption || isPending || !isCalled}
                         onClick={handleAssign}
-                        className="h-12 bg-emerald-500 hover:bg-emerald-400 border-none shadow-lg shadow-emerald-500/20 text-white text-[14px] px-8 font-black uppercase tracking-widest transition-transform active:scale-95 flex-1 max-w-[280px] gap-2"
+                        className="h-11 bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-6 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-md shadow-primary/10 gap-2 min-w-[180px]"
                     >
                         {isPending ? "Routing..." : (
                             <>
-                                <Printer size={20} weight="fill" /> Print & Assign
+                                <Printer size={18} weight="bold" /> Print & Assign
                             </>
                         )}
                     </Button>

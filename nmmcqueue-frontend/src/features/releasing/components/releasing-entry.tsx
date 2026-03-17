@@ -140,58 +140,61 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     };
 
     return (
-        <div className="flex flex-col h-full w-full bg-slate-50/50">
-            <div className="bg-white border-b px-8 py-4 shrink-0">
+        <div className="flex flex-col h-full w-full bg-background">
+            <div className="bg-card border-b border-border px-8 py-4 shrink-0 shadow-sm z-10">
                 <Tabs defaultValue="queue" className="w-full">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-6">
-                            <h1 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-                                <Queue size={24} weight="duotone" className="text-emerald-600" />
-                                Window Registration
-                            </h1>
-                            <TabsList className="bg-slate-100 rounded-xl p-1 h-11 border border-slate-200/50">
-                                <TabsTrigger value="queue" className="rounded-lg h-9 px-6 font-bold text-[13px] data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm transition-all duration-300 gap-2">
-                                    <Queue size={18} weight="bold" />
+                        <div className="flex items-center gap-8">
+                            <div className="flex flex-col">
+                                <h1 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+                                    <Queue size={20} weight="bold" className="text-primary" />
+                                    Window Registration
+                                </h1>
+                                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">NMMC Releasing Unit</p>
+                            </div>
+                            <TabsList className="bg-muted/50 rounded-lg p-1 h-10 border border-border">
+                                <TabsTrigger value="queue" className="rounded-md h-8 px-5 font-bold text-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200 gap-2">
+                                    <Queue size={16} weight="bold" />
                                     Active Queue
                                 </TabsTrigger>
-                                <TabsTrigger value="reports" className="rounded-lg h-9 px-6 font-bold text-[13px] data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm transition-all duration-300 gap-2">
-                                    <ChartBar size={18} weight="bold" />
-                                    Performance Reports
+                                <TabsTrigger value="reports" className="rounded-md h-8 px-5 font-bold text-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200 gap-2">
+                                    <ChartBar size={16} weight="bold" />
+                                    Reports
                                 </TabsTrigger>
                             </TabsList>
                         </div>
                         <div className="flex items-center gap-4">
                             <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="outline" size="sm" className="rounded-xl font-bold bg-white text-rose-600 border-rose-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition-all gap-2 h-10 shadow-sm border-2">
-                                        <ArrowsCounterClockwise size={18} weight="bold" className={isResetting ? "animate-spin" : ""} />
-                                        <span>Reset Daily Queue</span>
+                                    <Button variant="ghost" size="sm" className="rounded-lg font-bold text-destructive hover:bg-destructive/5 hover:text-destructive gap-2 h-9 border border-border">
+                                        <ArrowsCounterClockwise size={16} weight="bold" className={isResetting ? "animate-spin" : ""} />
+                                        <span>Reset Queue</span>
                                     </Button>
                                 </DialogTrigger>
-                                <DialogContent className="sm:max-w-md rounded-[2rem] p-8 border-0 shadow-2xl">
+                                <DialogContent className="sm:max-w-md rounded-xl p-8 border-border shadow-xl">
                                     <DialogHeader className="pt-2">
-                                        <div className="size-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 mb-6 mx-auto">
-                                            <ArrowsCounterClockwise size={32} weight="duotone" />
+                                        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-6 mx-auto">
+                                            <ArrowsCounterClockwise size={24} weight="bold" />
                                         </div>
-                                        <DialogTitle className="text-center text-2xl font-black text-slate-800 tracking-tight mb-2">Are you absolutely sure?</DialogTitle>
-                                        <DialogDescription className="text-center text-slate-500 font-medium leading-relaxed">
-                                            This action will reset the ticket sequence to <span className="font-bold text-slate-800">1</span> and clear all pending visits from the queue. This is irreversible.
+                                        <DialogTitle className="text-center text-xl font-bold text-foreground tracking-tight mb-2">Reset Daily Queue?</DialogTitle>
+                                        <DialogDescription className="text-center text-muted-foreground font-medium text-sm leading-relaxed">
+                                            This action will reset the ticket sequence to <span className="font-bold text-foreground">1</span> and clear all pending visits. This is irreversible.
                                         </DialogDescription>
                                     </DialogHeader>
-                                    <DialogFooter className="mt-8 flex-col sm:flex-row gap-3">
+                                    <DialogFooter className="mt-8 flex gap-3 sm:justify-center">
                                         <Button 
                                             variant="ghost" 
                                             onClick={() => setResetDialogOpen(false)}
-                                            className="w-full sm:flex-1 h-12 rounded-2xl font-bold text-slate-600 hover:bg-slate-50"
+                                            className="flex-1 h-11 rounded-lg font-bold text-muted-foreground hover:bg-muted"
                                         >
-                                            Nevermind
+                                            Cancel
                                         </Button>
                                         <Button 
                                             onClick={handleReset}
                                             disabled={isResetting}
-                                            className="w-full sm:flex-1 h-12 rounded-2xl font-black bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-200"
+                                            className="flex-1 h-11 rounded-lg font-bold bg-destructive hover:bg-destructive/90 text-white shadow-sm"
                                         >
-                                            {isResetting ? "Resetting..." : "Yes, Reset All"}
+                                            {isResetting ? "Resetting..." : "Confirm Reset"}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>
@@ -235,11 +238,11 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="reports" className="mt-6 focus-visible:outline-none">
-                        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center flex flex-col items-center justify-center min-h-100 shadow-sm">
-                            <ChartBar size={64} weight="duotone" className="text-slate-200 mb-4" />
-                            <h3 className="text-xl font-bold text-slate-800">Registration Reports</h3>
-                            <p className="text-slate-500 max-w-sm mt-1">Detailed analytics for window processing times and patient throughput will be available soon.</p>
+                    <TabsContent value="reports" className="mt-6 focus-visible:outline-none h-full">
+                        <div className="bg-card rounded-xl border border-border border-dashed p-16 text-center flex flex-col items-center justify-center min-h-[400px]">
+                            <ChartBar size={48} weight="duotone" className="text-muted/30 mb-6" />
+                            <h3 className="text-lg font-bold text-foreground">Registration Reports</h3>
+                            <p className="text-muted-foreground text-sm max-w-sm mt-2 font-medium">Detailed analytics for processing times and patient throughput will be available in the next update.</p>
                         </div>
                     </TabsContent>
                 </Tabs>

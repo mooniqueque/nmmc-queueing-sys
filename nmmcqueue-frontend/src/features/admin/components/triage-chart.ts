@@ -10,11 +10,11 @@ export const getBarChartOptions = (volumeData: VolumeData[]): ApexOptions => ({
         parentHeightOffset: 0,
         offsetX: -10,
     },
-    colors: ['#10b981'], // emerald-500
+    colors: ['#059669'], // emerald-600
     plotOptions: {
         bar: {
-            borderRadius: 4,
-            columnWidth: '40%',
+            borderRadius: 2,
+            columnWidth: '35%',
         }
     },
     dataLabels: { enabled: false },
@@ -23,18 +23,18 @@ export const getBarChartOptions = (volumeData: VolumeData[]): ApexOptions => ({
         axisBorder: { show: false },
         axisTicks: { show: false },
         labels: {
-            style: { colors: '#64748b', fontSize: '12px' },
+            style: { colors: 'var(--muted-foreground)', fontSize: '12px' },
             offsetY: 5,
         }
     },
     yaxis: {
         labels: {
-            style: { colors: '#64748b', fontSize: '12px' }
+            style: { colors: 'var(--muted-foreground)', fontSize: '12px' }
         }
     },
     grid: {
-        borderColor: '#e2e8f0',
-        strokeDashArray: 3,
+        borderColor: 'var(--border)',
+        strokeDashArray: 4,
         xaxis: { lines: { show: false } },
         yaxis: { lines: { show: true } },
         padding: { top: 0, right: 0, bottom: 0, left: 10 }

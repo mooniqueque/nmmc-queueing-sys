@@ -2,7 +2,6 @@
 import {
     Sidebar,
     SidebarContent,
-    SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
     SidebarGroupLabel,
@@ -14,33 +13,19 @@ import {
     Article,
     Desktop,
     FirstAidKit,
-    Headset,
     Newspaper,
     Phone,
-    SignOut,
     SquaresFour
 } from '@phosphor-icons/react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { authClient } from "@/lib/database/auth-client";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 
 export default function AdminSidebar() {
-    const router = useRouter();
     const pathname = usePathname();
 
-    const handleLogout = async () => {
-        await authClient.signOut({
-            fetchOptions: {
-                onSuccess: () => {
-                    router.push("/login");
-                    router.refresh();
-                }
-            }
-        });
-    };
     const isActive = (path: string) => pathname === path;
 
     const mainSidebar = [
@@ -61,33 +46,41 @@ export default function AdminSidebar() {
     ];
 
     return (
-        <Sidebar className="border-r bg-emerald-50/50">
+        <Sidebar className="border-r">
             <SidebarContent>
-                <div className="p-4 flex items-center gap-2 mb-2">
-                    <div className="h-10 w-10 flex items-center justify-center relative">
+                <div className="p-6 flex items-center gap-3">
+                    <div className="h-8 w-8 flex items-center justify-center relative">
                         <Image
                             src="/logo.png"
                             alt="NMMC Logo"
-                            width={40}
-                            height={40}
-                            className="rounded-full ring-2 ring-emerald-100 object-cover"
+                            width={32}
+                            height={32}
+                            className="object-cover"
                         />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-bold text-sm leading-tight text-emerald-800 ml-2"> Northern Mindanao Medical Center</span>
+                        <span className="font-bold text-xs leading-none tracking-tight">NMMC</span>
+                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Queue System</span>
                     </div>
                 </div>
 
-                {/*main nav*/}
+                {/* Main Navigation */}
                 <SidebarGroup>
-                    <SidebarGroupContent>
+                    <SidebarGroupLabel className="px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                        Navigation
+                    </SidebarGroupLabel>
+                    <SidebarGroupContent className="px-3">
                         <SidebarMenu>
                             {mainSidebar.map((item) => (
                                 <SidebarMenuItem key={item.href}>
-                                    <SidebarMenuButton asChild className={`text-black text-base px-3 h-auto w-full justify-start ${isActive(item.href) ? 'bg-emerald-200 font-bold' : 'font-medium hover:bg-emerald-200'}`}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={isActive(item.href)}
+                                        className="w-full justify-start gap-3 h-10 px-3 transition-colors"
+                                    >
                                         <Link href={item.href}>
-                                            <item.Icon size={20} className="text-emerald-700" />
-                                            <span>{item.label}</span>
+                                            <item.Icon size={18} weight={isActive(item.href) ? "bold" : "regular"} />
+                                            <span className="text-sm font-medium">{item.label}</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
@@ -96,52 +89,29 @@ export default function AdminSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
 
-                <SidebarGroup className="mt-2">
-                    <SidebarGroupLabel className="text-xs font-bold text-gray-600 uppercase tracking-wider px-4 mb-1">
-                        Admin Settings
+                <SidebarGroup className="mt-4">
+                    <SidebarGroupLabel className="px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                        Settings
                     </SidebarGroupLabel>
-                    <SidebarMenu>
-                        {adminSettings.map((item) => (
-                            <SidebarMenuItem key={item.href}>
-                                <SidebarMenuButton asChild className={`text-black text-base px-3 h-auto w-full justify-start ${isActive(item.href) ? 'bg-emerald-200 font-bold' : 'font-medium hover:bg-emerald-200'}`}>
-                                    <Link href={item.href}>
-                                        <span>{item.label}</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))}
-                    </SidebarMenu>
+                    <SidebarGroupContent className="px-3">
+                        <SidebarMenu>
+                            {adminSettings.map((item) => (
+                                <SidebarMenuItem key={item.href}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={isActive(item.href)}
+                                        className="w-full justify-start h-10 px-3 transition-colors"
+                                    >
+                                        <Link href={item.href}>
+                                            <span className="text-sm font-medium">{item.label}</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
-
-            {/*SIDEBAR FOOTER*/}
-            <SidebarFooter className="border-t p-4 bg-emerald-50/30">
-                <SidebarMenu className="gap-2">
-
-                    {/*CONTACT SUPP*/}
-                    <SidebarMenuItem className="mb-2">
-                        <SidebarMenuButton className="text-black font-medium hover:bg-emerald-200 text-base px-3 h-auto">
-                            <a href="#" className="flex items-left gap-2">
-                                <Headset size={20} className="mr-2" />
-                                <span> Contact Support </span>
-                            </a>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-
-                    {/*LOGOUT*/}
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            onClick={handleLogout}
-                            className="text-red-500 font-medium hover:text-red-700 hover:bg-red-50 text-base px-3 h-auto w-full justify-start cursor-pointer">
-                            <div className="flex items-center gap-2">
-                                <SignOut size={20} className="mr-2" />
-                                <span> Logout </span>
-                            </div>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-
-                </SidebarMenu>
-            </SidebarFooter>
         </Sidebar>
     )
 }

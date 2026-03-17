@@ -2,11 +2,12 @@ import rateLimit from 'express-rate-limit';
 
 /**
  * General API rate limiter.
- * Increased limits to accommodate active dashboard usage.
+ * Significantly increased to support multiple active dashboard tabs 
+ * (Monitor, Caller, Triage) which perform frequent polling/updates.
  */
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 1000,
+    limit: 5000,
     standardHeaders: 'draft-6',
     legacyHeaders: false,
     message: {
@@ -30,12 +31,12 @@ export const kioskLimiter = rateLimit({
 });
 
 /**
- * Strict limiter for authentication attempts.
- * Lenient enough for development but prevents brute force.
+ * Limiter for authentication attempts.
+ * Increased to accommodate frequent session checks from multiple tabs.
  */
 export const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 100,
+    limit: 1000, 
     standardHeaders: 'draft-6',
     legacyHeaders: false,
     message: {

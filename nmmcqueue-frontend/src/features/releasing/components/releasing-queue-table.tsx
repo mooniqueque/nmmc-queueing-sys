@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { VisitWithPatient } from "@/features/triage/types";
-import { CheckCircle, Clock, MagnifyingGlass, Funnel, ArrowClockwise, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CheckCircle, Clock, MagnifyingGlass, Funnel, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { useState, useEffect } from "react";
 import { calculateAge } from "@/lib/utils";
 
@@ -27,10 +27,10 @@ interface ReleasingQueueTableProps {
 }
 
 const TABS: { key: QueueCategory; label: string; color: string; activeBg: string; activeText: string }[] = [
-    { key: "ALL", label: "All Patients", color: "text-slate-500 hover:text-slate-800", activeBg: "bg-slate-600", activeText: "text-white" },
-    { key: "PRIORITY", label: "Priority", color: "text-slate-500 hover:text-amber-600", activeBg: "bg-amber-500", activeText: "text-white" },
-    { key: "REGULAR", label: "Regular", color: "text-slate-500 hover:text-emerald-600", activeBg: "bg-emerald-500", activeText: "text-white" },
-    { key: "NO_SHOW", label: "No Show", color: "text-slate-500 hover:text-rose-600", activeBg: "bg-rose-500", activeText: "text-white" },
+    { key: "ALL", label: "All Patients", color: "text-muted-foreground hover:text-foreground", activeBg: "bg-primary", activeText: "text-primary-foreground" },
+    { key: "PRIORITY", label: "Priority", color: "text-muted-foreground hover:text-primary", activeBg: "bg-primary/20", activeText: "text-primary" },
+    { key: "REGULAR", label: "Regular", color: "text-muted-foreground hover:text-primary", activeBg: "bg-primary/20", activeText: "text-primary" },
+    { key: "NO_SHOW", label: "No Show", color: "text-muted-foreground hover:text-destructive", activeBg: "bg-destructive", activeText: "text-destructive-foreground" },
 ];
 
 export function ReleasingQueueTable({
@@ -48,64 +48,59 @@ export function ReleasingQueueTable({
     const ITEMS_PER_PAGE = 8; // Adjust this number as needed
 
     // Reset page to 1 when tab changes or search query changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [activeTab, searchQuery]);
+    // Moved to parent to avoid cascading renders
 
     const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE) || 1;
     const paginatedItems = items.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative ">
+        <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden relative shadow-sm">
 
             {/* Split Top Header - Matches Reference closely */}
-            <div className="bg-white shrink-0">
+            <div className="bg-muted/10 shrink-0">
                 {/* Header 1: Title and global search */}
-                <div className="border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center px-6 lg:px-8 py-5 gap-4">
+                <div className="border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center px-6 lg:px-8 py-5 gap-4">
                     <div>
-                        <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Pending Referral Queue</h2>
-                        <p className="text-sm text-slate-500 font-medium">
-                            Currently <strong className="text-emerald-600 mx-1">{counts.ALL}</strong> patients waiting for verification
+                        <h2 className="text-lg font-bold text-foreground tracking-tight">Pending Referrals</h2>
+                        <p className="text-xs text-muted-foreground font-medium">
+                            Currently <strong className="text-primary font-bold mx-0.5">{counts.ALL}</strong> patients waiting
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        <div className="relative w-full md:w-80">
-                            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} weight="bold" />
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <div className="relative w-full md:w-72">
+                            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" size={14} weight="bold" />
                             <Input
-                                placeholder="Search by patient name or ticket no..."
+                                placeholder="Search patient..."
                                 value={searchQuery}
                                 onChange={(e) => onSearchChange(e.target.value)}
-                                className="pl-10 h-10 w-full bg-slate-50/50 border-slate-200 text-[13px] font-semibold rounded-md focus-visible:ring-emerald-500"
+                                className="pl-9 h-9 w-full bg-background border-border text-xs font-medium rounded-lg focus-visible:ring-primary/20"
                             />
                         </div>
-                        <button className="h-10 px-4 shrink-0 flex items-center justify-center gap-2 border border-slate-200 rounded-md hover:bg-slate-50 text-slate-600 font-bold text-[13px] transition-colors shadow-sm">
-                            <Funnel size={16} weight="bold" /> Filter
-                        </button>
-                        <button className="h-10 w-10 shrink-0 flex items-center justify-center border border-slate-200 rounded-md hover:bg-slate-50 text-slate-600 transition-colors shadow-sm">
-                            <ArrowClockwise size={16} weight="bold" />
+                        <button className="h-9 px-3 shrink-0 flex items-center justify-center gap-2 border border-border bg-background rounded-lg hover:bg-muted text-muted-foreground font-bold text-[11px] transition-all shadow-sm">
+                            <Funnel size={14} weight="bold" /> Filter
                         </button>
                     </div>
                 </div>
 
                 {/* Header 2: Pill Tabs */}
-                <div className="border-b border-slate-100 px-6 lg:px-8 py-3 flex gap-2">
-                    <div className="flex p-1 bg-slate-100/80 rounded-lg border border-slate-200/50">
+                <div className="border-b border-border px-6 lg:px-8 py-2.5 flex gap-2">
+                    <div className="flex p-1 bg-muted/50 rounded-lg border border-border">
                         {TABS.map(tab => {
                             const count = counts[tab.key];
                             const isActive = activeTab === tab.key;
                             return (
-                                <button
+                                    <button
                                     key={tab.key}
                                     onClick={() => onTabChange(tab.key)}
-                                    className={`relative flex items-center gap-2 px-4 py-1.5 text-[13px] font-bold rounded-lg transition-all duration-300 ${isActive
-                                        ? `${tab.activeBg} ${tab.activeText} shadow-md shadow-black/5`
+                                    className={`relative flex items-center gap-2 px-4 py-1.5 text-[11px] font-bold rounded-md transition-all duration-200 ${isActive
+                                        ? `${tab.activeBg} ${tab.activeText} shadow-sm`
                                         : `bg-transparent ${tab.color}`
                                         }`}
                                 >
                                     <span>{tab.label}</span>
                                     {count > 0 && (
-                                        <span className={`px-1.5 py-0.5 rounded-lg text-[10px] leading-none transition-colors ${isActive ? "bg-white/20 text-white" : "bg-slate-200/70 text-slate-600"}`}>
+                                        <span className={`px-1.5 py-0.5 rounded-md text-[9px] leading-none transition-colors ${isActive ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}>
                                             {count}
                                         </span>
                                     )}
@@ -117,10 +112,10 @@ export function ReleasingQueueTable({
             </div>
 
             {/* Table Header (Borderless, pure text) */}
-            <div className={`grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[70px_1fr_1fr_120px]"} gap-6 px-6 lg:px-8 py-4 bg-white text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0 border-b border-slate-100`}>
+            <div className={`grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[80px_1fr_1fr_120px]"} gap-6 px-6 lg:px-8 py-3 bg-card text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em] shrink-0 border-b border-border`}>
                 <div>#Queue</div>
                 <div>Patient Name</div>
-                {!isPanelOpen && <div>Chief Complaint</div>}
+                {!isPanelOpen && <div>Department</div>}
                 <div className="text-right">Wait Time</div>
             </div>
 
@@ -152,55 +147,54 @@ export function ReleasingQueueTable({
                                 <button
                                     key={visit.id}
                                     onClick={() => onSelectPatient(visit)}
-                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[70px_1fr_1fr_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b outline-none relative hover:-translate-y-px ${isSelected
-                                        ? "bg-emerald-50/40 border-emerald-200 z-10 hover:bg-emerald-50 shadow-[inset_4px_0_0_#10b981]"
-                                        : "bg-white border-slate-100 hover:shadow-md hover:z-10 hover:border-slate-200"
+                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[60px_1fr_120px]" : "grid-cols-[80px_1fr_1fr_120px]"} gap-6 items-center px-6 lg:px-8 py-4 transition-all duration-200 cursor-pointer min-h-[72px] border-b border-border outline-none relative hover:bg-muted/5 ${isSelected
+                                        ? "bg-primary/3 z-10"
+                                        : "bg-background"
                                         }`}
                                 >
+                                    {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
                                     {/* Ticket (e.g. #082) */}
-                                    <div className={`text-[15px] font-black transition-colors ${isSelected ? 'text-emerald-600' : 'text-emerald-500/80'}`}>
+                                    <div className={`text-base font-bold transition-colors ${isSelected ? 'text-primary' : 'text-primary/60'}`}>
                                         #{visit.ticketNumber.toString().padStart(3, '0')}
                                     </div>
 
                                     {/* Name & Demographics */}
                                     <div className="min-w-0 pr-4 flex flex-col justify-center">
-                                        <div className={`font-black text-[14px] leading-tight truncate ${isSelected ? 'text-emerald-950' : 'text-slate-800'}`}>
-                                            {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
+                                        <div className={`font-bold text-sm leading-tight truncate ${isSelected ? 'text-foreground' : 'text-foreground/90'}`}>
+                                            {visit.patient.lastName}, <span className="text-muted-foreground font-medium">{visit.patient.firstName}</span>
                                         </div>
-                                        <div className="text-[11px] font-bold text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                            {visit.patient.gender.substring(0, 1)}, {calculateAge(visit.patient.dateOfBirth)}y
-                                            <span className="opacity-50 mx-0.5">•</span>
-                                            {visit.patient.gender.substring(0, 1)}, {calculateAge(visit.patient.dateOfBirth)}y
-                                            <span className="opacity-50 mx-0.5">•</span>
-                                            <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-slate-100 rounded border border-slate-200">{category}</span>
+                                        <div className="text-[10px] font-medium text-muted-foreground mt-1 flex items-center gap-2 flex-wrap uppercase tracking-wider">
+                                            {visit.patient.gender.substring(0, 1)} • {calculateAge(visit.patient.dateOfBirth)}y
+                                            <span className="w-1 h-1 rounded-full bg-border" />
+                                            <span className="font-bold text-primary/80">{category}</span>
                                             {visit.status === 'IN_PROGRESS' && (
-                                                <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded animate-pulse">
+                                                <span className="px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-md animate-pulse">
                                                     CALLED
                                                 </span>
                                             )}
                                             {visit.status === 'NO_SHOW' && (
-                                                <span className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-rose-100 text-rose-700 border border-rose-200 rounded">
+                                                <span className="px-1.5 py-0.5 bg-destructive/10 text-destructive border border-destructive/20 rounded-md">
                                                     NO-SHOW
                                                 </span>
                                             )}
                                             {badges.map(b => (
-                                                <span key={b} className="uppercase text-[9px] font-black tracking-widest px-1 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
+                                                <span key={b} className="px-1.5 py-0.5 bg-muted text-muted-foreground border border-border rounded-md">
                                                     {b}
                                                 </span>
                                             ))}
                                         </div>
                                     </div>
 
-                                    {/* Chief Complaint (Hidden if Panel Open) */}
+                                    {/* Department (Hidden if Panel Open) */}
                                     {!isPanelOpen && (
-                                        <div className="font-medium text-[13px] text-slate-600 italic line-clamp-1 pr-4">
-                                            {visit.chiefComplaint || "-"}
+                                        <div className="font-bold text-xs text-muted-foreground line-clamp-1 pr-4">
+                                            {visit.department?.name || "-"}
                                         </div>
                                     )}
 
                                     {/* Wait Time Indicator */}
                                     <div className="flex items-center justify-end">
-                                        <div className={`flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-full text-[11px] ${waitColorClasses}`}>
+                                        <div className={`flex items-center gap-1.5 font-bold px-3 py-1 rounded-full text-[10px] ${waitColorClasses}`}>
                                             <Clock size={12} weight="bold" />
                                             {waitStr}
                                         </div>
@@ -214,27 +208,27 @@ export function ReleasingQueueTable({
 
             {/* Pagination Footer */}
             {items.length > 0 && (
-                <div className="border-t border-slate-100 p-4 bg-white flex items-center justify-between shrink-0">
-                    <div className="text-xs font-bold text-slate-500">
-                        Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, items.length)} of {items.length} entries
+                <div className="border-t border-border px-6 py-4 bg-muted/10 flex items-center justify-between shrink-0">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                        Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, items.length)} of {items.length}
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
-                            className="p-2 border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="p-1.5 border border-border rounded-md text-foreground hover:bg-background disabled:opacity-30 transition-all shadow-sm"
                         >
-                            <CaretLeft size={16} weight="bold" />
+                            <CaretLeft size={14} weight="bold" />
                         </button>
-                        <div className="text-xs font-bold text-slate-700 mx-2">
-                            Page {currentPage} of {totalPages}
+                        <div className="text-[10px] font-bold text-foreground mx-3">
+                            {currentPage} / {totalPages}
                         </div>
                         <button
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            className="p-2 border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="p-1.5 border border-border rounded-md text-foreground hover:bg-background disabled:opacity-30 transition-all shadow-sm"
                         >
-                            <CaretRight size={16} weight="bold" />
+                            <CaretRight size={14} weight="bold" />
                         </button>
                     </div>
                 </div>

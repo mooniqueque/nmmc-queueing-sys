@@ -143,6 +143,7 @@ model WorkStation {
   users           User[]
   originatedVisits Visit[]      @relation("KioskVisits")
   triageVisits     Visit[]      @relation("TriageVisits")
+  calledVisits     Visit[]      @relation("CalledAtStation")
   pairedStationId  String?
   pairedStation    WorkStation? @relation("StationPairing", fields: [pairedStationId], references: [id])
   pairings         WorkStation[] @relation("StationPairing")
@@ -197,6 +198,7 @@ model Visit {
   triagedAt       DateTime?
   calledAt        DateTime?
   calledByUserId  String?
+  calledAtStationId String?
   windowNumber    Int?
   queueDate       DateTime    @default(now())
   createdAt       DateTime    @default(now())
@@ -211,6 +213,7 @@ model Visit {
   patient         Patient     @relation(fields: [patientId], references: [id])
   triagedByUser   User?       @relation("UserTriage", fields: [triagedByUserId], references: [id])
   calledByUser    User?       @relation("UserCall", fields: [calledByUserId], references: [id])
+  calledAtStation WorkStation? @relation("CalledAtStation", fields: [calledAtStationId], references: [id])
   
   originStationId String?
   triageStationId String?
@@ -229,6 +232,7 @@ model Visit {
   @@index([status])
   @@index([createdAt])
   @@index([classification])
+  @@unique([queueDate, ticketNumber])
   @@map("visit")
 }
 
@@ -271,9 +275,12 @@ model VisitStatusHistory {
 }
 
 model Sequence {
-  id    String @id @default(cuid())
-  name  String @unique
-  value Int    @default(0)
+  id          String   @id @default(cuid())
+  name        String   @unique
+  prefix      String?
+  value       Int      @default(0)
+  description String?
+  updatedAt   DateTime @updatedAt
 
   @@map("sequence")
 }

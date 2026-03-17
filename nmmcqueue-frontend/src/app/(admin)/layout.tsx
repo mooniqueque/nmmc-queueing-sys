@@ -18,12 +18,14 @@ export default async function AdminLayout({
     // 1. middleware.ts — blocks non-ADMIN from any /admin-* route
     // 2. Individual page-level getSession() guards
     return (
-        <SidebarProvider>
-            <AdminSidebar />
-            {/* MAIN CONTENT */}
-            <SidebarInset className="bg-slate-50/50">
-                {children}
-            </SidebarInset>
-        </SidebarProvider>
+        <div style={{ zoom: "1.1" }}>
+            <SidebarProvider>
+                <AdminSidebar />
+                {/* MAIN CONTENT */}
+                <SidebarInset>
+                    {children}
+                </SidebarInset>
+            </SidebarProvider>
+        </div>
     )
 }

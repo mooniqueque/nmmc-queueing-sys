@@ -1,6 +1,5 @@
 "use client";
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,7 +10,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
     Table,
     TableBody,
@@ -28,13 +26,9 @@ import {
     Check,
     CheckCircle,
     Clock,
-    FileText,
     Funnel,
-    Gear,
-    Headset,
     HourglassMedium,
     MagnifyingGlass,
-    Phone,
     Trash,
     Users,
     XCircle
@@ -45,6 +39,7 @@ import { approveUser, rejectUser, toggleUserStatus, updateUserRole, updateUserDe
 import { AddUserDialog } from "./add-user-dialog";
 import { StatsCard } from "./stats-card";
 import { useIsMounted } from "@/hooks/use-is-mounted";
+import { AdminHeader } from "@/components/layouts/admin-header";
 
 /**
  * COORDINATOR COMPONENT: AdminDashboard
@@ -90,9 +85,9 @@ export default function AdminDashboard({
         const matchesSearch =
             user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (user.department?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
             user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.workstation?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (user.workstation?.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
             user.employeeID.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesFilter = filterRole === 'All Users' || user.role === filterRole;
@@ -190,25 +185,12 @@ export default function AdminDashboard({
     return (
         <div className="flex flex-1 flex-col">
             {/* Header Section */}
-            <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
-                <div className="flex items-center gap-3">
-                    <SidebarTrigger />
-                    <h1 className="text-xl font-bold text-black">Admin Dashboard</h1>
-                </div>
-                <div className='flex items-center gap-3'>
-                    <div className="hidden sm:flex sm:flex-col items-end mr-1">
-                        <span className="text-sm font-bold text-black">{loggedInUser.name}</span>
-                        <span className="text-xs text-black font-medium uppercase tracking-tighter">{loggedInUser.role}</span>
-                    </div>
-                    <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
-                        <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
-                            {loggedInUser.name?.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
-                </div>
-            </header>
+            <AdminHeader 
+                user={loggedInUser} 
+                title="Admin Dashboard" 
+            />
 
-            <main className='p-6 space-y-6 bg-slate-50/50 px-10'>
+            <main className="flex-1 p-6 lg:p-10 space-y-8 max-w-7xl mx-auto w-full">
 
                 {/* ANALYTICS */}
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
@@ -238,88 +220,82 @@ export default function AdminDashboard({
                     />
                 </div>
 
-                {/* 🔍 Controls Section */}
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-2 rounded-xl border shadow-sm">
-                    <div className="flex items-center gap-2 w-full sm:w-auto px-5">
-                        <div className="relative w-full sm:w-100">
-                            <MagnifyingGlass className="absolute left-5 top-2 text-slate-400" size={20} />
-                            <Input
-                                placeholder="     Search by name, email, or dept..."
-                                className="pl-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
+                {/* Controls Section */}
+                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div className="relative w-full sm:max-w-md">
+                        <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                        <Input
+                            placeholder="Search staff, email, or department..."
+                            className="pl-9"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
 
-                    <div className="flex items-center gap-4 w-full sm:w-auto overflow-x-auto mb-3 px-5 py-2">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="text-black border-slate-200">
-                                    <Funnel size={18} className="mr-2" /> {filterRole}
+                                <Button variant="outline" className="gap-2">
+                                    <Funnel size={16} />
+                                    <span>{filterRole === 'All Users' ? 'Roles' : filterRole}</span>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="w-56">
                                 {['All Users', 'ADMIN', 'CLINIC_CALLER', 'WINDOW_CLERK', 'TRIAGE_NURSE'].map(role => (
                                     <DropdownMenuItem key={role} onClick={() => setFilterRole(role)}>
-                                        {role}
+                                        {role === 'All Users' ? 'All Roles' : role}
                                     </DropdownMenuItem>
-
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
 
                         <Button
+                            variant={viewPendingOnly ? "default" : "outline"}
                             onClick={() => setViewPendingOnly(!viewPendingOnly)}
-                            className={cn(
-                                "font-semibold shadow-md transition-all active:scale-95",
-                                viewPendingOnly
-                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
-                                    : "bg-yellow-500 hover:bg-yellow-600 text-white shadow-yellow-200"
-                            )}
+                            className="gap-2"
                         >
-                            {viewPendingOnly ? <Users size={18} className="mr-2" /> : <Clock size={18} className="mr-2" />}
-                            {viewPendingOnly ? "Show All Users" : "Pending Users"}
+                            {viewPendingOnly ? <Users size={16} /> : <Clock size={16} />}
+                            <span>{viewPendingOnly ? "All Staff" : "Review Pending"}</span>
                         </Button>
 
                         <AddUserDialog departments={departments} />
                     </div>
                 </div>
 
-                {/* 📋 User Table */}
-                <Card className="shadow-sm border-0 overflow-hidden ring-1 ring-slate-200 px-4">
+                {/* User Table */}
+                <Card className="rounded-lg border shadow-sm">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-100">
-                                <TableHead className="w-[300px] font-semibold text-gray-700">Staff Info</TableHead>
-                                <TableHead className="font-semibold text-gray-700">Assignment</TableHead>
-                                <TableHead className="font-semibold text-gray-700">System Role</TableHead>
-                                <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                                <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
+                            <TableRow>
+                                <TableHead className="w-[300px] font-semibold">Staff Info</TableHead>
+                                <TableHead className="font-semibold">Assignment</TableHead>
+                                <TableHead className="font-semibold">System Role</TableHead>
+                                <TableHead className="font-semibold">Status</TableHead>
+                                <TableHead className="font-semibold text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {paginatedUsers.map((user) => (
-                                <TableRow key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                                <TableRow key={user.id}>
                                     <TableCell>
-                                        <div className="flex flex-col py-1">
-                                            <span className="font-bold text-black text-base">{user.name}</span>
-                                            <span className="text-xs text-black">{user.email}</span>
+                                        <div className="flex flex-col py-0.5">
+                                            <span className="font-semibold text-foreground tracking-tight">{user.name}</span>
+                                            <span className="text-xs text-muted-foreground">{user.email}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="font-bold text-black">
+                                    <TableCell>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
                                                     className={cn(
-                                                        "font-bold text-black h-8 px-2 hover:bg-slate-100 transition-all text-left justify-start",
-                                                        updatingUserId === user.id && "animate-pulse opacity-50 pointer-events-none"
+                                                        "h-8 px-2 font-medium hover:bg-accent",
+                                                        updatingUserId === user.id && "animate-pulse opacity-50"
                                                     )}
                                                 >
                                                     {user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' ? (
-                                                        <span className="flex items-center text-emerald-600">
+                                                        <span className="text-primary">
                                                             {user.workstation ? `${user.workstation.name} (#${user.workstation.stationNo})` : 'No Station'}
                                                         </span>
                                                     ) : (
@@ -327,11 +303,10 @@ export default function AdminDashboard({
                                                     )}
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto w-64 p-2">
-                                                {/* Role based selection */}
+                                            <DropdownMenuContent align="start" className="w-64">
                                                 {(user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' || user.role === 'CLINIC_CALLER') && (
                                                     <>
-                                                        <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Stations</div>
+                                                        <div className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase tracking-widest">Stations</div>
                                                         {workstations
                                                             .filter(ws => {
                                                                 if (user.role === 'WINDOW_CLERK') return ws.type === WorkstationType.WINDOW;
@@ -343,29 +318,20 @@ export default function AdminDashboard({
                                                                 <DropdownMenuItem
                                                                     key={ws.id}
                                                                     onClick={() => handleUpdateWorkstation(user.id, ws.id)}
-                                                                    className={cn(
-                                                                        "text-xs font-medium py-2",
-                                                                        user.workstationId === ws.id && "bg-emerald-50 text-emerald-700 font-bold"
-                                                                    )}
                                                                 >
                                                                     {ws.name} ({ws.stationNo})
                                                                 </DropdownMenuItem>
                                                             ))}
-                                                        {user.role === 'CLINIC_CALLER' && <div className="border-t my-1" />}
                                                     </>
                                                 )}
 
                                                 {(user.role === 'CLINIC_CALLER' || user.role === 'ADMIN') && (
                                                     <>
-                                                        <div className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Departments</div>
+                                                        <div className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase tracking-widest">Departments</div>
                                                         {departments.map((dept) => (
                                                             <DropdownMenuItem
                                                                 key={dept.id}
                                                                 onClick={() => handleUpdateDepartment(user.id, dept.name)}
-                                                                className={cn(
-                                                                    "text-xs font-medium py-2",
-                                                                    user.department === dept.name && "bg-blue-50 text-blue-700 font-bold"
-                                                                )}
                                                             >
                                                                 {dept.name}
                                                             </DropdownMenuItem>
@@ -381,13 +347,10 @@ export default function AdminDashboard({
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className={cn(
-                                                        "h-8 px-2 hover:bg-slate-100 transition-all",
-                                                        updatingUserId === user.id && "animate-pulse opacity-50 pointer-events-none"
-                                                    )}
+                                                    className="h-8 px-2 hover:bg-accent"
                                                 >
-                                                    <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200 uppercase px-3 py-1 font-semibold text-[10px] cursor-pointer hover:border-emerald-300">
-                                                        {getRoleIcon(user.role)} {user.role.replace('_', ' ')}
+                                                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider h-6">
+                                                        {user.role.replace('_', ' ')}
                                                     </Badge>
                                                 </Button>
                                             </DropdownMenuTrigger>
@@ -396,12 +359,8 @@ export default function AdminDashboard({
                                                     <DropdownMenuItem
                                                         key={value}
                                                         onClick={() => handleUpdateRole(user.id, value)}
-                                                        className={cn(
-                                                            "flex items-center gap-2 text-xs font-medium",
-                                                            user.role === value && "bg-emerald-50 text-emerald-700 font-bold"
-                                                        )}
                                                     >
-                                                        {getRoleIcon(value)} {label}
+                                                        {label}
                                                     </DropdownMenuItem>
                                                 ))}
                                             </DropdownMenuContent>
@@ -411,20 +370,8 @@ export default function AdminDashboard({
                                         {user.isApproved ? (
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className={cn(
-                                                            "h-8 px-2 hover:bg-slate-100 transition-all",
-                                                            updatingUserId === user.id && "animate-pulse opacity-50 pointer-events-none"
-                                                        )}
-                                                    >
-                                                        <Badge className={cn(
-                                                            "font-bold cursor-pointer hover:opacity-80 transition-opacity",
-                                                            user.isActive
-                                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                                                                : "bg-red-50 text-red-600 border-red-100"
-                                                        )}>
+                                                    <Button variant="ghost" size="sm" className="h-8 px-2">
+                                                        <Badge variant={user.isActive ? "default" : "secondary"} className="text-[10px] font-bold uppercase tracking-wider h-6">
                                                             {user.isActive ? "ACTIVE" : "INACTIVE"}
                                                         </Badge>
                                                     </Button>
@@ -436,7 +383,7 @@ export default function AdminDashboard({
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         ) : (
-                                            <Badge className="bg-yellow-50 text-yellow-600 border-yellow-100 font-bold">
+                                            <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider h-6 border-yellow-500 text-yellow-600">
                                                 PENDING
                                             </Badge>
                                         )}
@@ -448,17 +395,17 @@ export default function AdminDashboard({
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => handleApprove(user.id)}
-                                                    className="h-8 w-8 p-0 border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                                                    className="h-8 w-8 p-0"
                                                 >
-                                                    <Check size={18} />
+                                                    <Check size={16} />
                                                 </Button>
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => handleReject(user.id)}
-                                                    className="h-8 w-8 p-0 border-red-200 text-red-600 hover:bg-red-50"
+                                                    className="h-8 w-8 p-0 text-destructive"
                                                 >
-                                                    <Trash size={18} />
+                                                    <Trash size={16} />
                                                 </Button>
                                             </div>
                                         )}
@@ -468,45 +415,34 @@ export default function AdminDashboard({
                         </TableBody>
                     </Table>
                     {totalPages > 1 && (
-                        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 bg-slate-50/50">
-                            <span className='text-sm text-slate-500 font-medium'>
-                                Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
+                        <div className="flex items-center justify-between border-t px-6 py-4">
+                            <span className="text-xs text-muted-foreground font-medium">
+                                Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} staff members
                             </span>
-                            <div className='flex gap-2'>
+                            <div className="flex gap-2">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                     disabled={currentPage === 1}
-                                >Previous
+                                    className="h-8 text-xs font-medium"
+                                >
+                                    Previous
                                 </Button>
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                     disabled={currentPage === totalPages}
+                                    className="h-8 text-xs font-medium"
                                 >
                                     Next
                                 </Button>
                             </div>
                         </div>
-
                     )}
                 </Card>
             </main>
         </div>
     );
-}
-
-/**
- * HELPER: Role Icon Mapping
- */
-function getRoleIcon(role: string) {
-    switch (role) {
-        case 'CLINIC_CALLER': return <Phone size={14} className="mr-1" />;
-        case 'WINDOW_CLERK': return <FileText size={14} className="mr-1" />;
-        case 'ADMIN': return <Gear size={14} className="mr-1" />;
-        case 'TRIAGE_NURSE': return <Headset size={14} className="mr-1" />;
-        default: return <Users size={14} className="mr-1" />;
-    }
 }

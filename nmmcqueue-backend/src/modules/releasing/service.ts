@@ -41,6 +41,7 @@ class ReleasingService {
                 status: 'IN_PROGRESS',
                 calledAt: new Date(),
                 calledByUserId: userId,
+                calledAtStationId: user?.workstationId,
                 windowNumber: windowNumber,
                 statusHistory: { create: { status: 'IN_PROGRESS', changedBy: userId } }
             }

@@ -56,33 +56,33 @@ export default function WorkstationSettings({
     };
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Add New Workstation Card */}
-                <Card className="border-t-4 border-t-emerald-600 shadow-md bg-white">
-                    <CardHeader className="bg-emerald-50/70 pb-4 border-b border-emerald-100">
-                        <CardTitle className="text-xl font-extrabold text-emerald-900 tracking-tight">Add New Workstation</CardTitle>
-                        <CardDescription className="text-emerald-700/80 font-medium">Define a physical service point or triage desk.</CardDescription>
+                <Card>
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground">Add Workstation</CardTitle>
+                        <CardDescription>Define a physical service point or triage desk.</CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-6">
-                        <form onSubmit={handleCreate} className="space-y-5">
+                    <CardContent className="space-y-6 pt-2">
+                        <form onSubmit={handleCreate} className="space-y-6">
                             <div className="space-y-2">
-                                <Label htmlFor="name" className="text-slate-700 font-bold uppercase tracking-wider text-xs">Station Name</Label>
+                                <Label htmlFor="name" className="text-[10px] font-bold uppercase tracking-widest opacity-70">Station Name</Label>
                                 <Input
                                     id="name"
                                     placeholder="e.g. Window 1 or Triage A"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     required
-                                    className="border-slate-300 focus-visible:ring-emerald-500 font-medium"
+                                    className="h-11"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="type" className="text-slate-700 font-bold uppercase tracking-wider text-xs">Type</Label>
+                                    <Label htmlFor="type" className="text-[10px] font-bold uppercase tracking-widest opacity-70">Type</Label>
                                     <Select value={type} onValueChange={(val) => setType(val as WorkstationType)}>
-                                        <SelectTrigger className="border-slate-300">
+                                        <SelectTrigger className="h-11">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -93,23 +93,23 @@ export default function WorkstationSettings({
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="no" className="text-slate-700 font-bold uppercase tracking-wider text-xs">Station No</Label>
+                                    <Label htmlFor="no" className="text-[10px] font-bold uppercase tracking-widest opacity-70">Station No</Label>
                                     <Input
                                         id="no"
                                         type="number"
                                         value={stationNo}
                                         onChange={(e) => setStationNo(Number(e.target.value))}
                                         required
-                                        className="border-slate-300 focus-visible:ring-emerald-500"
+                                        className="h-11"
                                     />
                                 </div>
                             </div>
 
                             {type === WorkstationType.CALLER && (
                                 <div className="space-y-2">
-                                    <Label htmlFor="dept" className="text-slate-700 font-bold uppercase tracking-wider text-xs">Linked Department</Label>
+                                    <Label htmlFor="dept" className="text-[10px] font-bold uppercase tracking-widest opacity-70">Linked Department</Label>
                                     <Select value={departmentId} onValueChange={setDepartmentId}>
-                                        <SelectTrigger className="border-slate-300">
+                                        <SelectTrigger className="h-11">
                                             <SelectValue placeholder="Select Department" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -123,12 +123,12 @@ export default function WorkstationSettings({
                             )}
 
                             {error && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                                    <p className="text-red-600 text-sm font-bold">{error}</p>
+                                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                                    <p className="text-destructive text-xs font-bold">{error}</p>
                                 </div>
                             )}
 
-                            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 shadow-md transition-all active:scale-[0.98]" disabled={loading}>
+                            <Button type="submit" className="w-full h-11 font-bold uppercase tracking-widest text-xs" disabled={loading}>
                                 {loading ? "Saving..." : "Save Workstation"}
                             </Button>
                         </form>
@@ -136,64 +136,79 @@ export default function WorkstationSettings({
                 </Card>
 
                 {/* Info Card */}
-                <Card className="border-slate-200 bg-slate-50/50">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Workstation Logic</CardTitle>
+                <Card>
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground">Workstation Logic</CardTitle>
                     </CardHeader>
-                    <CardContent className="text-sm space-y-4 text-slate-600">
-                        <p><strong>WINDOW:</strong> Assigned to Window Clerks for patient registration and ticket issuance.</p>
-                        <p><strong>TRIAGE:</strong> Assigned to Triage Nurses for vital signs and patient prioritization.</p>
-                        <p><strong>CALLER:</strong> Assigned to Clinic Callers. Can be optionally linked to a specific medical department.</p>
-                        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 text-yellow-800">
-                            <strong>Note:</strong> Workstation assignments are used to track which physical desk is calling a patient.
+                    <CardContent className="space-y-5 pt-2">
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] font-black uppercase text-primary tracking-widest">Window</span>
+                                <p className="text-xs text-muted-foreground leading-relaxed">Assigned to Window Clerks for patient registration and ticket issuance.</p>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] font-black uppercase text-primary tracking-widest">Triage</span>
+                                <p className="text-xs text-muted-foreground leading-relaxed">Assigned to Triage Nurses for vital signs and patient prioritization.</p>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] font-black uppercase text-primary tracking-widest">Caller</span>
+                                <p className="text-xs text-muted-foreground leading-relaxed">Assigned to Clinic Callers. Can be optionally linked to a specific medical department.</p>
+                            </div>
+                        </div>
+                        <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
+                            <p className="text-xs font-semibold text-primary leading-relaxed italic">
+                                Note: Workstation assignments are used to track which physical desk is calling a patient.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
             {/* Existing Workstations Table */}
-            <Card className="shadow-md bg-white border-slate-200 mt-6">
-                <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
-                    <CardTitle className="text-xl font-bold text-slate-800">Operational Workstations</CardTitle>
-                    <CardDescription className="text-slate-500 font-medium">Manage existing physical stations and desks.</CardDescription>
+            <Card>
+                <CardHeader className="pb-4">
+                    <CardTitle className="text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground">Operational Workstations</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left">
                             <thead>
-                                <tr className="border-b-2 border-slate-200 bg-slate-50">
-                                    <th className="p-4 font-bold text-slate-500 text-xs uppercase tracking-widest w-24">No</th>
-                                    <th className="p-4 font-bold text-slate-500 text-xs uppercase tracking-widest">Station Name</th>
-                                    <th className="p-4 font-bold text-slate-500 text-xs uppercase tracking-widest">Type</th>
-                                    <th className="p-4 font-bold text-slate-500 text-xs uppercase tracking-widest text-right w-32">Actions</th>
+                                <tr className="border-b bg-muted/30">
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">No</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Station Name</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Type</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y">
                                 {initialWorkstations.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="p-12 text-center text-slate-500 font-medium">
-                                            No workstations configured.
+                                        <td colSpan={4} className="px-6 py-20 text-center">
+                                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">No workstations found</p>
                                         </td>
                                     </tr>
                                 ) : (
                                     initialWorkstations.map((ws) => (
-                                        <tr key={ws.id} className="hover:bg-emerald-50/50 transition-colors group">
-                                            <td className="p-4">
-                                                <span className="bg-emerald-100 text-emerald-800 font-mono font-bold px-2 py-1 rounded shadow-sm text-sm">
+                                        <tr key={ws.id} className="group hover:bg-accent/5 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <span className="text-[10px] font-black bg-primary/5 text-primary px-2 py-1 rounded-md border border-primary/10 tabular-nums">
                                                     #{ws.stationNo}
                                                 </span>
                                             </td>
-                                            <td className="p-4 font-semibold text-slate-700">{ws.name}</td>
-                                            <td className="p-4 italic text-slate-500">{ws.type}</td>
-                                            <td className="p-4 text-right">
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-bold tracking-tight">{ws.name}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{ws.type}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleDelete(ws.id)}
-                                                    className="text-slate-400 hover:text-red-600 hover:bg-red-50 font-bold transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                    className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5 opacity-0 group-hover:opacity-100"
                                                 >
-                                                    <Trash size={18} className="mr-1" />
-                                                    Delete
+                                                    <Trash size={16} />
                                                 </Button>
                                             </td>
                                         </tr>

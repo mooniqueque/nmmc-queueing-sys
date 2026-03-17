@@ -1,6 +1,6 @@
 "use client"
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -8,63 +8,62 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { authClient } from "@/lib/database/auth-client"
-import { useRouter } from "next/navigation"
-import { Gear, SignOut } from '@phosphor-icons/react'
-import Image from "next/image"
+} from "@/components/ui/dropdown-menu";
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { authClient } from "@/lib/database/auth-client";
+import { SessionUser } from "@/types/auth";
+import { Gear, SignOut } from '@phosphor-icons/react';
+import { useRouter } from "next/navigation";
 
-export default function StaffHeader({ title }: { title: string }) {
-    const { data } = authClient.useSession()
-    const router = useRouter()
-    const loggedInUser = data?.user as any
+interface AdminHeaderProps {
+    user: SessionUser;
+    title: string;
+    subtitle?: string;
+}
+
+export function AdminHeader({ user, title, subtitle }: AdminHeaderProps) {
+    const router = useRouter();
 
     const handleLogout = async () => {
         await authClient.signOut({
             fetchOptions: {
                 onSuccess: () => {
-                    router.push("/login")
-                    router.refresh()
+                    router.push("/login");
+                    router.refresh();
                 }
             }
-        })
-    }
+        });
+    };
 
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
             <div className="flex h-16 items-center justify-between px-6">
-                <div className="flex items-center gap-3">
-                    <Image
-                        src="/nmmc-logo.png"
-                        alt="NMMC Logo"
-                        width={32}
-                        height={32}
-                        className="object-contain"
-                    />
-                    <div className="h-4 w-px bg-border hidden sm:block mx-1" />
+                <div className="flex items-center gap-4">
+                    <SidebarTrigger className="hover:bg-muted/50 transition-colors" />
+                    <div className="h-4 w-px bg-border hidden sm:block" />
                     <div className="flex flex-col">
-                        <h1 className="text-sm font-bold tracking-tight text-emerald-900">{title}</h1>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest -mt-0.5">
-                            Northern Mindanao Medical Center
-                        </p>
+                        <h1 className="text-sm font-bold tracking-tight">{title}</h1>
+                        {subtitle && (
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest -mt-0.5">
+                                {subtitle}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <div className="hidden sm:flex flex-col items-end">
-                        <span className="text-xs font-bold leading-none text-emerald-950">
-                            {loggedInUser?.name || "Staff"}
-                        </span>
+                        <span className="text-xs font-bold leading-none">{user.name}</span>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 font-bold">
-                            {loggedInUser?.role || "USER"}
+                            {user.role}
                         </span>
                     </div>
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Avatar className="h-9 w-9 border border-emerald-100 cursor-pointer hover:ring-2 hover:ring-emerald-500/10 transition-all">
-                                <AvatarFallback className="font-bold text-xs bg-emerald-50 text-emerald-700">
-                                    {loggedInUser?.name?.substring(0, 2).toUpperCase() || "ST"}
+                            <Avatar className="h-9 w-9 border cursor-pointer hover:ring-2 hover:ring-primary/10 transition-all">
+                                <AvatarFallback className="font-bold text-xs bg-muted text-muted-foreground">
+                                    {user.name?.substring(0, 2).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
                         </DropdownMenuTrigger>
@@ -88,5 +87,5 @@ export default function StaffHeader({ title }: { title: string }) {
                 </div>
             </div>
         </header>
-    )
+    );
 }

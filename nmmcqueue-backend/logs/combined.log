@@ -39,3 +39,12 @@
 {"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-16 08:36:40"}
 {"classification":"REGULAR","level":"info","message":"Patient queued via Kiosk: Ticket #2","patientId":"cmmsggf510000ocsc70erhb01","service":"nmmc-queue-backend","ticketNumber":2,"timestamp":"2026-03-16 08:38:34","visitId":"cmmsggf750001ocscklon7dp4"}
 {"isManualEntry":false,"level":"info","message":"Triage completed for Visit ID: cmmsggf750001ocscklon7dp4","patientId":"cmmsggf510000ocsc70erhb01","service":"nmmc-queue-backend","timestamp":"2026-03-16 08:39:34","userId":"bm5HFNpsl8FiJCvV9ZBJsHJ5ODEexvGF","visitId":"cmmsggf750001ocscklon7dp4"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-16 09:58:38"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-16 09:58:48"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-16 10:09:18"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-16 10:17:41"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-16 10:23:19"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-16 10:25:07"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-16 10:33:02"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-16 11:20:15"}
+{"classification":"REGULAR","level":"info","message":"Patient queued via Kiosk: Ticket #1","patientId":"cmmsnj1pz0000csscbba2loww","service":"nmmc-queue-backend","ticketNumber":1,"timestamp":"2026-03-16 11:56:34","visitId":"cmmsnj1sv0002csscuaaya6d4"}

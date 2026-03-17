@@ -1,9 +1,9 @@
 'use client'
 import React, { useState } from 'react';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import {
     Dialog,
     DialogContent,
@@ -12,14 +12,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
 import { SessionUser } from '@/types/auth';
 import {
     ArrowsClockwise,
     SkipForward,
+    Desktop,
+    CheckCircle,
     XCircle
 } from '@phosphor-icons/react';
+import { AdminHeader } from "@/components/layouts/admin-header";
+import { VisitWithPatient } from "@/features/triage/types";
 
 const DEFAULT_QUEUE_OPTIONS = ["REGULAR", "CHILD", "ER-REF", "FT", "REFERRALS"];
 
@@ -42,7 +45,7 @@ export default function CallerDashboard({
     loggedInUser: SessionUser;
     departments: string[];
     queueOptionsByDepartment: Record<string, string[]>;
-    initialQueue?: any[];
+    initialQueue?: VisitWithPatient[];
 }) {
     const availableDepartments = departments.length > 0 ? departments : ["ANIMAL BITE DEPT"];
     const [isAvailable, setIsAvailable] = useState(true);
@@ -53,7 +56,7 @@ export default function CallerDashboard({
 
     // Calculate current stats & waitlist dynamically
     // A ticket is next if it's 'WAITING_CLINIC' and assigned to this `departmentId`
-    const departmentQueue = activeQueue.filter((v: any) => v.department?.name === department);
+    const departmentQueue = activeQueue.filter((v: VisitWithPatient) => v.department?.name === department);
 
     // Simplistic handling of what is "Now Serving" vs "Waitlist"
     // Usually, "Now Serving" would be status: 'SERVING' and Waitlist is 'WAITING_CLINIC'.
@@ -61,75 +64,67 @@ export default function CallerDashboard({
     const currentTicket = departmentQueue.length > 0 ? `P-${departmentQueue[0].ticketNumber}` : "NONE";
 
     // Map backend data to UI expected shapes
-    const waitlist = departmentQueue.slice(1, 4).map((v: any) => ({
+    const waitlist = departmentQueue.slice(1, 4).map((v: VisitWithPatient) => ({
         ticket: `P-${v.ticketNumber}`,
-        category: v.priorityClass || "REGULAR",
+        category: v.categories?.[0]?.category?.code || "REGULAR",
         time: new Date(v.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }));
 
     // Stats calculation based on live queue
     const stats = {
-        regular: departmentQueue.filter((v: any) => v.priorityClass?.includes('REG')).length.toString(),
-        pediatric: departmentQueue.filter((v: any) => v.priorityClass?.includes('CHILD')).length.toString(),
-        fastTrack: departmentQueue.filter((v: any) => v.priorityClass?.includes('FT')).length.toString(),
-        erRef: departmentQueue.filter((v: any) => v.priorityClass?.includes('ER')).length.toString(),
+        regular: departmentQueue.filter((v: VisitWithPatient) => v.categories?.some(c => c.category?.code?.includes('REG'))).length.toString(),
+        pediatric: departmentQueue.filter((v: VisitWithPatient) => v.categories?.some(c => c.category?.code?.includes('CHILD'))).length.toString(),
+        fastTrack: departmentQueue.filter((v: VisitWithPatient) => v.categories?.some(c => c.category?.code?.includes('FT'))).length.toString(),
+        erRef: departmentQueue.filter((v: VisitWithPatient) => v.categories?.some(c => c.category?.code?.includes('ER'))).length.toString(),
     };
 
     const topButtons = queueOptionsByDepartment[normalizeDepartmentKey(department)] ?? DEFAULT_QUEUE_OPTIONS;
 
     return (
-        <div className="flex min-h-screen w-full bg-slate-50/50">
-            <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col bg-background">
+            <AdminHeader 
+                user={loggedInUser} 
+                title="Caller Dashboard" 
+                subtitle={department}
+            />
 
-                {/*HEADER*/}
-                <header className='bg-white sticky top-0 z-50 border-b px-6 py-4 flex items-center justify-between shadow-sm'>
-                    <div className="flex items-center gap-3">
-                        <SidebarTrigger />
-                        <h1 className="text-xl font-bold text-emerald-900">Caller Dashboard</h1>
-                    </div>
-                    <div className='flex items-center gap-3'>
-                        <div className="hidden sm:flex flex-col items-end mr-1">
-                            <span className="text-sm font-bold text-emerald-900">{loggedInUser.name}</span>
-                            <span className="text-xs text-slate-500 uppercase tracking-tighter">{loggedInUser.role}</span>
-                        </div>
+            {/* MAIN CONTENT */}
+            <main className="flex-1 p-6 lg:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    {/* LEFT SIDE CONTENT */}
+                    <div className="lg:col-span-3 space-y-8">
+                        {/* NOW SERVING */}
+                        <Card className="flex flex-col items-center justify-center py-16 relative overflow-hidden text-center border-border shadow-md bg-card">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-primary/40" />
+                            <div className="absolute inset-0 bg-linear-to-b from-primary/5 to-transparent pointer-events-none" />
+                            
+                            <span className="text-[10px] font-bold tracking-[0.3em] text-muted-foreground uppercase mb-4 relative z-10">
+                                Currently Serving
+                            </span>
+                            
+                            <div className="text-[10rem] md:text-[12rem] leading-none font-black tracking-tighter text-foreground relative z-10 tabular-nums">
+                                {currentTicket}
+                            </div>
 
-                        <Avatar className='size-10 border-2 border-emerald-100 ring-2 ring-emerald-50'>
-                            <AvatarFallback className="font-bold bg-emerald-50 text-emerald-700">
-                                {loggedInUser.name?.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-                    </div>
-                </header>
-
-                {/*MAIN CONTENT*/}
-                <main className="flex-1 p-6 space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
-
-                        {/*LEFT SIDE CONTENT*/}
-                        <div className="lg:col-span-3 flex flex-col gap-4">
-
-                            {/*NOW SERVING*/}
-                            <Card className="flex flex-col items-center justify-center p-19 py-20 shadow-sm border-0 bg-white relative overflow-hidden">
-                                <span className="text-emerald-500 font-bold tracking-widest text-sm uppercase mb-1"> Current Patient Ticket
-                                </span>
-                                <h1 className="text-9xl leading-none font-bold text-slate-900 tracking-tighter drop-shadow-sm mb-4">
-                                    {currentTicket}
-                                </h1>
+                            <div className="mt-8 relative z-10">
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button className="bg-emerald-900 text-white px-20 py-8 rounded-full text-xl font-bold tracking-wider shadow-lg shadow-emerald-700/20 mt-2 hover:bg-emerald-800 uppercase">
-                                            {department}
+                                        <Button 
+                                            size="lg" 
+                                            variant="secondary"
+                                            className="rounded-full px-12 h-14 text-[10px] font-bold uppercase tracking-widest border border-border hover:bg-muted transition-all"
+                                        >
+                                            <Desktop size={18} className="mr-2 text-primary" weight="bold" />
+                                            Station: {department}
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl">
+                                    <DialogContent className="sm:max-w-md border-border bg-card">
                                         <DialogHeader>
-                                            <DialogTitle className="text-center text-xl font-bold text-emerald-950 uppercase tracking-widest">Select Department</DialogTitle>
-                                            <DialogDescription className="text-center text-slate-400">
-                                                Choose a department to switch the caller view.
+                                            <DialogTitle className="text-sm font-bold uppercase tracking-widest">Select Station</DialogTitle>
+                                            <DialogDescription className="text-xs">
+                                                Switch to a different department caller view.
                                             </DialogDescription>
                                         </DialogHeader>
-
-                                        {/* CLINIC GRID */}
                                         <div className="grid grid-cols-2 gap-3 py-4">
                                             {availableDepartments.map((departmentName) => (
                                                 <DepartmentButton
@@ -142,141 +137,163 @@ export default function CallerDashboard({
                                         </div>
                                     </DialogContent>
                                 </Dialog>
-                            </Card>
+                            </div>
+                        </Card>
 
-                            <div>
-                                {/*TOP BUTTONS*/}
-                                <div className="flex-1 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full content-center mt-3">
-                                    {topButtons.map((option, index) => (
-                                        <TopButton
-                                            key={option}
-                                            label={option}
-                                            hotkey={`Press ${index + 1}`}
-                                            color={option === "REFERRALS" ? "bg-yellow-600" : "bg-emerald-800"}
-                                        />
-                                    ))}
-                                </div>
+                        <div className="space-y-4">
+                            {/* TOP BUTTONS - PRIORITY CLASSES */}
+                            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                {topButtons.map((option, index) => (
+                                    <TopButton
+                                        key={option}
+                                        label={option}
+                                        hotkey={`${index + 1}`}
+                                        variant={option === "REFERRALS" ? "secondary" : "default"}
+                                    />
+                                ))}
                             </div>
 
-                            {/*BOTTOM BUTTONS*/}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <BotButton label="MARK SERVED" hotkey="Press S" />
-                                <BotButton label="TRANSFER QUEUE" hotkey="Press Q" />
-                                <BotButton label="NO SHOWS" hotkey="Press N" />
-                                <BotButton label="PRINT TICKET" hotkey="Press P" />
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-4" >
-
-                            {/*WAIT LIST*/}
-                            <Card className="p-4 border-0 shadow-sm bg-white">
-                                <div className="flex items-center justify-between mb-4">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">WAIT LISTS</span>
-                                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Next 3</span>
-                                </div>
-
-                                <div className="flex flex-col gap-3">
-                                    {waitlist.map((item: any, index: number) => (
-                                        <WaitlistItem key={index} ticket={item.ticket} category={item.category} time={item.time} />
-                                    ))}
-                                </div>
-
-                                <Button variant="ghost" className="w-full mt-3 text-xs font-bold text-slate-400 hover:text-slate-600 h-8">
-                                    View Full List
-                                </Button>
-                            </Card>
-
-                            {/*TOTAL TICKETS*/}
-                            <Card className="p-4 border-0 shadow-sm bg-white">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">TOTAL TICKETS CALLED</span>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <StatItem label="Regular" value={stats.regular} />
-                                    <StatItem label="Pediatric" value={stats.pediatric} />
-                                    <StatItem label="Fast Track" value={stats.fastTrack} />
-                                    <StatItem label="ER-Ref" value={stats.erRef} />
-                                </div>
-                            </Card >
-
-                            {/*SIDE BUTTONS*/}
-                            <div className="flex flex-col gap-1">
-                                <div className={buttonVariants({ variant: "outline", className: "h-14 w-full flex items-center justify-between px-7 bg-white border-0 shadow-sm hover:bg-slate-50 cursor-default" })}>
-                                    <div className="flex items-center gap-3">
-                                        <div className={`h-3 w-3 rounded-full ${isAvailable ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
-                                        <span className="font-extrabold text-slate-700">Available</span>
-                                    </div>
-                                    <Switch checked={isAvailable} onCheckedChange={setIsAvailable} />
-                                </div>
-                                <ActionButton icon={<XCircle />} label="No Show" color="text-red-500" />
-                                <ActionButton icon={<SkipForward />} label="Switch Window" color="text-slate-500" />
-                                <ActionButton icon={<ArrowsClockwise />} label="Re-Call Number" color="text-slate-500" />
+                            {/* BOTTOM BUTTONS - CORE ACTIONS */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <BotButton label="MARK SERVED" hotkey="S" icon={<CheckCircle size={20} />} />
+                                <BotButton label="TRANSFER" hotkey="Q" icon={<ArrowsClockwise size={20} />} />
+                                <BotButton label="NO SHOWS" hotkey="N" icon={<XCircle size={20} />} />
+                                <BotButton label="PRINT TICKET" hotkey="P" icon={<Desktop size={20} />} />
                             </div>
                         </div>
                     </div>
-                </main>
-            </div>
+
+                    {/* RIGHT SIDEBAR */}
+                    <div className="space-y-6">
+                        {/* WAIT LIST */}
+                        <Card className="flex flex-col border-border shadow-sm">
+                            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/50">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Wait List</span>
+                                <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">Next 3</span>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="divide-y divide-border/50">
+                                    {waitlist.length > 0 ? (
+                                        waitlist.map((item: any, index: number) => (
+                                            <WaitlistItem key={index} ticket={item.ticket} category={item.category} time={item.time} />
+                                        ))
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                                            <div className="size-8 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                                                <CheckCircle size={20} className="text-muted-foreground/40" />
+                                            </div>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Queue is clear</p>
+                                        </div>
+                                    )}
+                                </div>
+                                {waitlist.length > 0 && (
+                                    <Button variant="ghost" className="w-full text-[10px] font-bold text-muted-foreground uppercase tracking-widest h-10 rounded-none hover:bg-muted/50">
+                                        View Full Queue
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* STATS */}
+                        <Card className="border-border shadow-sm">
+                            <CardHeader className="pb-4 border-b border-border/50">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Session Summary</span>
+                            </CardHeader>
+                            <CardContent className="grid grid-cols-2 gap-2 p-3">
+                                <StatItem label="Regular" value={stats.regular} />
+                                <StatItem label="Pediatric" value={stats.pediatric} />
+                                <StatItem label="Fast Track" value={stats.fastTrack} />
+                                <StatItem label="ER-Ref" value={stats.erRef} />
+                            </CardContent>
+                        </Card>
+
+                        {/* CONTROLS */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-4 bg-muted/10 border border-border rounded-xl">
+                                <div className="flex items-center gap-3">
+                                    <div className={cn("size-2 rounded-full", isAvailable ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-muted-foreground/30')} />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest italic">{isAvailable ? 'Available' : 'Busy'}</span>
+                                </div>
+                                <Switch checked={isAvailable} onCheckedChange={setIsAvailable} className="data-[state=checked]:bg-emerald-500" />
+                            </div>
+                            <ActionButton icon={<XCircle size={18} weight="bold" />} label="Move to No Show" className="text-destructive hover:bg-destructive/5 hover:text-destructive border-border/50" />
+                            <ActionButton icon={<SkipForward size={18} weight="bold" />} label="Skip Ticket" className="hover:bg-amber-500/5 hover:text-amber-600 border-border/50" />
+                            <ActionButton icon={<ArrowsClockwise size={18} weight="bold" />} label="Re-Call Number" className="hover:bg-primary/5 hover:text-primary border-border/50" />
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-    )
+    );
 }
 
 function StatItem({ label, value }: { label: string, value: string }) {
     return (
-        <div className="flex flex-col items-center p-2 bg-slate-50 rounded-lg">
-            <span className="text-[10px] uppercase font-bold text-slate-400 mb-1">{label}</span>
-            <span className="text-2xl font-black text-slate-800">{value}</span>
+        <div className="flex flex-col items-center p-3 py-4 bg-muted/20 border border-border/40 rounded-xl transition-all hover:border-primary/20 group">
+            <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest mb-1.5 transition-colors group-hover:text-primary">{label}</span>
+            <span className="text-2xl font-black tabular-nums">{value}</span>
         </div>
-    )
+    );
 }
 
 function WaitlistItem({ ticket, category, time }: { ticket: string, category: string, time: string }) {
     return (
-        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
-            <div className="flex flex-col">
-                <span className="font-black text-slate-700 text-lg leading-none">{ticket}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase mt-1">{category}</span>
+        <div className="flex items-center justify-between p-4 px-6 hover:bg-muted/30 transition-all cursor-default group">
+            <div className="flex flex-col gap-0.5">
+                <span className="font-bold text-sm tracking-tight group-hover:text-primary transition-colors">{ticket}</span>
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{category}</span>
             </div>
-            <span className="text-xs font-bold text-slate-400 bg-white px-2 py-1 rounded shadow-sm">{time}</span>
+            <span className="text-[9px] font-bold tabular-nums text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-full border border-border/50 shadow-sm">{time}</span>
         </div>
-    )
+    );
 }
 
-function ActionButton({ icon, label, color }: { icon: React.ReactNode, label: string, color: string }) {
+function ActionButton({ icon, label, className }: { icon: React.ReactNode, label: string, className?: string }) {
     return (
-        <Button variant="outline" className="h-15 flex items-center justify-start gap-6 px-7 bg-white border-0 shadow-sm hover:bg-slate-50">
-            <span className={`text-xl ${color}`}>{icon}</span>
-            <span className="font-extrabold text-slate-700">{label}</span>
+        <Button variant="outline" className={cn("w-full h-12 justify-start gap-3 px-4 text-[10px] font-bold uppercase tracking-widest transition-all", className)}>
+            <span className="opacity-70">{icon}</span>
+            {label}
         </Button>
-    )
+    );
 }
 
-function TopButton({ label, hotkey, color = "bg-emerald-800" }: { label: string, hotkey: string, color?: string }) {
+function TopButton({ label, hotkey, variant = "default" }: { label: string, hotkey: string, variant?: "default" | "secondary" }) {
     return (
-        <Button className={`h-24 flex flex-col items-start justify-center p-4 ${color} hover:opacity-90 text-left shadow-lg shadow-emerald-900/10 rounded-2xl`}>
-            <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{hotkey}</span>
-            <span className="text-xl font-black tracking-wide text-white">{label}</span>
+        <Button variant={variant} className={cn(
+            "h-24 flex flex-col items-start justify-center p-5 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] border border-transparent shadow-sm",
+            variant === "default" ? "bg-primary text-primary-foreground shadow-primary/20" : "bg-card text-foreground border-border hover:bg-muted"
+        )}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-60 mb-2">HOTKEY {hotkey}</span>
+            <span className="text-base font-black tracking-tight uppercase leading-none">{label}</span>
         </Button>
-    )
+    );
 }
 
 function DepartmentButton({ label, onClick, current }: { label: string, onClick: () => void, current: string }) {
     const isActive = current === label;
     return (
         <Button
-            variant="outline"
+            variant={isActive ? "default" : "outline"}
             onClick={onClick}
-            className={`h-24 flex flex-col items-center justify-center p-2 border-2 ${isActive ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-100 hover:border-emerald-200 hover:bg-slate-50 text-slate-600'}`}
+            className={cn(
+                "h-20 flex flex-col items-center justify-center p-4 gap-2 transition-all border shadow-sm",
+                isActive ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:bg-muted"
+            )}
         >
-            <span className="font-bold text-center leading-tight">{label}</span>
-            {isActive && <span className="text-[10px] text-emerald-500 font-bold mt-1 uppercase tracking-wider">Active</span>}
+            <span className="text-[10px] font-bold uppercase tracking-widest text-center hyphens-auto">{label}</span>
+            {isActive && <div className="h-0.5 w-4 bg-current rounded-full mt-1" />}
         </Button>
-    )
+    );
 }
 
-function BotButton({ label, hotkey }: { label: string, hotkey: string }) {
+function BotButton({ label, hotkey, icon }: { label: string, hotkey: string, icon: React.ReactNode }) {
     return (
-        <Button variant="secondary" className="h-20 flex flex-col items-start justify-center px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{hotkey}</span>
-            <span className="text-xl font-bold text-slate-800">{label}</span>
+        <Button variant="secondary" className="h-20 flex flex-col items-start justify-center p-6 rounded-xl hover:bg-muted transition-all border border-border/50 group">
+            <div className="flex w-full justify-between items-center mb-1.5 ">
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-60">{hotkey}</span>
+                <span className="text-primary transition-transform group-hover:scale-110">{icon}</span>
+            </div>
+            <span className="text-xs font-bold tracking-widest uppercase">{label}</span>
         </Button>
-    )
-}
+    );
+}

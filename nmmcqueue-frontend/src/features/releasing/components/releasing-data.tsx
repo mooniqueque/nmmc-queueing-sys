@@ -27,9 +27,7 @@ export default async function ReleasingData() {
     }
 
     return (
-        <div className='flex flex-1 flex-col h-full'>
-            <header className=''>
-            </header>
+        <div className='flex flex-1 flex-col h-full bg-background overflow-hidden'>
             <ReleasingEntry
                 initialQueue={pendingQueue}
                 departments={departments}

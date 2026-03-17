@@ -87,156 +87,159 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-200">
-                    <UserPlus size={18} className="mr-2" /> Add Users
+                <Button className="gap-2">
+                    <UserPlus size={18} />
+                    <span>Add Staff</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Add New Staff</DialogTitle>
                     <DialogDescription>
-                        Register a new hospital staff member. They will be automatically approved.
+                        Register a new hospital staff member.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="name" className="text-right">Name</Label>
-                        <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="col-span-3"
-                            placeholder="Full Name"
-                            required
-                        />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="email" className="text-right">Email</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="col-span-3"
-                            placeholder="email@nmmc.gov.ph"
-                            required
-                        />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="empId" className="text-right">ID</Label>
-                        <Input
-                            id="empId"
-                            value={formData.employeeID}
-                            onChange={(e) => setFormData({ ...formData, employeeID: e.target.value })}
-                            className="col-span-3"
-                            placeholder="Employee ID"
-                            required
-                        />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="role" className="text-right">Role</Label>
-                        <div className="col-span-3">
-                            <Select
-                                value={formData.role}
-                                onValueChange={(val) => setFormData({ ...formData, role: val })}
-                                required
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="ADMIN">Admin</SelectItem>
-                                    <SelectItem value="CLINIC_CALLER">Clinic Caller</SelectItem>
-                                    <SelectItem value="WINDOW_CLERK">Window Clerk</SelectItem>
-                                    <SelectItem value="TRIAGE_NURSE">Triage Nurse</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    {/* Workstation Selector (Dynamic based on role) */}
-                    {(isWindowOrTriage || isClinicCaller) && (
+                <form onSubmit={handleSubmit} className="space-y-6 py-4">
+                    <div className="space-y-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="ws" className="text-right">Station</Label>
+                            <Label htmlFor="name" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
+                            <Input
+                                id="name"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                className="col-span-3"
+                                placeholder="Full Name"
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="email" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                className="col-span-3"
+                                placeholder="email@nmmc.gov.ph"
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="empId" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">ID</Label>
+                            <Input
+                                id="empId"
+                                value={formData.employeeID}
+                                onChange={(e) => setFormData({ ...formData, employeeID: e.target.value })}
+                                className="col-span-3"
+                                placeholder="Employee ID"
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="role" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Role</Label>
                             <div className="col-span-3">
                                 <Select
-                                    value={formData.workstationId}
-                                    onValueChange={(val) => setFormData({ ...formData, workstationId: val })}
+                                    value={formData.role}
+                                    onValueChange={(val) => setFormData({ ...formData, role: val })}
                                     required
                                 >
                                     <SelectTrigger className="w-full">
-                                        <SelectValue placeholder={`Select ${formData.role === "WINDOW_CLERK" ? 'Window' : 'Station'}`} />
+                                        <SelectValue placeholder="Select role" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {filteredWorkstations.map(ws => (
-                                            <SelectItem key={ws.id} value={ws.id}>
-                                                {ws.name} ({ws.stationNo})
-                                            </SelectItem>
-                                        ))}
+                                        <SelectItem value="ADMIN">Admin</SelectItem>
+                                        <SelectItem value="CLINIC_CALLER">Clinic Caller</SelectItem>
+                                        <SelectItem value="WINDOW_CLERK">Window Clerk</SelectItem>
+                                        <SelectItem value="TRIAGE_NURSE">Triage Nurse</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
-                    )}
 
-                    {/* Department Selector (Hidden for Window/Triage as they use Stations) */}
-                    {(!isWindowOrTriage) && (
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="dept" className="text-right">Dept</Label>
-                            <div className="col-span-3">
-                                <Popover open={openDept} onOpenChange={setOpenDept}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openDept}
-                                            className="w-full justify-between font-normal bg-white border-slate-200 hover:bg-slate-50 relative"
-                                        >
-                                            <span className="truncate pr-5">
-                                                {formData.department
-                                                    ? departments.find((dept) => dept.name === formData.department)?.name
-                                                    : "Search department..."}
-                                            </span>
-                                            <CaretUpDown weight="bold" className="ml-2 h-4 w-4 shrink-0 opacity-50 absolute right-3" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[300px] p-0 z-50" align="start">
-                                        <Command>
-                                            <CommandInput placeholder="Search department..." className="h-9" />
-                                            <CommandList className="max-h-[240px] overflow-y-auto">
-                                                <CommandEmpty>No department found.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {departments.map((dept) => (
-                                                        <CommandItem
-                                                            key={dept.id}
-                                                            value={dept.name}
-                                                            onSelect={(currentValue) => {
-                                                                const actualValue = departments.find(
-                                                                    (d) => d.name.toLowerCase() === currentValue.toLowerCase()
-                                                                )?.name || currentValue;
-                                                                setFormData({ ...formData, department: actualValue === formData.department ? "" : actualValue });
-                                                                setOpenDept(false);
-                                                            }}
-                                                        >
-                                                            {dept.name}
-                                                            <Check
-                                                                weight="bold"
-                                                                className={cn(
-                                                                    "ml-auto h-4 w-4",
-                                                                    formData.department === dept.name ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                        {/* Workstation Selector */}
+                        {(isWindowOrTriage || isClinicCaller) && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="ws" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Station</Label>
+                                <div className="col-span-3">
+                                    <Select
+                                        value={formData.workstationId}
+                                        onValueChange={(val) => setFormData({ ...formData, workstationId: val })}
+                                        required
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder={`Select ${formData.role === "WINDOW_CLERK" ? 'Window' : 'Station'}`} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {filteredWorkstations.map(ws => (
+                                                <SelectItem key={ws.id} value={ws.id}>
+                                                    {ws.name} ({ws.stationNo})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+
+                        {/* Department Selector */}
+                        {(!isWindowOrTriage) && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="dept" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dept</Label>
+                                <div className="col-span-3">
+                                    <Popover open={openDept} onOpenChange={setOpenDept}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openDept}
+                                                className="w-full justify-between font-normal"
+                                            >
+                                                <span className="truncate">
+                                                    {formData.department
+                                                        ? departments.find((dept) => dept.name === formData.department)?.name
+                                                        : "Search department..."}
+                                                </span>
+                                                <CaretUpDown weight="bold" className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-(--radix-popover-trigger-width) p-0 z-50" align="start">
+                                            <Command>
+                                                <CommandInput placeholder="Search department..." className="h-9" />
+                                                <CommandList>
+                                                    <CommandEmpty>No department found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {departments.map((dept) => (
+                                                            <CommandItem
+                                                                key={dept.id}
+                                                                value={dept.name}
+                                                                onSelect={(currentValue) => {
+                                                                    const actualValue = departments.find(
+                                                                        (d) => d.name.toLowerCase() === currentValue.toLowerCase()
+                                                                    )?.name || currentValue;
+                                                                    setFormData({ ...formData, department: actualValue === formData.department ? "" : actualValue });
+                                                                    setOpenDept(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        formData.department === dept.name ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {dept.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={isSubmitting}>
+                        <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
                             {isSubmitting ? "Creating..." : "Save User"}
                         </Button>
                     </DialogFooter>

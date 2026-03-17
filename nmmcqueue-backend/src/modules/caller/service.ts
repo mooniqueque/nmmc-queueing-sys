@@ -96,12 +96,19 @@ class CallerService {
     async callPatient(visitId: string, userId?: string, windowNumber?: number) {
         const visit = await db.visit.findUnique({ where: { id: visitId } });
         if (!visit) throw new Error('Visit not found');
+        let workstationId: string | undefined;
+        if (userId) {
+            const user = await db.user.findUnique({ where: { id: userId }, select: { workstationId: true } });
+            workstationId = user?.workstationId || undefined;
+        }
+
         const updated = await db.visit.update({
             where: { id: visitId },
             data: { 
                 status: 'IN_PROGRESS',
                 calledAt: new Date(),
                 calledByUserId: userId,
+                calledAtStationId: workstationId,
                 windowNumber: windowNumber,
                 statusHistory: { create: { status: 'IN_PROGRESS', changedBy: userId } }
             }

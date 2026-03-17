@@ -125,48 +125,47 @@ export default function DepartmentSettings({
     };
 
     return (
-        <div className="space-y-6">
-            {/* TOP SECTION - Department & Queue Options Forms */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Add New Department Card */}
-                <Card className="border-t-4 border-t-emerald-600 shadow-md bg-white">
-                    <CardHeader className="bg-emerald-50/70 pb-4 border-b border-emerald-100">
-                        <CardTitle className="text-xl font-extrabold text-emerald-900 tracking-tight">Add New Department</CardTitle>
-                        <CardDescription className="text-emerald-700/80 font-medium">Create a new clinic or hospital branch.</CardDescription>
+                <Card>
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground">Add Department</CardTitle>
+                        <CardDescription>Create a new clinic or hospital branch.</CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-6">
-                        <form onSubmit={handleCreate} className="space-y-5">
-                            <div className="space-y-2 relative">
-                                <Label htmlFor="name" className="text-slate-700 font-bold uppercase tracking-wider text-xs">Department Name</Label>
+                    <CardContent className="space-y-6 pt-2">
+                        <form onSubmit={handleCreate} className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="text-[10px] font-bold uppercase tracking-widest opacity-70">Department Name</Label>
                                 <Input
                                     id="name"
                                     placeholder="e.g. Dental Clinic"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     required
-                                    className="border-slate-300 focus-visible:ring-emerald-500 font-medium text-slate-800"
+                                    className="h-11"
                                 />
                             </div>
-                            <div className="space-y-2 relative">
-                                <Label htmlFor="code" className="text-slate-700 font-bold uppercase tracking-wider text-xs">Department Code</Label>
+                            <div className="space-y-2">
+                                <Label htmlFor="code" className="text-[10px] font-bold uppercase tracking-widest opacity-70">Department Code</Label>
                                 <Input
                                     id="code"
-                                    placeholder="e.g. DEN (max 5 chars)"
+                                    placeholder="e.g. DEN"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value)}
                                     required
                                     maxLength={5}
-                                    className="border-slate-300 focus-visible:ring-emerald-500 uppercase font-mono tracking-widest font-bold text-slate-800"
+                                    className="h-11 font-mono uppercase tracking-widest"
                                 />
                             </div>
 
                             {error && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                                    <p className="text-red-600 text-sm font-bold">{error}</p>
+                                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                                    <p className="text-destructive text-xs font-bold">{error}</p>
                                 </div>
                             )}
 
-                            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 shadow-md transition-all active:scale-[0.98]" disabled={loading}>
+                            <Button type="submit" className="w-full h-11 font-bold uppercase tracking-widest text-xs" disabled={loading}>
                                 {loading ? "Saving..." : "Save Department"}
                             </Button>
                         </form>
@@ -174,14 +173,14 @@ export default function DepartmentSettings({
                 </Card>
 
                 {/* Queue Options Card */}
-                <Card className="border-t-4 border-t-emerald-600 shadow-md bg-white">
-                    <CardHeader className="bg-emerald-50/70 pb-4 border-b border-emerald-100">
-                        <CardTitle className="text-xl font-extrabold text-emerald-900 tracking-tight">Queue Options</CardTitle>
-                        <CardDescription className="text-emerald-700/80 font-medium">Manage caller button options per department.</CardDescription>
+                <Card>
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground">Queue Options</CardTitle>
+                        <CardDescription>Manage caller button options per department.</CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-6 space-y-4">
+                    <CardContent className="space-y-6 pt-2">
                         <div className="space-y-2">
-                            <Label htmlFor="queue-department" className="text-slate-700 font-bold uppercase tracking-wider text-xs">Department</Label>
+                            <Label htmlFor="queue-department" className="text-[10px] font-bold uppercase tracking-widest opacity-70">Select Department</Label>
                             <select
                                 id="queue-department"
                                 value={selectedDepartmentId}
@@ -189,7 +188,7 @@ export default function DepartmentSettings({
                                     setSelectedDepartmentId(event.target.value);
                                     setQueueError("");
                                 }}
-                                className="w-full h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800"
+                                className="w-full h-11 rounded-lg border bg-background px-3 text-sm font-semibold transition-all focus:ring-2 focus:ring-primary/20"
                             >
                                 {initialDepartments.map((department) => (
                                     <option key={department.id} value={department.id}>
@@ -199,137 +198,128 @@ export default function DepartmentSettings({
                             </select>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                    <Label className="text-[10px] uppercase font-bold text-slate-500">Name</Label>
+                        <div className="space-y-4 pt-4 border-t border-muted/30">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Option Name</Label>
                                     <Input
                                         placeholder="e.g. Fasting"
                                         value={queueNameInput}
                                         onChange={(e) => setQueueNameInput(e.target.value)}
-                                        className="border-slate-300 focus-visible:ring-emerald-500 font-bold text-slate-800"
+                                        className="h-10"
                                     />
                                 </div>
-                                <div className="space-y-1">
-                                    <Label className="text-[10px] uppercase font-bold text-slate-500">Code</Label>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-bold uppercase tracking-widest opacity-70">Option Code</Label>
                                     <Input
                                         placeholder="e.g. FAST"
                                         value={queueCodeInput}
                                         onChange={(e) => setQueueCodeInput(e.target.value)}
-                                        className="border-slate-300 focus-visible:ring-emerald-500 uppercase font-bold text-slate-800"
+                                        className="h-10 uppercase font-bold"
                                     />
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-muted/20">
                                 <input 
                                     type="checkbox" 
                                     id="isPriority" 
                                     checked={isPriorityInput} 
                                     onChange={(e) => setIsPriorityInput(e.target.checked)}
-                                    className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500"
+                                    className="w-4 h-4 rounded border-muted focus:ring-primary text-primary"
                                 />
-                                <Label htmlFor="isPriority" className="text-sm font-bold text-slate-700">Mark as Priority Class</Label>
+                                <Label htmlFor="isPriority" className="text-xs font-bold opacity-70">Mark as Priority Class</Label>
                             </div>
-                            <Button type="button" onClick={handleAddQueueOption} className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold" disabled={queueLoading || !selectedDepartment}>
-                                Add Priority Category
+                            <Button type="button" onClick={handleAddQueueOption} variant="secondary" className="w-full h-10 font-bold uppercase tracking-widest text-[10px]" disabled={queueLoading || !selectedDepartment}>
+                                {queueLoading ? "Adding..." : "Add Category"}
                             </Button>
                         </div>
 
                         {queueError && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                                <p className="text-red-600 text-sm font-bold">{queueError}</p>
+                            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                                <p className="text-destructive text-xs font-bold">{queueError}</p>
                             </div>
                         )}
 
-                        <div className="flex flex-col gap-2 min-h-8">
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto no-scrollbar pt-2">
                             {categories.length === 0 ? (
-                                <span className="text-xs text-slate-500">No priority categories for this department.</span>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold text-center py-4 bg-muted/10 rounded-xl border border-dashed">No categories defined</p>
                             ) : (
                                 categories.map((cat) => (
-                                    <div key={cat.id} className="flex items-center justify-between bg-slate-50 border border-slate-200 p-2 rounded-md group">
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-slate-800 text-sm">{cat.name}</span>
-                                                <span className="text-[10px] font-mono bg-slate-200 px-1 rounded text-slate-600">{cat.code}</span>
-                                                {cat.isPriority && (
-                                                    <span className="text-[9px] bg-red-100 text-red-600 font-bold px-1 rounded border border-red-200">PRIORITY</span>
-                                                )}
-                                            </div>
+                                    <div key={cat.id} className="flex items-center justify-between p-3 bg-muted/20 border rounded-xl group hover:border-primary/30 transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-black tracking-tight">{cat.name}</span>
+                                            <span className="text-[9px] font-black uppercase text-muted-foreground bg-background px-1.5 py-0.5 rounded border">{cat.code}</span>
+                                            {cat.isPriority && (
+                                                <span className="text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary px-1.5 py-0.5 rounded-full ring-1 ring-primary/20">Priority</span>
+                                            )}
                                         </div>
-                                        <button
-                                            type="button"
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
                                             onClick={() => handleDeleteQueueOption(cat.id)}
-                                            className="text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="size-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
-                                            <Trash size={16} />
-                                        </button>
+                                            <Trash size={14} />
+                                        </Button>
                                     </div>
                                 ))
                             )}
                         </div>
-
                     </CardContent>
                 </Card>
             </div>
 
-            {/* BOTTOM SECTION - Active Departments Table */}
-            <div>
-                <Card className="shadow-md bg-white border-slate-200">
-                    <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
-                        <CardTitle className="text-xl font-bold text-slate-800">Active Departments</CardTitle>
-                        <CardDescription className="text-slate-500 font-medium">Manage existing clinics and routing codes.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="border-b-2 border-slate-200 bg-slate-50">
-                                        <th className="p-4 font-bold text-slate-500 text-xs uppercase tracking-widest w-24">Code</th>
-                                        <th className="p-4 font-bold text-slate-500 text-xs uppercase tracking-widest">Department Name</th>
-                                        <th className="p-4 font-bold text-slate-500 text-xs uppercase tracking-widest text-right w-32">Actions</th>
+            {/* Active Departments Table */}
+            <Card>
+                <CardHeader className="pb-4">
+                    <CardTitle className="text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground">Active Departments</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b bg-muted/30">
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Code</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Department Name</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {initialDepartments.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={3} className="px-6 py-20 text-center">
+                                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">No departments found</p>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {initialDepartments.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={3} className="p-12 text-center">
-                                                <div className="flex flex-col items-center justify-center space-y-3">
-                                                    <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center">
-                                                        <span className="text-emerald-500 font-bold text-xl">?</span>
-                                                    </div>
-                                                    <span className="text-slate-500 font-medium">No departments found. Create your first one on the left.</span>
-                                                </div>
+                                ) : (
+                                    initialDepartments.map((dept) => (
+                                        <tr key={dept.id} className="group hover:bg-accent/5 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <span className="text-[10px] font-black bg-primary/5 text-primary px-2 py-1 rounded-md border border-primary/10 tabular-nums">
+                                                    {dept.code}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-bold tracking-tight">{dept.name}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(dept.id)}
+                                                    className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5 opacity-0 group-hover:opacity-100"
+                                                >
+                                                    <Trash size={16} />
+                                                </Button>
                                             </td>
                                         </tr>
-                                    ) : (
-                                        initialDepartments.map((dept) => (
-                                            <tr key={dept.id} className="hover:bg-emerald-50/50 transition-colors group">
-                                                <td className="p-4">
-                                                    <span className="bg-emerald-100 text-emerald-800 font-mono font-bold px-2 py-1 rounded shadow-sm text-sm">
-                                                        {dept.code}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 font-semibold text-slate-700">{dept.name}</td>
-                                                <td className="p-4 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleDelete(dept.id)}
-                                                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 font-bold transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                    >
-                                                        <Trash size={18} className="mr-1" />
-                                                        Delete
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

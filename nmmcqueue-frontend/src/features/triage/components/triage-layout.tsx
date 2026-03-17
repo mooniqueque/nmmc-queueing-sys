@@ -9,7 +9,7 @@ interface TriageLayoutProps {
 
 export function TriageLayout({ sidebarSlot, contentSlot }: TriageLayoutProps) {
     return (
-        <div className="flex flex-col lg:flex-row h-full w-full p-6 lg:p-8 gap-8 bg-slate-50/50">
+        <div className="flex flex-col lg:flex-row h-full w-full p-6 gap-6 bg-background">
             {/* CENTER COLUMN: THE TRIAGE WORKSPACE */}
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {contentSlot}

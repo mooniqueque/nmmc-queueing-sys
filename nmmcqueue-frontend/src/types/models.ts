@@ -101,7 +101,10 @@ export interface Visit {
     status: VisitStatus;
     classification: VisitClassification;
     categories: VisitPriorityCategory[];
-    ticketNumber: number;
+    ticketNumber: number | null;
+    sequenceKey?: string | null;
+    windowTicketNumber?: number | null;
+    kioskRegistrationType?: 'REGISTERED' | 'UNREGISTERED' | null;
     hasAppointment: boolean;
     isReferred: boolean;
     referredFromId?: string;

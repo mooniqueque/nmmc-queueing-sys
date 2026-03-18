@@ -19,6 +19,7 @@ export const kioskFormRequestSchema = z.object({
         hasAppointment: z.boolean().default(false),
         originStationId: z.string().optional(),
         categoryIds: z.array(z.string()).optional(),
+        kioskRegistrationType: z.enum(['REGISTERED', 'UNREGISTERED']).optional(),
     }),
 });
 

@@ -64,6 +64,15 @@ export const triageFormSchema = z.object({
             if (!data.civilStatus || data.civilStatus.trim() === "") {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Civil status is required for walk-ins", path: ["civilStatus"] });
             }
+            if (data.dateOfBirth) {
+                const dob = new Date(data.dateOfBirth);
+                if (dob > new Date()) {
+                    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date of Birth cannot be in the future", path: ["dateOfBirth"] });
+                }
+                if (dob.getFullYear() < 1900) {
+                    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please provide a valid birth date (year >= 1900)", path: ["dateOfBirth"] });
+                }
+            }
         }
     });
 

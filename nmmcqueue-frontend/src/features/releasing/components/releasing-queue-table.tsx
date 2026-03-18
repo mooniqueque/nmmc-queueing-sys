@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { VisitWithPatient } from "@/features/triage/types";
 import { CheckCircle, Clock, MagnifyingGlass, Funnel, CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { calculateAge } from "@/lib/utils";
 
 export type QueueCategory = "ALL" | "PRIORITY" | "REGULAR" | "NO_SHOW";
@@ -155,7 +155,7 @@ export function ReleasingQueueTable({
                                     {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
                                     {/* Ticket (e.g. #082) */}
                                     <div className={`text-base font-bold transition-colors ${isSelected ? 'text-primary' : 'text-primary/60'}`}>
-                                        #{visit.ticketNumber.toString().padStart(3, '0')}
+                                        {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}
                                     </div>
 
                                     {/* Name & Demographics */}
@@ -164,7 +164,7 @@ export function ReleasingQueueTable({
                                             {visit.patient.lastName}, <span className="text-muted-foreground font-medium">{visit.patient.firstName}</span>
                                         </div>
                                         <div className="text-[10px] font-medium text-muted-foreground mt-1 flex items-center gap-2 flex-wrap uppercase tracking-wider">
-                                            {visit.patient.gender.substring(0, 1)} • {calculateAge(visit.patient.dateOfBirth)}y
+                                            {visit.patient.gender.substring(0, 1)} • {calculateAge(visit.patient.dateOfBirth) ?? '??'}y
                                             <span className="w-1 h-1 rounded-full bg-border" />
                                             <span className="font-bold text-primary/80">{category}</span>
                                             {visit.status === 'IN_PROGRESS' && (

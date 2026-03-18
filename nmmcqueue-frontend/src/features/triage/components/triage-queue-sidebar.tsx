@@ -62,7 +62,7 @@ export function TriageQueueSidebar({
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
-            v.ticketNumber.toString().includes(q) ||
+            (v.ticketNumber?.toString().includes(q) ?? false) ||
             v.patient.firstName.toLowerCase().includes(q) ||
             v.patient.lastName.toLowerCase().includes(q)
         );
@@ -249,7 +249,7 @@ export function TriageQueueSidebar({
                                     className="w-full text-left grid grid-cols-[60px_1fr_120px] gap-6 items-center px-6 py-4 border-b border-border bg-card"
                                 >
                                     <div className="text-sm font-bold text-muted-foreground">
-                                        #{visit.ticketNumber.toString().padStart(3, '0')}
+                                        {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : ''}
                                     </div>
                                     <div className="min-w-0 pr-4">
                                         <div className="font-bold text-xs truncate text-muted-foreground line-through">
@@ -322,11 +322,11 @@ function PatientRow({
             {/* Ticket */}
             <div className={`flex flex-col gap-1 ${isSelected ? 'text-primary' : 'text-primary/70'}`}>
                 <div className="text-sm font-bold tracking-tight">
-                    #{visit.ticketNumber.toString().padStart(3, '0')}
+                    {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : null}
                 </div>
-                {visit.categories && visit.categories.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                        {visit.categories.map((vc) => (
+                <div className="flex flex-wrap gap-1">
+                    {visit.categories && visit.categories.length > 0 && 
+                        visit.categories.map((vc) => (
                             <span
                                 key={vc.categoryId}
                                 className={`text-[8px] font-bold px-1 rounded border uppercase tracking-widest ${vc.category?.isPriority
@@ -336,19 +336,24 @@ function PatientRow({
                             >
                                 {vc.category?.code || vc.category?.name?.substring(0, 3)}
                             </span>
-                        ))}
-                    </div>
-                )}
+                        ))
+                    }
+                </div>
             </div>
 
             {/* Name & Demographics */}
             <div className="min-w-0 pr-4 flex flex-col justify-center gap-0.5">
-                <div className={`font-bold text-xs truncate ${isSelected ? 'text-foreground' : 'text-foreground/80'}`}>
-                    {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
+                <div className={`flex items-center gap-2 font-bold text-xs truncate ${isSelected ? 'text-foreground' : 'text-foreground/80'}`}>
+                    <span>{visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span></span>
+                    {visit.kioskRegistrationType && (
+                        <span className="text-[8px] font-bold tracking-widest px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary border border-primary/20 leading-none h-fit uppercase mt-0.5">
+                            {visit.kioskRegistrationType}
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <div className="text-[9px] font-bold text-muted-foreground flex items-center gap-1.5 flex-wrap uppercase tracking-wider">
-                        {visit.patient.gender.substring(0, 1)} • {calculateAge(visit.patient.dateOfBirth)}y
+                        {visit.patient.gender.substring(0, 1)} • {calculateAge(visit.patient.dateOfBirth) ?? '??'}y
                         <span className="opacity-40">•</span>
                         <span className="italic">{new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>

@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { TriageFormValues } from "../schemas";
 import { CalendarBlank, UserCircle, MapPin, IdentificationBadge } from "@phosphor-icons/react";
+import { calculateAge } from "@/lib/utils";
 
 interface DemographicsSectionProps {
     isManualEntry: boolean;
@@ -17,18 +18,7 @@ export function DemographicsSection({ isManualEntry, hasSelectedPatient }: Demog
     const { register, control, formState: { errors } } = useFormContext<TriageFormValues>();
     const watchDob = useWatch({ control, name: "dateOfBirth" });
 
-    const calculateAge = (dobString: string | Date | undefined) => {
-        if (!dobString) return "";
-        const dob = new Date(dobString);
-        if (isNaN(dob.getTime())) return "";
-        const today = new Date();
-        let age = today.getFullYear() - dob.getFullYear();
-        const m = today.getMonth() - dob.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-            age--;
-        }
-        return age >= 0 ? age : "";
-    };
+    const todayString = new Date().toISOString().split('T')[0];
 
     const disabled = !isManualEntry && hasSelectedPatient;
 
@@ -118,20 +108,33 @@ export function DemographicsSection({ isManualEntry, hasSelectedPatient }: Demog
                     </Label>
                     <Input
                         type="date"
-                        className="h-10 rounded-lg border-border bg-background px-4 text-xs font-bold transition-all focus:ring-primary/20 focus:border-primary/50"
+                        max={todayString}
+                        min="1900-01-01"
+                        className={`h-10 rounded-lg border-border bg-background px-4 text-xs font-bold transition-all focus:ring-primary/20 ${
+                            (watchDob && calculateAge(watchDob) === null) ? 'border-destructive focus:border-destructive' : 'focus:border-primary/50'
+                        }`}
                         disabled={disabled}
                         {...register("dateOfBirth")}
                     />
-                    {errors.dateOfBirth && <span className="absolute -bottom-5 left-1 text-destructive text-[9px] font-bold uppercase tracking-widest">{errors.dateOfBirth.message}</span>}
+                    {errors.dateOfBirth ? (
+                        <span className="absolute -bottom-5 left-1 text-destructive text-[9px] font-bold uppercase tracking-widest">{errors.dateOfBirth.message}</span>
+                    ) : (watchDob && calculateAge(watchDob) === null) ? (
+                        <span className="absolute -bottom-5 left-1 text-destructive text-[9px] font-bold uppercase tracking-widest">Please provide a valid birth date</span>
+                    ) : null}
                 </div>
                 <div className="space-y-2">
                     <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Age</Label>
                     <Input
-                        value={calculateAge(watchDob) ? `${calculateAge(watchDob)} years` : ''}
+                        value={calculateAge(watchDob) !== null ? `${calculateAge(watchDob)} years` : ''}
                         disabled
-                        placeholder="Calculated automáticamente"
-                        className="h-10 rounded-lg border-border bg-muted/50 px-4 text-xs font-bold text-muted-foreground/60"
+                        placeholder="Calculated automatically"
+                        className={`h-10 rounded-lg border-border bg-muted/50 px-4 text-xs font-bold ${
+                            (watchDob && calculateAge(watchDob) === null) ? 'text-destructive/60' : 'text-muted-foreground/60'
+                        }`}
                     />
+                    {(watchDob && calculateAge(watchDob) === null) && (
+                        <span className="absolute -bottom-5 left-1 text-destructive text-[9px] font-bold uppercase tracking-widest">Invalid Age</span>
+                    )}
                 </div>
                 <div className="space-y-2 md:col-span-2 relative">
                     <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Birthplace *</Label>

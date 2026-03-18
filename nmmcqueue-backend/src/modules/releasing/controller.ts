@@ -10,8 +10,8 @@ class ReleasingController {
 
     assignTicket = asyncHandler(async (req: Request, res: Response) => {
         const userId = (req as any).user?.id;
-        await releasingService.assignTicket(req.params.id, req.body, userId);
-        res.status(200).json({ success: true, message: 'Ticket assigned and sent to clinic.' });
+        const result = await releasingService.assignTicket(req.params.id, req.body, userId);
+        res.status(200).json({ success: true, message: 'Ticket assigned and sent to clinic.', data: result });
     });
 
     callTicket = asyncHandler(async (req: Request, res: Response) => {

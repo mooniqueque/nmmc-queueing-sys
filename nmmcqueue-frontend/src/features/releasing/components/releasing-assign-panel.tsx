@@ -6,7 +6,7 @@ import { VisitWithPatient } from "@/features/triage/types";
 import { calculateAge } from "@/lib/utils";
 import { Department, PriorityCategory } from "@/types/models";
 import { BellRinging, Phone, Printer, User, WarningCircle, X } from "@phosphor-icons/react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { assignTicket, callTicket, noShowTicket } from "../actions";
 
@@ -39,21 +39,33 @@ export function ReleasingAssignPanel({
         return queueOptionsByDepartment[activeDepartment.name.toUpperCase()] || [];
     }, [activeDepartment, queueOptionsByDepartment]);
 
-    // Intelligent Recommendation
+    // Intelligent Recommendation based on Triage
     const recommendedOption = useMemo(() => {
-        // If we have dynamic options, try to match by name or priority status
-        if (queueOptions.length > 0) {
-            if (badges.includes("ER-REF") || selectedPatient.disposition?.toUpperCase().includes("ER")) {
-                const opt = queueOptions.find(o => o.code === "ER-REF" || o.name.toUpperCase().includes("ER"));
-                if (opt) return opt;
-            }
-            if (badges.includes("SENIOR") || badges.includes("CHILD")) {
-                const opt = queueOptions.find(o => o.isPriority);
-                if (opt) return opt;
-            }
+        if (queueOptions.length === 0) return null;
+
+        if (badges.includes("ER-REF") || selectedPatient.disposition?.toUpperCase().includes("ER")) {
+            const opt = queueOptions.find(o => o.code === "ER-REF" || o.name.toUpperCase().includes("ER"));
+            if (opt) return opt;
         }
-        return null;
-    }, [badges, selectedPatient.disposition, queueOptions]);
+
+        // If Triage classified as PRIORITY or has priority badges
+        if (badges.includes("SENIOR") || badges.includes("CHILD") || selectedPatient.classification === 'PRIORITY') {
+            const opt = queueOptions.find(o => o.isPriority);
+            if (opt) return opt;
+        }
+
+        // Default to Regular
+        return queueOptions.find(o => !o.isPriority) || queueOptions[0] || null;
+    }, [badges, selectedPatient.disposition, selectedPatient.classification, queueOptions]);
+
+    // Automatically select the recommended priority option
+    useEffect(() => {
+        if (recommendedOption && selectedDepartmentId) {
+            setSelectedQueueOption(recommendedOption.id);
+        } else if (!selectedDepartmentId) {
+            setSelectedQueueOption("");
+        }
+    }, [recommendedOption, selectedDepartmentId]);
 
     const handleCall = () => {
         startTransition(async () => {
@@ -75,8 +87,29 @@ export function ReleasingAssignPanel({
         if (!selectedDepartmentId || !selectedQueueOption) return;
 
         startTransition(async () => {
-            await assignTicket(selectedPatient.id, selectedDepartmentId, selectedQueueOption);
-            toast.success("Ticket printed and assigned successfully");
+            const res = await assignTicket(selectedPatient.id, selectedDepartmentId, selectedQueueOption);
+            if (res?.success && res?.data) {
+                toast.success("Ticket assigned successfully");
+
+                // Auto-print clinic ticket
+                if (res.data.ticketNumber) {
+                    const ticketNum = res.data.ticketNumber.toString().padStart(3, '0');
+
+                    const clinicName = activeDepartment?.name || "Clinic";
+                    const html = `
+                        <div class="header">Northern Mindanao Medical Center</div>
+                        <div class="sub-header">Registration Window</div>
+                        <div class="ticket-label">${clinicName} Queue Number</div>
+                        <div class="ticket-number">#${ticketNum}</div>
+                        
+                        <div class="date-time">${new Date().toLocaleString()}</div>
+                        <div class="footer">Please proceed to ${clinicName} and wait for your number.</div>
+                    `;
+                    import('@/lib/print').then(({ printThermalReceipt }) => printThermalReceipt(html));
+                }
+            } else {
+                toast.error(res?.error || res?.message || "Failed to assign ticket");
+            }
             onAssignComplete();
         });
     };
@@ -122,11 +155,11 @@ export function ReleasingAssignPanel({
                                 {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}
                             </h2>
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
-                                <span>Ticket: <strong className="text-primary">#{selectedPatient.ticketNumber.toString().padStart(3, '0')}</strong></span>
+                                <span>Ticket: <strong className="text-primary">{selectedPatient.ticketNumber ? `#${selectedPatient.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}</strong></span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
                                 <span>{selectedPatient.patient.gender}</span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
-                                <span>{calculateAge(selectedPatient.patient.dateOfBirth)}y</span>
+                                <span>{calculateAge(selectedPatient.patient.dateOfBirth) ?? '??'}y</span>
                             </div>
                         </div>
                     </div>
@@ -209,7 +242,7 @@ export function ReleasingAssignPanel({
                         <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Clinic / Department</Label>
                         {selectedPatient.departmentId ? (
                             <div className="w-full bg-muted/50 border border-border text-primary text-sm font-bold rounded-lg h-10 px-4 flex items-center shadow-inner">
-                                {selectedPatient.department?.name || "Assigned by Triage"}
+                                {activeDepartment?.name || "Assigned by Triage"}
                             </div>
                         ) : (
                             <select
@@ -230,24 +263,25 @@ export function ReleasingAssignPanel({
 
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Priority Type</Label>
+                            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Priority Type (Auto-Assigned)</Label>
                             {recommendedOption && (
                                 <span className="text-[9px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
-                                    Suggested: {recommendedOption.name}
+                                    Derived from Triage
                                 </span>
                             )}
                         </div>
                         <select
-                            className="w-full bg-background border border-border text-foreground text-sm font-bold rounded-lg h-10 px-4 appearance-none outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-sm disabled:opacity-50"
+                            className="w-full bg-muted/50 border border-border text-muted-foreground text-sm font-bold rounded-lg h-10 px-4 appearance-none outline-none shadow-sm cursor-not-allowed opacity-80"
                             value={selectedQueueOption}
-                            onChange={(e) => setSelectedQueueOption(e.target.value)}
-                            disabled={!selectedDepartmentId}
+                            disabled={true}
+                            onChange={() => { }}
                         >
                             <option value="" disabled>Select Priority...</option>
                             {queueOptions.map(opt => (
                                 <option key={opt.id} value={opt.id}>{opt.name}</option>
                             ))}
                         </select>
+                        <p className="text-[10px] items-center text-muted-foreground mt-2 italic">Priority classifications are evaluated and assigned directly during the Triage assessment.</p>
                     </div>
                 </div>
 

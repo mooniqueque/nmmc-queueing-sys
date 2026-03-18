@@ -1,19 +1,20 @@
 "use client"
 
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useCurrentTime } from "@/hooks/use-current-time";
-import React, { useEffect, useState, FormEvent } from "react";
-import { getPatientByHospitalId, registerKioskPatient } from "../actions";
 import { getQueueOptions } from "@/features/shared/api";
+import { useCurrentTime } from "@/hooks/use-current-time";
+import { calculateAge as libCalculateAge } from "@/lib/utils";
 import { PriorityCategory } from "@/types/models";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import React, { FormEvent, useEffect, useState } from "react";
+import { getPatientByHospitalId, registerKioskPatient } from "../actions";
 import { kioskFormSchema, KioskFormValues } from "../schemas";
-import { Checkbox } from "@/components/ui/checkbox";
 
 const initialState: KioskFormValues = {
     hasAppointment: false,
@@ -120,21 +121,19 @@ export function KioskForm() {
         if (!dobMonth || !dobDay || !dobYear || String(dobYear).length < 4) return "";
 
         const monthNames: Record<string, number> = {
-            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
-            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+            "January": 0, "February": 1, "March": 2, "April": 3, "May": 4, "June": 5,
+            "July": 6, "August": 7, "September": 8, "October": 9, "November": 10, "December": 11
         };
-        const mVal = monthNames[dobMonth as string] || Number(dobMonth);
+        const mVal = monthNames[dobMonth as string] ?? (Number(dobMonth) - 1);
+
+        const dob = new Date(Number(dobYear), mVal, Number(dobDay));
+        if (isNaN(dob.getTime())) return "";
 
         const today = new Date();
-        const birthDate = new Date(Number(dobYear), mVal - 1, Number(dobDay));
-        if (isNaN(birthDate.getTime())) return "";
+        if (dob > today) return "Invalid";
 
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        return age >= 0 ? age : "";
+        const age = libCalculateAge(dob);
+        return age !== null ? age : "Invalid";
     };
 
     async function handleSearchId() {
@@ -192,7 +191,10 @@ export function KioskForm() {
 
         setIsLoading(true);
         setMessage(null);
-        const submitResult = await registerKioskPatient(formData);
+        const submitResult = await registerKioskPatient({
+            ...formData,
+            kioskRegistrationType: isRegistered ? 'REGISTERED' : 'UNREGISTERED'
+        });
         setIsLoading(false);
 
         if (submitResult.success) {
@@ -207,6 +209,15 @@ export function KioskForm() {
             setMessage({ type: 'error', text: submitResult.error! });
         }
     }
+
+    const handleClearForm = () => {
+        if (window.confirm("Are you sure you want to clear the form? This will erase all inputted information.")) {
+            localStorage.removeItem('kiosk-registration-draft');
+            setFormData(initialState);
+            setErrors({});
+            setMessage(null);
+        }
+    };
 
     // SSR Guard
     if (!isHydrated) return null;
@@ -341,8 +352,8 @@ export function KioskForm() {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div className="space-y-2 md:col-span-2">
                                 <Label>Date of Birth *</Label>
-                                <div className="flex gap-2">
-                                    <Input placeholder="Month" list="months-list" name="dobMonth" className="bg-white w-full" value={formData.dobMonth || ''} onChange={handleChange} />
+                                <div className="flex gap-2 relative">
+                                    <Input placeholder="Month" list="months-list" name="dobMonth" className={`bg-white w-full ${calculateAge() === "Invalid" ? 'border-red-500' : ''}`} value={formData.dobMonth || ''} onChange={handleChange} />
                                     <datalist id="months-list">
                                         <option value="January" />
                                         <option value="February" />
@@ -357,8 +368,12 @@ export function KioskForm() {
                                         <option value="November" />
                                         <option value="December" />
                                     </datalist>
-                                    <Input placeholder="Day" maxLength={2} name="dobDay" className="bg-white w-20" value={formData.dobDay || ''} onChange={handleChange} />
-                                    <Input placeholder="Year" maxLength={4} name="dobYear" className="bg-white w-24" value={formData.dobYear || ''} onChange={handleChange} />
+                                    <Input placeholder="Day" maxLength={2} name="dobDay" className={`bg-white w-20 ${calculateAge() === "Invalid" ? 'border-red-500' : ''}`} value={formData.dobDay || ''} onChange={handleChange} />
+                                    <Input placeholder="Year" maxLength={4} name="dobYear" className={`bg-white w-24 ${calculateAge() === "Invalid" ? 'border-red-500' : ''}`} value={formData.dobYear || ''} onChange={handleChange} />
+
+                                    {calculateAge() === "Invalid" && !errors.dobMonth && !errors.dobDay && !errors.dobYear && (
+                                        <span className="absolute -bottom-5 left-1 text-red-500 text-[10px] font-semibold">Please provide a valid birth date</span>
+                                    )}
                                 </div>
                                 {errors.dobMonth && <p className="text-xs text-red-500">{errors.dobMonth}</p>}
                                 {errors.dobDay && <p className="text-xs text-red-500">{errors.dobDay}</p>}
@@ -366,7 +381,11 @@ export function KioskForm() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Age</Label>
-                                <Input value={calculateAge()} disabled className="bg-slate-100 font-medium" />
+                                <Input
+                                    value={calculateAge()}
+                                    disabled
+                                    className={`font-medium ${calculateAge() === "Invalid" ? "bg-red-50 text-red-500 border-red-200" : "bg-slate-100"}`}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="birthPlace">Birthplace *</Label>
@@ -418,15 +437,24 @@ export function KioskForm() {
                         </div>
                     </div>
 
-                    <div className="pt-6 border-t mt-8 flex gap-4">
-                        {/* Cancel / Back Button Container -> takes up 1/3 of the space */}
-                        <Link href="/kiosk" className="w-1/3">
+                    <div className="pt-6 border-t mt-8 flex flex-col md:flex-row gap-4">
+                        {/* Cancel / Back Button Container */}
+                        <Link href="/kiosk" className="w-full md:w-1/4">
                             <Button type="button" variant="outline" className="w-full h-12 text-base font-semibold border-slate-300 text-slate-700">
                                 Back
                             </Button>
                         </Link>
-                        {/* Submit Button Container -> takes up 2/3 of the space */}
-                        <Button type="submit" className="w-2/3 h-12 text-base font-semibold bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
+                        {/* Clear Form Button Container */}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleClearForm}
+                            className="w-full md:w-1/4 h-12 text-base font-semibold border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                        >
+                            Clear Form
+                        </Button>
+                        {/* Submit Button Container */}
+                        <Button type="submit" className="w-full md:w-2/4 h-12 text-base font-semibold bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
                             {isLoading ? "Submitting Form..." : "Submit Registration"}
                         </Button>
                     </div>

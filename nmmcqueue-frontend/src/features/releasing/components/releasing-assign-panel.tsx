@@ -104,8 +104,27 @@ export function ReleasingAssignPanel({
         }
 
         startTransition(async () => {
-            await assignTicket(selectedPatient.id, selectedDepartmentId, autoQueueOption.id);
-            toast.success("Ticket printed and assigned successfully");
+            const res = await assignTicket(selectedPatient.id, selectedDepartmentId, autoQueueOption.id);
+            if (res?.success && res?.data) {
+                // Auto-print clinic ticket
+                if (res.data.ticketNumber) {
+                    const ticketNum = res.data.ticketNumber.toString().padStart(3, '0');
+                    const clinicName = activeDepartment?.name || "Clinic";
+                    const html = `
+                        <div class="header">Northern Mindanao Medical Center</div>
+                        <div class="sub-header">Registration Window</div>
+                        <div class="ticket-label">${clinicName} Queue Number</div>
+                        <div class="ticket-number">#${ticketNum}</div>
+                        
+                        <div class="date-time">${new Date().toLocaleString()}</div>
+                        <div class="footer">Please proceed to ${clinicName} and wait for your number.</div>
+                    `;
+                    import('@/lib/print').then(({ printThermalReceipt }) => printThermalReceipt(html));
+                }
+                toast.success("Ticket printed and assigned successfully");
+            } else {
+                toast.error(res?.error || "Failed to assign ticket");
+            }
             onAssignComplete();
         });
     };

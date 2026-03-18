@@ -1,14 +1,13 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
 import { getDepartmentsVideos } from "@/features/monitoring/actions";
+import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
 import { useCurrentTime } from "@/hooks/use-current-time";
-import { Department } from "@/types/models";
+import { API_URL } from "@/lib/api";
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { API_URL } from "@/lib/api";
 
 interface DepartmentMonitorProps {
     slug: string;

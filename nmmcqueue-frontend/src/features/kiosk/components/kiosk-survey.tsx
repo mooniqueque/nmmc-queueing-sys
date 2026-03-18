@@ -36,7 +36,7 @@ export function SurveyForm() {
                             placeholder="Please detail your feedback here..."
                         />
                     </div>
-                    <div className="pt-4 flex gap-3 border-t border-slate-200">
+                    <div className="pt-4 flex gap-3 mb-5 border-t border-slate-200">
                         {/* Return Button */}
                         <Link href="/kiosk" className="w-1/3">
                             <Button type="button" variant="outline" className="w-full h-12">

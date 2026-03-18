@@ -36,7 +36,7 @@ export default function KioskWelcomePage() {
                             Unregistered Patient (NEW)
                         </Button>
                     </Link>
-                    <div className="pt-4 border-t border-slate-300">
+                    <div className="pt-4 border-t border-slate-300 mt-2">
                         {/* Survey Button */}
                         <Link href="/kiosk/survey" className="w-full">
                             <Button variant="outline" className="w-full h-14 text-md font-medium border-slate-300 text-slate-700">

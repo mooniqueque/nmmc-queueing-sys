@@ -176,10 +176,13 @@ model Patient {
 
 model Visit {
   id              String      @id @default(cuid())
-  patientId       String
-  departmentId    String?
-  ticketNumber    Int
-  status          VisitStatus @default(PENDING_TRIAGE)
+  patientId           String
+  departmentId        String?
+  ticketNumber        Int?
+  sequenceKey         String?
+  windowTicketNumber  Int?
+  kioskRegistrationType String?     @default("UNREGISTERED")
+  status              VisitStatus @default(PENDING_TRIAGE)
   bloodPressure   String?
   heartRate       Int?
   respiratoryRate Int?
@@ -232,7 +235,7 @@ model Visit {
   @@index([status])
   @@index([createdAt])
   @@index([classification])
-  @@unique([queueDate, ticketNumber])
+  @@unique([queueDate, sequenceKey, ticketNumber])
   @@map("visit")
 }
 

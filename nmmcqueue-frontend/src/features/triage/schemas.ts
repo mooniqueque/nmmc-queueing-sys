@@ -34,6 +34,7 @@ export const triageFormSchema = z.object({
     triageRemarks: z.string().optional(),
     disposition: z.enum(["EMERGENT", "URGENT", "NON-URGENT"]).default("NON-URGENT"),
     priorityClass: z.string().default("REGNEW"),
+    departmentId: z.string().min(1, "Clinical department is required"),
     categoryIds: z.array(z.string()).default([]),
 })
     // SuperRefine to enforce Demographics validation ONLY if it is a manual entry!
@@ -62,6 +63,15 @@ export const triageFormSchema = z.object({
             }
             if (!data.civilStatus || data.civilStatus.trim() === "") {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Civil status is required for walk-ins", path: ["civilStatus"] });
+            }
+            if (data.dateOfBirth) {
+                const dob = new Date(data.dateOfBirth);
+                if (dob > new Date()) {
+                    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date of Birth cannot be in the future", path: ["dateOfBirth"] });
+                }
+                if (dob.getFullYear() < 1900) {
+                    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please provide a valid birth date (year >= 1900)", path: ["dateOfBirth"] });
+                }
             }
         }
     });

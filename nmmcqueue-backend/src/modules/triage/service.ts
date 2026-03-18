@@ -64,14 +64,15 @@ class TriageService {
             const existingVisit = await tx.visit.findFirst({ where: { patientId: patient.id, createdAt: { gte: today }, status: { in: ['KIOSK_SUBMITTED', 'IN_PROGRESS', 'WAITING_CLINIC'] } } });
             if (existingVisit) throw new AppError('ALREADY_IN_QUEUE', 400);
 
-            const nextTicket = await ticketService.generateNextTicketNumber(tx);
             const classification = await determineClassification(rawData.categoryIds || []);
             
             const visit = await tx.visit.create({ 
                 data: { 
                     patientId: patient.id, 
                     status: 'KIOSK_SUBMITTED', 
-                    ticketNumber: nextTicket, 
+                    ticketNumber: null, // No ticket assigned yet at Kiosk
+                    sequenceKey: null,
+                    kioskRegistrationType: rawData.kioskRegistrationType || 'UNREGISTERED',
                     hasAppointment: rawData.hasAppointment,
                     originStationId: rawData.originStationId,
                     classification,
@@ -84,10 +85,9 @@ class TriageService {
                 } 
             });
 
-            logger.info(`Patient queued via Kiosk: Ticket #${nextTicket}`, {
+            logger.info(`Patient queued via Kiosk: ${patient.firstName} ${patient.lastName}`, {
                 patientId: patient.id,
                 visitId: visit.id,
-                ticketNumber: nextTicket,
                 classification,
                 originStationId: rawData.originStationId
             });
@@ -109,8 +109,10 @@ class TriageService {
             hasCough: validData.hasCough, hasColds: validData.hasColds, hasRashes: validData.hasRashes,
             isInfectious: validData.isInfectious, chiefComplaint: validData.chiefComplaint, medicalHistory: validData.medicalHistory,
             triageRemarks: validData.triageRemarks, disposition: validData.disposition, hasAppointment: validData.hasAppointment,
+            departmentId: validData.departmentId,
             triagedAt: new Date(), triagedByUserId: userId, triageStationId: user?.workstationId, status: 'WAITING_WINDOW',
         };
+
         if (validData.isManualEntry) {
             if (!validData.firstName || !validData.lastName || !validData.dateOfBirth || !validData.gender) throw new Error('Missing required demographic fields for Walk-In.');
             let patient = await db.patient.findFirst({ where: { firstName: validData.firstName, lastName: validData.lastName, dateOfBirth: new Date(validData.dateOfBirth) } });
@@ -118,12 +120,13 @@ class TriageService {
                 patient = await db.patient.create({ data: { firstName: validData.firstName!, middleName: validData.middleName, lastName: validData.lastName!, dateOfBirth: new Date(validData.dateOfBirth!), gender: validData.gender!, address: validData.address, birthPlace: validData.birthPlace, religion: validData.religion, civilStatus: validData.civilStatus } });
             }
             affectedPatientId = patient.id;
-            await db.$transaction(async (tx) => {
-                const nextTicket = await ticketService.generateNextTicketNumber(tx);
-                await tx.visit.create({ 
+            const result = await db.$transaction(async (tx) => {
+                const nextTicket = await ticketService.generateNextTicketNumber(tx, 'WINDOW');
+                const newVisit = await tx.visit.create({ 
                     data: { 
                         patientId: patient!.id, 
                         ticketNumber: nextTicket, 
+                        sequenceKey: 'WINDOW',
                         ...triageUpdates,
                         classification: await determineClassification(validData.categoryIds || []),
                         categories: {
@@ -134,19 +137,39 @@ class TriageService {
                         }
                     } 
                 });
+                return { ticketNumber: nextTicket, patientName: `${patient!.firstName} ${patient!.lastName}`.trim() };
             });
+            
+            logger.info(`Triage completed for Visit ID: Walk-In`, {
+                visitId: undefined,
+                userId,
+                isManualEntry: validData.isManualEntry,
+                patientId: affectedPatientId
+            });
+
+            await emitQueueUpdate();
+            return result;
         } else {
             if (!visitId) throw new Error('No Visit ID provided for queue patient.');
             const existingVisit = await db.visit.findUnique({ where: { id: visitId }, select: { patientId: true } });
             if (!existingVisit) throw new Error('Visit not found.');
             affectedPatientId = existingVisit.patientId;
             const dob = validData.dateOfBirth ? new Date(validData.dateOfBirth) : undefined;
-            await db.$transaction([
-                db.patient.update({ where: { id: existingVisit.patientId }, data: { firstName: validData.firstName, middleName: validData.middleName, lastName: validData.lastName, dateOfBirth: dob, gender: validData.gender, address: validData.address, birthPlace: validData.birthPlace, religion: validData.religion, civilStatus: validData.civilStatus } }),
-                db.visit.update({ 
+            
+            const result = await db.$transaction(async (tx) => {
+                const nextTicket = await ticketService.generateNextTicketNumber(tx, 'WINDOW');
+                
+                const updatedPatient = await tx.patient.update({ 
+                    where: { id: existingVisit.patientId }, 
+                    data: { firstName: validData.firstName, middleName: validData.middleName, lastName: validData.lastName, dateOfBirth: dob, gender: validData.gender, address: validData.address, birthPlace: validData.birthPlace, religion: validData.religion, civilStatus: validData.civilStatus } 
+                });
+
+                await tx.visit.update({ 
                     where: { id: visitId }, 
                     data: {
                         ...triageUpdates,
+                        ticketNumber: nextTicket,
+                        sequenceKey: 'WINDOW',
                         classification: await determineClassification(validData.categoryIds || []),
                         categories: {
                             deleteMany: {},
@@ -156,19 +179,21 @@ class TriageService {
                             create: { status: 'WAITING_WINDOW' }
                         }
                     }
-                }),
-            ]);
-        }
-        
-        logger.info(`Triage completed for Visit ID: ${visitId || 'Walk-In'}`, {
-            visitId,
-            userId,
-            isManualEntry: validData.isManualEntry,
-            patientId: affectedPatientId
-        });
+                });
+                
+                return { ticketNumber: nextTicket, patientName: `${updatedPatient.firstName} ${updatedPatient.lastName}`.trim() };
+            });
+            
+            logger.info(`Triage completed for Visit ID: ${visitId}`, {
+                visitId,
+                userId,
+                isManualEntry: validData.isManualEntry,
+                patientId: affectedPatientId
+            });
 
-        // Notify all SSE listeners that the queue has changed (Releasing window needs this)
-        await emitQueueUpdate();
+            await emitQueueUpdate();
+            return result;
+        }
     }
 
     async getPendingQueue() {
@@ -192,7 +217,7 @@ class TriageService {
             },
             orderBy: [
                 { classification: 'desc' },
-                { ticketNumber: 'asc' }
+                { createdAt: 'asc' }
             ],
         });
     }

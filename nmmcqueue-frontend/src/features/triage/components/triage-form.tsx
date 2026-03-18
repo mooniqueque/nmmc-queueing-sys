@@ -1,24 +1,24 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { getDepartments, getQueueOptions } from "@/features/shared/api";
+import { Department, PriorityCategory } from "@/types/models";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CaretDoubleRight, PaperPlaneRight, Tag, WarningCircle } from "@phosphor-icons/react";
 import { useEffect, useState, useTransition } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { submitTriageForm } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
-import { ClipboardText, CaretDoubleRight, PaperPlaneRight, WarningCircle, Tag } from "@phosphor-icons/react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { getQueueOptions } from "@/features/shared/api";
-import { PriorityCategory } from "@/types/models";
 
+import { useTriageStore } from "../store/use-triage-store";
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
 import { VitalsSection } from "./vitals-section";
-import { useTriageStore } from "../store/use-triage-store";
 
 export function TriageForm() {
     const {
@@ -30,9 +30,13 @@ export function TriageForm() {
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
 
     useEffect(() => {
         getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
+        getDepartments().then(res => {
+            if (res.success) setDepartments(res.data);
+        });
     }, []);
 
     const methods = useForm<z.input<typeof triageFormSchema>, unknown, TriageFormValues>({
@@ -44,6 +48,7 @@ export function TriageForm() {
             bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
             hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
             priorityClass: "REGULAR",
+            departmentId: "",
             categoryIds: []
         }
     });
@@ -57,6 +62,7 @@ export function TriageForm() {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: "REGULAR",
+                departmentId: "",
                 categoryIds: []
             });
         } else if (selectedPatient) {
@@ -75,6 +81,7 @@ export function TriageForm() {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: selectedPatient.classification || "REGULAR",
+                departmentId: selectedPatient.departmentId || "",
                 categoryIds: selectedPatient.categories?.map(c => c.categoryId) || []
             });
         } else {
@@ -92,6 +99,23 @@ export function TriageForm() {
                 setSubmitError(res.error as string);
             } else {
                 setSubmitSuccess(true);
+
+                // Auto-print triage ticket
+                if (res?.data?.ticketNumber) {
+                    const ticketNum = res.data.ticketNumber.toString().padStart(3, '0');
+
+                    const html = `
+                        <div class="header">Northern Mindanao Medical Center</div>
+                        <div class="sub-header">Triage Station</div>
+                        <div class="ticket-label">Window Queue Number</div>
+                        <div class="ticket-number">#${ticketNum}</div>
+                       
+                        <div class="date-time">${new Date().toLocaleString()}</div>
+                        <div class="footer">Please wait for your number to be called at the Window.</div>
+                    `;
+                    import('@/lib/print').then(({ printThermalReceipt }) => printThermalReceipt(html));
+                }
+
                 setTimeout(() => {
                     resetTriage();
                     setSubmitSuccess(false);
@@ -149,8 +173,8 @@ export function TriageForm() {
                             <SymptomsSection />
                             <ClinicalNotesSection />
 
-                             {/* Submission Footer */}
-                             <div className="mt-12 bg-muted/10 p-6 rounded-xl flex items-center justify-between border border-border shadow-sm">
+                            {/* Submission Footer */}
+                            <div className="mt-12 bg-muted/10 p-6 rounded-xl flex items-center justify-between border border-border shadow-sm">
                                 <div className="flex gap-4">
                                     <div className="w-48">
                                         <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 block pl-1">
@@ -188,6 +212,29 @@ export function TriageForm() {
                                                     <SelectContent className="rounded-lg border-border bg-background">
                                                         <SelectItem value="REGULAR" className="font-bold py-2 text-xs">Regular</SelectItem>
                                                         <SelectItem value="PRIORITY" className="font-bold py-2 text-xs text-primary">Priority</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="w-56">
+                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 block pl-1">
+                                            Assign Clinical Dept
+                                        </Label>
+                                        <Controller
+                                            control={methods.control}
+                                            name="departmentId"
+                                            render={({ field }) => (
+                                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                                    <SelectTrigger className="h-10 rounded-lg border-border bg-background text-xs font-bold transition-all focus:ring-primary/20">
+                                                        <SelectValue placeholder="Select Dept..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-lg border-border bg-background">
+                                                        {departments.map((dept) => (
+                                                            <SelectItem key={dept.id} value={dept.id} className="font-bold py-2 text-xs">
+                                                                {dept.name}
+                                                            </SelectItem>
+                                                        ))}
                                                     </SelectContent>
                                                 </Select>
                                             )}

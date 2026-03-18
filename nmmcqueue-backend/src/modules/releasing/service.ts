@@ -1,5 +1,6 @@
 import { db } from '../../config/database.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
+import { ticketService } from '../tickets/service.js';
 import { assignTicketSchema } from './schema.js';
 
 class ReleasingService {
@@ -16,13 +17,14 @@ class ReleasingService {
             },
             include: {
                 patient: true,
+                department: true,
                 categories: {
                     include: {
                         category: true
                     }
                 }
             },
-            orderBy: { ticketNumber: 'asc' },
+            orderBy: { createdAt: 'asc' },
         });
     }
 
@@ -68,29 +70,43 @@ class ReleasingService {
 
         // Fetch category to check if it's priority
         const category = await db.priorityCategory.findUnique({
-            where: { id: data.priorityClass } // data.priorityClass is now the categoryId
+            where: { id: data.priorityClass }
         });
 
         const classification = category?.isPriority ? 'PRIORITY' : 'REGULAR';
 
-        await db.visit.update({
-            where: { id: visitId },
-            data: {
-                departmentId: data.departmentId,
-                classification: classification,
-                status: 'WAITING_CLINIC',
-                // Link the category explicitly
-                categories: {
-                    deleteMany: {}, // Clear existing if any (usually none from window unless multiple tags)
-                    create: { categoryId: data.priorityClass }
-                },
-                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
-            }
+        const visit = await db.visit.findUnique({ where: { id: visitId }, include: { patient: true } });
+        if (!visit) throw new Error('Visit not found');
+
+        const result = await db.$transaction(async (tx) => {
+            const sequenceKey = `DEPT_${data.departmentId}`;
+            const nextTicket = await ticketService.generateNextTicketNumber(tx, sequenceKey);
+
+            await tx.visit.update({
+                where: { id: visitId },
+                data: {
+                    departmentId: data.departmentId,
+                    classification: classification,
+                    status: 'WAITING_CLINIC',
+                    windowTicketNumber: visit.ticketNumber, // Preserve the window ticket
+                    ticketNumber: nextTicket,
+                    sequenceKey: sequenceKey,
+                    // Link the category explicitly
+                    categories: {
+                        deleteMany: {},
+                        create: { categoryId: data.priorityClass }
+                    },
+                    statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
+                }
+            });
+
+            return { ticketNumber: nextTicket, patientFullName: `${visit.patient.firstName} ${visit.patient.lastName}`.trim() };
         });
 
         // Emit targeted update to this specific department
         await emitQueueUpdate(data.departmentId);
         await emitQueueUpdate('WINDOW'); // Clear from window monitor
+        return result;
     }
 }
 

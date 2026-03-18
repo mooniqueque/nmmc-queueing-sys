@@ -64,7 +64,7 @@ export default function UserCallerDashboard({
         setIsProcessing(true);
         try {
             await callPatient(nextVisit.id);
-            toast.success(`Calling patient P-${nextVisit.ticketNumber.toString().padStart(3, '0')}`);
+            toast.success(`Calling patient P-${nextVisit.ticketNumber?.toString().padStart(3, '0') ?? 'N/A'}`);
         } catch {
             toast.error("Failed to call patient.");
         } finally {
@@ -91,7 +91,7 @@ export default function UserCallerDashboard({
         setIsProcessing(true);
         try {
             await noShowPatient(targetVisit.id);
-            toast.error(`Patient P-${targetVisit.ticketNumber.toString().padStart(3, '0')} marked as NO SHOW`);
+            toast.error(`Patient P-${targetVisit.ticketNumber?.toString().padStart(3, '0') ?? 'N/A'} marked as NO SHOW`);
         } catch {
             toast.error("Failed to process No Show.");
         } finally {
@@ -225,7 +225,7 @@ export default function UserCallerDashboard({
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`text-base font-bold ${isNext ? "text-primary" : "text-muted-foreground"}`}>
-                                                        #{visit.ticketNumber.toString().padStart(3, '0')}
+                                                        {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}
                                                     </span>
                                                     {isNext && (
                                                         <span className="bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-primary/20">
@@ -271,7 +271,7 @@ export default function UserCallerDashboard({
                                             {isNext && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
                                             <div className="flex justify-between items-start mb-1">
                                                 <span className={`text-base font-bold ${isNext ? "text-primary" : "text-muted-foreground"}`}>
-                                                    #{visit.ticketNumber.toString().padStart(3, '0')}
+                                                    {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}
                                                 </span>
                                                 <span className="bg-muted text-muted-foreground text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-border">
                                                     From: {visit.referredFrom?.name || "N/A"}
@@ -300,7 +300,7 @@ export default function UserCallerDashboard({
                                     >
                                         <div className="flex justify-between items-start mb-2">
                                             <span className="text-base font-bold text-destructive">
-                                                #{visit.ticketNumber.toString().padStart(3, '0')}
+                                                {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}
                                             </span>
                                             <Button
                                                 size="sm"
@@ -370,7 +370,7 @@ export default function UserCallerDashboard({
                                                     <div className="relative z-10 flex flex-col items-center">
                                                         <span className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Ticket No.</span>
                                                         <span className="text-5xl font-black text-emerald-900 tracking-tighter">
-                                                            #{activeTarget.ticketNumber.toString().padStart(3, '0')}
+                                                            {activeTarget.ticketNumber ? `#${activeTarget.ticketNumber.toString().padStart(3, '0')}` : '---'}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -385,7 +385,7 @@ export default function UserCallerDashboard({
                                                             <Hash size={16} className="text-emerald-600" /> <span className="text-slate-400">ID:</span> {activeTarget.patient.id.split('-')[0].toUpperCase()}
                                                         </span>
                                                         <span className="flex items-center gap-2 text-slate-600">
-                                                            {activeTarget.patient.gender} • {calculateAge(activeTarget.patient.dateOfBirth)} years old
+                                                            {activeTarget.patient.gender} • {calculateAge(activeTarget.patient.dateOfBirth) ?? '??'} years old
                                                         </span>
                                                         <span className="bg-emerald-600 text-white text-[9px] uppercase font-black tracking-widest px-2.5 py-1 rounded-full shadow-sm shadow-emerald-200">
                                                             {activeTarget.classification || "REGULAR"}

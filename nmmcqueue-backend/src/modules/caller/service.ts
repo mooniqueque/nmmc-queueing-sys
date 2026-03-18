@@ -60,7 +60,7 @@ class CallerService {
             },
             orderBy: [
                 { classification: 'desc' },
-                { ticketNumber: 'asc' },
+                { createdAt: 'asc' },
             ],
         });
     }

@@ -21,6 +21,20 @@ export const kioskFormSchema = z.object({
     }),
     hasAppointment: z.boolean().default(false),
     categoryIds: z.array(z.string()).optional().default([]),
+}).superRefine((data, ctx) => {
+    const monthNames: Record<string, number> = {
+        "January": 0, "February": 1, "March": 2, "April": 3, "May": 4, "June": 5,
+        "July": 6, "August": 7, "September": 8, "October": 9, "November": 10, "December": 11
+    };
+    const mVal = monthNames[data.dobMonth] ?? (Number(data.dobMonth) - 1);
+    const dob = new Date(Number(data.dobYear), mVal, Number(data.dobDay));
+    
+    if (dob > new Date()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date of Birth cannot be in the future", path: ["dobYear"] });
+    }
+    if (Number(data.dobYear) < 1900) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please provide a valid birth year (>= 1900)", path: ["dobYear"] });
+    }
 });
 
 export type KioskFormValues = z.infer<typeof kioskFormSchema>;

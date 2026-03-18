@@ -36,7 +36,7 @@ export function categorizeVisit(visit: VisitWithPatient): Exclude<QueueCategory,
 
     const age = calculateAge(visit.patient.dateOfBirth);
     if (visit.hasAppointment) return "PRIORITY";
-    if (age < 12 || age >= 60) return "PRIORITY";
+    if (age !== null && (age < 12 || age >= 60)) return "PRIORITY";
 
     return "REGULAR";
 }
@@ -58,9 +58,16 @@ export function getCategoryBadges(visit: VisitWithPatient): string[] {
         if (visit.hasAppointment) badges.push("APPT");
 
         const age = calculateAge(visit.patient.dateOfBirth);
-        if (age < 12) badges.push("CHILD");
-        if (age >= 60) badges.push("SENIOR");
+        if (age !== null) {
+            if (age < 12) badges.push("CHILD");
+            if (age >= 60) badges.push("SENIOR");
+        }
     }
+
+    if (visit.kioskRegistrationType) {
+        badges.push(visit.kioskRegistrationType);
+    }
+    
     return badges;
 }
 
@@ -73,7 +80,8 @@ interface ReleasingEntryProps {
 
 export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepartment }: ReleasingEntryProps) {
     const { activeQueue } = useReleasingQueue(initialQueue);
-    const [selectedPatient, setSelectedPatient] = useState<VisitWithPatient | null>(null);
+    const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+    const selectedPatient = selectedPatientId ? activeQueue.find(v => v.id === selectedPatientId) || null : null;
     const [activeTab, setActiveTab] = useState<QueueCategory>("ALL");
     const [searchQuery, setSearchQuery] = useState("");
     const [isResetting, setIsResetting] = useState(false);
@@ -89,7 +97,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
             } else {
                 toast.error("Reset Failed", { description: res.message || "Could not reset queue." });
             }
-        } catch (err) {
+        } catch {
             toast.error("Error", { description: "An unexpected error occurred during reset." });
         } finally {
             setIsResetting(false);
@@ -108,7 +116,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
-            c.visit.ticketNumber.toString().includes(q) ||
+            (c.visit.ticketNumber?.toString().includes(q) ?? false) ||
             c.visit.patient.firstName.toLowerCase().includes(q) ||
             c.visit.patient.lastName.toLowerCase().includes(q)
         );
@@ -132,11 +140,11 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         const order: Record<string, number> = { PRIORITY: 0, REGULAR: 1, NO_SHOW: 2 };
         const catDiff = (order[a.category] ?? 3) - (order[b.category] ?? 3);
         if (catDiff !== 0) return catDiff;
-        return a.visit.ticketNumber - b.visit.ticketNumber;
+        return (a.visit.ticketNumber ?? 0) - (b.visit.ticketNumber ?? 0);
     });
 
     const handleAssignComplete = () => {
-        setSelectedPatient(null);
+        setSelectedPatientId(null);
     };
 
     return (
@@ -221,7 +229,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                     searchQuery={searchQuery}
                                     onSearchChange={setSearchQuery}
                                     selectedPatientId={selectedPatient?.id}
-                                    onSelectPatient={setSelectedPatient}
+                                    onSelectPatient={(p) => setSelectedPatientId(p.id)}
                                     isPanelOpen={!!selectedPatient}
                                 />
                             </div>
@@ -234,7 +242,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                         departments={departments}
                                         queueOptionsByDepartment={queueOptionsByDepartment}
                                         badges={categorized.find(c => c.visit.id === selectedPatient.id)?.badges ?? []}
-                                        onClose={() => setSelectedPatient(null)}
+                                        onClose={() => setSelectedPatientId(null)}
                                         onAssignComplete={handleAssignComplete}
                                     />
                                 </div>

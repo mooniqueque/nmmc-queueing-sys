@@ -19,6 +19,7 @@ class MonitorService {
                 where: {
                     windowNumber: window.stationNo,
                     status: 'IN_PROGRESS',
+                    sequenceKey: 'WINDOW',
                     createdAt: { gte: today, lt: tomorrow }
                 },
                 orderBy: { calledAt: 'desc' },
@@ -71,6 +72,7 @@ class MonitorService {
             where: {
                 departmentId,
                 status: 'IN_PROGRESS',
+                sequenceKey: `DEPT_${departmentId}`,
                 createdAt: { gte: today, lt: tomorrow }
             },
             orderBy: { calledAt: 'asc' },
@@ -112,6 +114,7 @@ class MonitorService {
                     departmentId,
                     windowNumber: station.stationNo,
                     status: 'IN_PROGRESS',
+                    sequenceKey: `DEPT_${departmentId}`,
                     createdAt: { gte: today, lt: tomorrow }
                 },
                 orderBy: { calledAt: 'desc' },

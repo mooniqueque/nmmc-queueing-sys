@@ -11,8 +11,8 @@ class TriageController {
     submitTriage = asyncHandler(async (req: Request, res: Response) => {
         const userId = (req as any).user?.id;
         if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
-        await triageService.submitTriageForm(req.body.values, req.body.visitId, userId);
-        res.status(200).json({ success: true });
+        const result = await triageService.submitTriageForm(req.body.values, req.body.visitId, userId);
+        res.status(200).json({ success: true, data: result });
     });
 
     markNoShow = asyncHandler(async (req: Request, res: Response) => {

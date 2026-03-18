@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useTransition, useState } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { markNoShow, removeQueue, restoreNoShow } from "../actions";
 import { useTriageQueue } from "../hooks";
 import { VisitWithPatient } from "../types";
@@ -29,6 +29,17 @@ export function TriageQueueSidebar({
     const { activeQueue, noShowQueue, activeTab, setActiveTab } = useTriageQueue(initialQueue);
     const [isPending, startTransition] = useTransition();
     const [searchQuery, setSearchQuery] = useState("");
+    const [nowMs, setNowMs] = useState<number | null>(null);
+
+    useEffect(() => {
+        const updateNow = () => setNowMs(Date.now());
+        updateNow();
+        const intervalId = window.setInterval(updateNow, 60_000);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, []);
 
     const handleNoShow = (visitId: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -62,7 +73,7 @@ export function TriageQueueSidebar({
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
-            v.ticketNumber.toString().includes(q) ||
+            (v.ticketNumber?.toString().includes(q) ?? false) ||
             v.patient.firstName.toLowerCase().includes(q) ||
             v.patient.lastName.toLowerCase().includes(q)
         );
@@ -193,6 +204,7 @@ export function TriageQueueSidebar({
                                             isPending={isPending}
                                             isDis={isManualEntry}
                                             isPanelOpen={isPanelOpen}
+                                            nowMs={nowMs}
                                             onSelect={() => {
                                                 if (!isManualEntry) {
                                                     setSubmitError("");
@@ -221,6 +233,7 @@ export function TriageQueueSidebar({
                                             isPending={isPending}
                                             isDis={isManualEntry}
                                             isPanelOpen={isPanelOpen}
+                                            nowMs={nowMs}
                                             onSelect={() => {
                                                 if (!isManualEntry) {
                                                     setSubmitError("");
@@ -249,7 +262,7 @@ export function TriageQueueSidebar({
                                     className="w-full text-left grid grid-cols-[60px_1fr_120px] gap-6 items-center px-6 py-4 border-b border-border bg-card"
                                 >
                                     <div className="text-sm font-bold text-muted-foreground">
-                                        #{visit.ticketNumber.toString().padStart(3, '0')}
+                                        {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : ''}
                                     </div>
                                     <div className="min-w-0 pr-4">
                                         <div className="font-bold text-xs truncate text-muted-foreground line-through">
@@ -284,6 +297,7 @@ function PatientRow({
     isPending,
     isDis,
     isPanelOpen,
+    nowMs,
     onSelect,
     onNoShow,
     onRemove
@@ -293,12 +307,15 @@ function PatientRow({
     isPending: boolean;
     isDis: boolean;
     isPanelOpen: boolean;
+    nowMs: number | null;
     onSelect: () => void;
     onNoShow: (id: string, e: React.MouseEvent) => void;
     onRemove: (id: string, e: React.MouseEvent) => void;
 }) {
-    // Wait time calc
-    const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
+    // Keep initial SSR and client hydration deterministic; start live wait clock after mount.
+    const createdAtMs = new Date(visit.createdAt).getTime();
+    const effectiveNowMs = nowMs ?? createdAtMs;
+    const waitMins = Math.max(0, Math.floor((effectiveNowMs - createdAtMs) / 60000));
     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins} mins`;
     const isWaitingLong = waitMins > 10;
     const isWaitingExtreme = waitMins > 30;
@@ -322,11 +339,11 @@ function PatientRow({
             {/* Ticket */}
             <div className={`flex flex-col gap-1 ${isSelected ? 'text-primary' : 'text-primary/70'}`}>
                 <div className="text-sm font-bold tracking-tight">
-                    #{visit.ticketNumber.toString().padStart(3, '0')}
+                    {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : null}
                 </div>
-                {visit.categories && visit.categories.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                        {visit.categories.map((vc) => (
+                <div className="flex flex-wrap gap-1">
+                    {visit.categories && visit.categories.length > 0 && 
+                        visit.categories.map((vc) => (
                             <span
                                 key={vc.categoryId}
                                 className={`text-[8px] font-bold px-1 rounded border uppercase tracking-widest ${vc.category?.isPriority
@@ -336,19 +353,24 @@ function PatientRow({
                             >
                                 {vc.category?.code || vc.category?.name?.substring(0, 3)}
                             </span>
-                        ))}
-                    </div>
-                )}
+                        ))
+                    }
+                </div>
             </div>
 
             {/* Name & Demographics */}
             <div className="min-w-0 pr-4 flex flex-col justify-center gap-0.5">
-                <div className={`font-bold text-xs truncate ${isSelected ? 'text-foreground' : 'text-foreground/80'}`}>
-                    {visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span>
+                <div className={`flex items-center gap-2 font-bold text-xs truncate ${isSelected ? 'text-foreground' : 'text-foreground/80'}`}>
+                    <span>{visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span></span>
+                    {visit.kioskRegistrationType && (
+                        <span className="text-[8px] font-bold tracking-widest px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary border border-primary/20 leading-none h-fit uppercase mt-0.5">
+                            {visit.kioskRegistrationType}
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <div className="text-[9px] font-bold text-muted-foreground flex items-center gap-1.5 flex-wrap uppercase tracking-wider">
-                        {visit.patient.gender.substring(0, 1)} • {calculateAge(visit.patient.dateOfBirth)}y
+                        {visit.patient.gender.substring(0, 1)} • {calculateAge(visit.patient.dateOfBirth) ?? '??'}y
                         <span className="opacity-40">•</span>
                         <span className="italic">{new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>

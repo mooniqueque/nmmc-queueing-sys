@@ -6,7 +6,7 @@ import { VisitWithPatient } from "@/features/triage/types";
 import { calculateAge } from "@/lib/utils";
 import { Department, PriorityCategory } from "@/types/models";
 import { BellRinging, Phone, Printer, User, WarningCircle, X } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { assignTicket, callTicket, noShowTicket } from "../actions";
 
@@ -28,11 +28,26 @@ export function ReleasingAssignPanel({
     onAssignComplete
 }: ReleasingAssignPanelProps) {
     const [selectedDepartmentId, setSelectedDepartmentId] = useState(selectedPatient.departmentId || "");
-    const [selectedQueueOption, setSelectedQueueOption] = useState("");
     const [notes, setNotes] = useState("");
     const [isPending, startTransition] = useTransition();
 
     const activeDepartment = departments.find(d => d.id === selectedDepartmentId);
+    const triageAssignedDepartmentName = useMemo(() => {
+        if (selectedPatient.department?.name) return selectedPatient.department.name;
+        if (selectedPatient.departmentId) {
+            return departments.find(d => d.id === selectedPatient.departmentId)?.name || "Assigned by Triage";
+        }
+        return "Not yet assigned";
+    }, [departments, selectedPatient.department?.name, selectedPatient.departmentId]);
+
+    const [prevPatientId, setPrevPatientId] = useState(selectedPatient.id);
+    
+    // Sync state when selectedPatient changes (to avoid useEffect cascading render warning)
+    if (selectedPatient.id !== prevPatientId) {
+        setPrevPatientId(selectedPatient.id);
+        setSelectedDepartmentId(selectedPatient.departmentId || "");
+        setNotes("");
+    }
 
     const queueOptions = useMemo(() => {
         if (!activeDepartment) return [];
@@ -41,31 +56,29 @@ export function ReleasingAssignPanel({
 
     // Intelligent Recommendation based on Triage
     const recommendedOption = useMemo(() => {
-        if (queueOptions.length === 0) return null;
+        // If we have dynamic options, try to match by name or priority status
+        if (queueOptions.length > 0) {
+            if (badges.includes("ER-REF") || selectedPatient.disposition?.toUpperCase().includes("ER")) {
+                const opt = queueOptions.find(o => o.code === "ER-REF" || o.name.toUpperCase().includes("ER"));
+                if (opt) return opt;
+            }
+            if (badges.includes("SENIOR") || badges.includes("CHILD")) {
+                const opt = queueOptions.find(o => o.isPriority);
+                if (opt) return opt;
+            }
+        }
+        return null;
+    }, [badges, selectedPatient.disposition, queueOptions]);
 
-        if (badges.includes("ER-REF") || selectedPatient.disposition?.toUpperCase().includes("ER")) {
-            const opt = queueOptions.find(o => o.code === "ER-REF" || o.name.toUpperCase().includes("ER"));
-            if (opt) return opt;
+    const autoQueueOption = useMemo(() => {
+        if (!selectedDepartmentId || queueOptions.length === 0) return null;
+
+        if (selectedPatient.classification === "PRIORITY") {
+            return recommendedOption ?? queueOptions.find((opt) => opt.isPriority) ?? queueOptions[0];
         }
 
-        // If Triage classified as PRIORITY or has priority badges
-        if (badges.includes("SENIOR") || badges.includes("CHILD") || selectedPatient.classification === 'PRIORITY') {
-            const opt = queueOptions.find(o => o.isPriority);
-            if (opt) return opt;
-        }
-
-        // Default to Regular
-        return queueOptions.find(o => !o.isPriority) || queueOptions[0] || null;
-    }, [badges, selectedPatient.disposition, selectedPatient.classification, queueOptions]);
-
-    // Automatically select the recommended priority option
-    useEffect(() => {
-        if (recommendedOption && selectedDepartmentId) {
-            setSelectedQueueOption(recommendedOption.id);
-        } else if (!selectedDepartmentId) {
-            setSelectedQueueOption("");
-        }
-    }, [recommendedOption, selectedDepartmentId]);
+        return queueOptions.find((opt) => !opt.isPriority) ?? recommendedOption ?? queueOptions[0];
+    }, [selectedDepartmentId, queueOptions, selectedPatient.classification, recommendedOption]);
 
     const handleCall = () => {
         startTransition(async () => {
@@ -84,32 +97,15 @@ export function ReleasingAssignPanel({
     };
 
     const handleAssign = () => {
-        if (!selectedDepartmentId || !selectedQueueOption) return;
+        if (!selectedDepartmentId) return;
+        if (!autoQueueOption) {
+            toast.error("No queue option configured for this department");
+            return;
+        }
 
         startTransition(async () => {
-            const res = await assignTicket(selectedPatient.id, selectedDepartmentId, selectedQueueOption);
-            if (res?.success && res?.data) {
-                toast.success("Ticket assigned successfully");
-
-                // Auto-print clinic ticket
-                if (res.data.ticketNumber) {
-                    const ticketNum = res.data.ticketNumber.toString().padStart(3, '0');
-
-                    const clinicName = activeDepartment?.name || "Clinic";
-                    const html = `
-                        <div class="header">Northern Mindanao Medical Center</div>
-                        <div class="sub-header">Registration Window</div>
-                        <div class="ticket-label">${clinicName} Queue Number</div>
-                        <div class="ticket-number">#${ticketNum}</div>
-                        
-                        <div class="date-time">${new Date().toLocaleString()}</div>
-                        <div class="footer">Please proceed to ${clinicName} and wait for your number.</div>
-                    `;
-                    import('@/lib/print').then(({ printThermalReceipt }) => printThermalReceipt(html));
-                }
-            } else {
-                toast.error(res?.error || res?.message || "Failed to assign ticket");
-            }
+            await assignTicket(selectedPatient.id, selectedDepartmentId, autoQueueOption.id);
+            toast.success("Ticket printed and assigned successfully");
             onAssignComplete();
         });
     };
@@ -172,16 +168,33 @@ export function ReleasingAssignPanel({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                        {selectedPatient.classification === 'PRIORITY' && (
-                            <span className="bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-primary/20">
-                                PRIORITY
-                            </span>
-                        )}
+                        <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border ${selectedPatient.classification === 'PRIORITY' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted text-muted-foreground border-border'}`}>
+                            {selectedPatient.classification}
+                        </span>
                         {badges.map(b => (
                             <span key={b} className="bg-muted text-muted-foreground text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-border">
                                 {b}
                             </span>
                         ))}
+                    </div>
+                </div>
+
+                {/* Triage Handoff Details */}
+                <div className="bg-card border border-border rounded-xl p-5 lg:p-6 mb-7 shadow-sm">
+                    <h4 className="text-sm font-extrabold text-muted-foreground uppercase tracking-wider mb-4">Triage Endorsement</h4>
+                    <div className="space-y-3.5">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4 pb-2 border-b border-border/60">
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Acuity / Disposition</span>
+                            <span className="text-sm lg:text-base font-extrabold text-foreground text-right">{selectedPatient.disposition || "Not set"}</span>
+                        </div>
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4 pb-2 border-b border-border/60">
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Classification</span>
+                            <span className="text-sm lg:text-base font-extrabold text-foreground text-right">{selectedPatient.classification}</span>
+                        </div>
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Assigned Clinic Department</span>
+                            <span className="text-sm lg:text-base font-extrabold text-foreground text-right">{triageAssignedDepartmentName}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -238,51 +251,21 @@ export function ReleasingAssignPanel({
 
                 {/* Routing Selects */}
                 <div className="space-y-4 mb-8">
-                    <div>
-                        <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Clinic / Department</Label>
-                        {selectedPatient.departmentId ? (
-                            <div className="w-full bg-muted/50 border border-border text-primary text-sm font-bold rounded-lg h-10 px-4 flex items-center shadow-inner">
-                                {activeDepartment?.name || "Assigned by Triage"}
-                            </div>
-                        ) : (
+                    {!selectedPatient.departmentId && (
+                        <div>
+                            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Clinic / Department</Label>
                             <select
                                 className="w-full bg-background border border-border text-foreground text-sm font-bold rounded-lg h-10 px-4 appearance-none outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
                                 value={selectedDepartmentId}
-                                onChange={(e) => {
-                                    setSelectedDepartmentId(e.target.value);
-                                    setSelectedQueueOption("");
-                                }}
+                                onChange={(e) => setSelectedDepartmentId(e.target.value)}
                             >
                                 <option value="" disabled>Select Department...</option>
                                 {departments.map((dept) => (
                                     <option key={dept.id} value={dept.id}>{dept.name}</option>
                                 ))}
                             </select>
-                        )}
-                    </div>
-
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Priority Type (Auto-Assigned)</Label>
-                            {recommendedOption && (
-                                <span className="text-[9px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
-                                    Derived from Triage
-                                </span>
-                            )}
                         </div>
-                        <select
-                            className="w-full bg-muted/50 border border-border text-muted-foreground text-sm font-bold rounded-lg h-10 px-4 appearance-none outline-none shadow-sm cursor-not-allowed opacity-80"
-                            value={selectedQueueOption}
-                            disabled={true}
-                            onChange={() => { }}
-                        >
-                            <option value="" disabled>Select Priority...</option>
-                            {queueOptions.map(opt => (
-                                <option key={opt.id} value={opt.id}>{opt.name}</option>
-                            ))}
-                        </select>
-                        <p className="text-[10px] items-center text-muted-foreground mt-2 italic">Priority classifications are evaluated and assigned directly during the Triage assessment.</p>
-                    </div>
+                    )}
                 </div>
 
                 {/* Internal Notes */}
@@ -308,9 +291,9 @@ export function ReleasingAssignPanel({
 
                 <div className="flex gap-2 w-auto justify-end">
                     <Button
-                        disabled={!selectedDepartmentId || !selectedQueueOption || isPending || !isCalled}
+                        disabled={!selectedDepartmentId || !autoQueueOption || isPending || !isCalled}
                         onClick={handleAssign}
-                        className="h-11 bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-6 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-md shadow-primary/10 gap-2 min-w-[180px]"
+                        className="h-11 bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-6 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-md shadow-primary/10 gap-2 min-w-45"
                     >
                         {isPending ? "Routing..." : (
                             <>

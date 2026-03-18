@@ -17,6 +17,7 @@ class ReleasingService {
             },
             include: {
                 patient: true,
+                department: true,
                 categories: {
                     include: {
                         category: true

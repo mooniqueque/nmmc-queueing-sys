@@ -1,4 +1,7 @@
 import QueueMonitor from "@/features/admin/components/monitor";
+import { auth } from "@/lib/database/auth";
+import { headers } from "next/headers";
+import { SessionUser } from "@/types/auth";
 
 export default async function MonitorPage({
     searchParams,
@@ -13,5 +16,8 @@ export default async function MonitorPage({
     const res = await getClinicQueues(departmentName);
     const initialQueue = res.success ? res.data : [];
 
-    return <QueueMonitor departmentName={departmentName} initialQueue={initialQueue} />;
+    const session = await auth.api.getSession({ headers: await headers() });
+    const loggedInUser = session?.user as unknown as SessionUser;
+
+    return <QueueMonitor departmentName={departmentName} initialQueue={initialQueue} loggedInUser={loggedInUser!} />;
 }

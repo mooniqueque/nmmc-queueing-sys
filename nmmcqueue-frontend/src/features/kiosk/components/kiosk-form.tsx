@@ -1,6 +1,6 @@
 "use client"
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,10 @@ const initialState: KioskFormValues = {
 
 export function KioskForm() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const isRegistered = searchParams.get("type") === "registered";
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [countdown, setCountdown] = useState(5);
     const [isLoading, setIsLoading] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -80,6 +83,27 @@ export function KioskForm() {
      * Requirements Check: 
      * 7. Use a clean React pattern with useState, useEffect, and a single handleChange function.
      */
+    // Timer effect to decrement the countdown
+    useEffect(() => {
+        let timer: ReturnType<typeof setInterval>;
+        if (showSuccessModal && countdown > 0) {
+            timer = setInterval(() => {
+                setCountdown((prev) => prev - 1);
+            }, 1000);
+        } else if (!showSuccessModal) {
+            // Reset countdown when modal closes (if they click "Submit Another")
+            setCountdown(5);
+        }
+        return () => clearInterval(timer);
+    }, [showSuccessModal, countdown]);
+
+    // Redirect effect that correctly triggers when countdown hits 0
+    useEffect(() => {
+        if (showSuccessModal && countdown === 0) {
+            router.push("/kiosk");
+        }
+    }, [countdown, showSuccessModal, router]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { name: string, value: unknown }) => {
         if ('target' in e) {
             const { name, value } = e.target;
@@ -203,6 +227,8 @@ export function KioskForm() {
             localStorage.removeItem('kiosk-registration-draft');
             setFormData(initialState);
             setErrors({});
+
+            setShowSuccessModal(true);
         } else {
             setMessage({ type: 'error', text: submitResult.error! });
         }
@@ -418,7 +444,7 @@ export function KioskForm() {
                         </div>
                     </div>
 
-                    <div className="pt-6 border-t mt-8 flex gap-4">
+                    <div className="pt-6 border-t mt-8 mb-5 flex gap-4">
                         {/* Cancel / Back Button Container -> takes up 1/3 of the space */}
                         <Link href="/kiosk" className="w-1/3">
                             <Button type="button" variant="outline" className="w-full h-12 text-base font-semibold border-slate-300 text-slate-700">
@@ -432,6 +458,39 @@ export function KioskForm() {
                     </div>
                 </form>
             </CardContent>
+            {/* Success Modal Overlay */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                        {/* Success Icon */}
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+
+                        <div className="space-y-2">
+                            <h2 className="text-2xl font-extrabold text-slate-800">Registration Complete!</h2>
+                            <p className="text-slate-500 text-sm">
+                                Your intake form has been successfully submitted to the Triage Nurse. Please wait for your name to be called.
+                            </p>
+                        </div>
+                        <div className="w-full flex gap-3 pt-4 border-t border-slate-100">
+                            {/* Submit Another Button */}
+                            <Button
+                                type="button"
+                                className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700"
+                                onClick={() => {
+                                    setShowSuccessModal(false);
+                                    setMessage(null);
+                                }}
+                            >
+                                Submit Another ({countdown}s)
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Card>
     );
 }

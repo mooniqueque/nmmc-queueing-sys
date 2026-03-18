@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VisitWithPatient } from "@/features/triage/types";
 import { calculateAge } from "@/lib/utils";
 import { Department, PriorityCategory } from "@/types/models";
-import { ArrowsCounterClockwise, ChartBar, Queue } from "@phosphor-icons/react";
+import { ArrowsCounterClockwise, ChartBar, Queue, CheckCircle } from "@phosphor-icons/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { resetDailyQueue } from "../actions";
@@ -26,7 +26,7 @@ import { QueueCategory, ReleasingQueueTable } from "./releasing-queue-table";
 
 export function categorizeVisit(visit: VisitWithPatient): Exclude<QueueCategory, "ALL"> {
     if (visit.status === 'NO_SHOW') return "NO_SHOW";
-    
+
     // Explicit priority from classification field
     if (visit.classification === 'PRIORITY') return "PRIORITY";
 
@@ -43,7 +43,7 @@ export function categorizeVisit(visit: VisitWithPatient): Exclude<QueueCategory,
 
 export function getCategoryBadges(visit: VisitWithPatient): string[] {
     const badges: string[] = [];
-    
+
     // Use dynamic categories if available
     if (visit.categories && visit.categories.length > 0) {
         visit.categories.forEach(vc => {
@@ -56,7 +56,7 @@ export function getCategoryBadges(visit: VisitWithPatient): string[] {
         if (visit.isInfectious) badges.push("INFECTIOUS");
         if (visit.disposition?.toUpperCase().includes("ER")) badges.push("ER-REF");
         if (visit.hasAppointment) badges.push("APPT");
-        
+
         const age = calculateAge(visit.patient.dateOfBirth);
         if (age < 12) badges.push("CHILD");
         if (age >= 60) badges.push("SENIOR");
@@ -152,10 +152,14 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                 </h1>
                                 <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">NMMC Releasing Unit</p>
                             </div>
-                            <TabsList className="bg-muted/50 rounded-lg p-1 h-10 border border-border">
+                            <TabsList className="bg-muted/50 rounded-lg p-1 h-10 border border-border py-5 px-1">
                                 <TabsTrigger value="queue" className="rounded-md h-8 px-5 font-bold text-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200 gap-2">
                                     <Queue size={16} weight="bold" />
                                     Active Queue
+                                </TabsTrigger>
+                                <TabsTrigger value="successful" className="rounded-md h-8 px-5 font-bold text-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200 gap-2">
+                                    <CheckCircle size={16} weight="bold" />
+                                    Successful Forwarded Forms
                                 </TabsTrigger>
                                 <TabsTrigger value="reports" className="rounded-md h-8 px-5 font-bold text-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200 gap-2">
                                     <ChartBar size={16} weight="bold" />
@@ -182,14 +186,14 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                         </DialogDescription>
                                     </DialogHeader>
                                     <DialogFooter className="mt-8 flex gap-3 sm:justify-center">
-                                        <Button 
-                                            variant="ghost" 
+                                        <Button
+                                            variant="ghost"
                                             onClick={() => setResetDialogOpen(false)}
                                             className="flex-1 h-11 rounded-lg font-bold text-muted-foreground hover:bg-muted"
                                         >
                                             Cancel
                                         </Button>
-                                        <Button 
+                                        <Button
                                             onClick={handleReset}
                                             disabled={isResetting}
                                             className="flex-1 h-11 rounded-lg font-bold bg-destructive hover:bg-destructive/90 text-white shadow-sm"
@@ -243,6 +247,14 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                             <ChartBar size={48} weight="duotone" className="text-muted/30 mb-6" />
                             <h3 className="text-lg font-bold text-foreground">Registration Reports</h3>
                             <p className="text-muted-foreground text-sm max-w-sm mt-2 font-medium">Detailed analytics for processing times and patient throughput will be available in the next update.</p>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="successful" className="mt-6 focus-visible:outline-none h-full">
+                        <div className="bg-card rounded-xl border border-border border-dashed p-16 text-center flex flex-col items-center justify-center min-h-[400px]">
+                            <CheckCircle size={48} weight="duotone" className="text-muted/30 mb-6" />
+                            <h3 className="text-lg font-bold text-foreground">Successful Forwarded Forms</h3>
+                            <p className="text-muted-foreground text-sm max-w-sm mt-2 font-medium">List of successfully forwarded forms will appear here.</p>
                         </div>
                     </TabsContent>
                 </Tabs>

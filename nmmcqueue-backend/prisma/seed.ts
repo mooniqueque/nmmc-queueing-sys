@@ -49,7 +49,7 @@ async function main() {
             { name: "Lorenzo Santos", email: "lorenzo@nmmc.gov.ph", dept: "Pharmacy", empId: "EMP016" },
         ];
 
-        const pendingUsers = [
+        const additionalUsers = [
             { name: "Karl Valmores", email: "karl@nmmc.gov.ph", dept: "Surgery", role: "TRIAGE_NURSE", empId: "EMP004" },
             { name: "Sisa Kapitan", email: "sisa@nmmc.gov.ph", dept: "Pediatrics", role: "TRIAGE_NURSE", empId: "EMP011" },
             { name: "Cecilio Santos", email: "cecilio@nmmc.gov.ph", dept: "Cardiology", role: "CLINIC_CALLER", empId: "EMP012" },
@@ -64,7 +64,7 @@ async function main() {
             "Administration",
             ...callers.map(c => c.dept),
             ...clerks.map(c => c.dept),
-            ...pendingUsers.map(u => u.dept)
+            ...additionalUsers.map(u => u.dept)
         ]));
 
         const deptMap: Record<string, string> = {};
@@ -136,7 +136,6 @@ async function main() {
                 departmentId: deptMap["Administration"],
                 department: "Administration",
                 workstationId: wsMap["Main Window 1"] as any, // Admin doesn't strictly need one but schema/auth might expect it
-                isApproved: true,
             },
             headers: new Headers(),
         });
@@ -163,7 +162,6 @@ async function main() {
                     departmentId: deptMap[caller.dept],
                     department: caller.dept,
                     workstationId: wsMap["Clinic Desk Alpha"],
-                    isApproved: true,
                 },
                 headers: new Headers(),
             });
@@ -191,52 +189,46 @@ async function main() {
                     departmentId: deptMap[clerk.dept],
                     department: clerk.dept,
                     workstationId: wsMap["Main Window 1"],
-                    isApproved: true,
                 },
                 headers: new Headers(),
             });
         }
         console.log(`✅ ${clerks.length} window clerks created`);
 
-        // 5. Seed Pending Users (awaiting approval)
-        console.log("⏳ Creating pending users...");
+        // 5. Seed additional staff users
+        console.log("👥 Creating additional users...");
 
-        for (const pendingUser of pendingUsers) {
+        for (const additionalUser of additionalUsers) {
             await auth.api.signUpEmail({
                 body: {
-                    email: pendingUser.email,
+                    email: additionalUser.email,
                     password: "password123",
-                    name: pendingUser.name,
-                    firstName: pendingUser.name.split(' ')[0],
-                    lastName: pendingUser.name.split(' ').slice(1).join(' '),
+                    name: additionalUser.name,
+                    firstName: additionalUser.name.split(' ')[0],
+                    lastName: additionalUser.name.split(' ').slice(1).join(' '),
                     middleName: "",
                     suffix: "",
                     birthDate: new Date("1995-05-15").toISOString(),
                     contactNumber: `09${Math.floor(100000000 + Math.random() * 900000000)}`,
-                    employeeID: pendingUser.empId,
-                    username: pendingUser.email.split('@')[0],
-                    role: pendingUser.role as any,
-                    departmentId: deptMap[pendingUser.dept],
-                    department: pendingUser.dept,
-                    workstationId: (pendingUser.role === 'TRIAGE_NURSE' ? wsMap["Entrance Triage 1"] : wsMap["Main Window 1"]) as any,
-                    isApproved: false,
+                    employeeID: additionalUser.empId,
+                    username: additionalUser.email.split('@')[0],
+                    role: additionalUser.role as any,
+                    departmentId: deptMap[additionalUser.dept],
+                    department: additionalUser.dept,
+                    workstationId: (additionalUser.role === 'TRIAGE_NURSE' ? wsMap["Entrance Triage 1"] : wsMap["Main Window 1"]) as any,
                 },
                 headers: new Headers(),
             });
         }
-        console.log(`✅ ${pendingUsers.length} pending users created`);
+        console.log(`✅ ${additionalUsers.length} additional users created`);
 
         // 6. Display summary
         const totalUsers = await prisma.user.count();
-        const approvedCount = await prisma.user.count({ where: { isApproved: true } });
-        const pendingCount = totalUsers - approvedCount;
         const accountCount = await prisma.account.count();
 
         console.log("\n📊 Database Seeding Summary:");
         console.log(`   Total Users: ${totalUsers}`);
         console.log(`   Total Accounts (Logins): ${accountCount}`);
-        console.log(`   Approved Users: ${approvedCount}`);
-        console.log(`   Pending Users: ${pendingCount}`);
         console.log("\n🎯 Seeding completed successfully!");
 
     } catch (error: unknown) {

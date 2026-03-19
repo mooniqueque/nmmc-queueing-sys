@@ -20,22 +20,19 @@ import {
 } from "@/components/ui/table";
 import { HOSPITAL_ROLES } from "@/types/constants";
 import { SessionUser, UserData } from "@/types/auth";
+import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { Department, WorkStation, WorkstationType } from "@/types/models";
 import {
-    Check,
     CheckCircle,
-    Clock,
     Funnel,
-    HourglassMedium,
     MagnifyingGlass,
-    Trash,
     Users,
     XCircle
 } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react';
-import { approveUser, rejectUser, toggleUserStatus, updateUserRole, updateUserDepartment, updateUserWorkstation } from "../user-actions";
+import { toggleUserStatus, updateUserRole, updateUserDepartment, updateUserWorkstation } from "../user-actions";
 import { AddUserDialog } from "./add-user-dialog";
 import { StatsCard } from "./stats-card";
 import { useIsMounted } from "@/hooks/use-is-mounted";
@@ -60,7 +57,6 @@ export default function AdminDashboard({
     // 1. STATE & FILTERS
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRole, setFilterRole] = useState('All Users');
-    const [viewPendingOnly, setViewPendingOnly] = useState(false);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
     const isMounted = useIsMounted();
     const [currentPage, setCurrentPage] = useState(1);
@@ -68,15 +64,14 @@ export default function AdminDashboard({
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, filterRole, viewPendingOnly]);
+    }, [searchQuery, filterRole]);
 
 
     // 2. DATA CALCULATIONS (Derived State)
     const analytics = {
         total: initialUsers.length,
-        pending: initialUsers.filter(u => !u.isApproved).length,
-        active: initialUsers.filter(u => u.isApproved && u.isActive).length,
-        inactive: initialUsers.filter(u => u.isApproved && !u.isActive).length
+        active: initialUsers.filter(u => u.isActive).length,
+        inactive: initialUsers.filter(u => !u.isActive).length
     };
 
     // 3. FILTERING (Let React Compiler handle memoization)
@@ -91,14 +86,9 @@ export default function AdminDashboard({
             user.employeeID.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesFilter = filterRole === 'All Users' || user.role === filterRole;
-        const matchesPending = viewPendingOnly ? !user.isApproved : true;
-
-        return matchesSearch && matchesFilter && matchesPending;
+        return matchesSearch && matchesFilter;
     }).sort((a, b) => {
-        //prioritze pending users
-        if (!a.isApproved && b.isApproved) return -1;
-        if (a.isApproved && !b.isApproved) return 1;
-        //sort alphabetically by name
+        // Sort alphabetically by name
         return a.name.localeCompare(b.name);
     });
     const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
@@ -107,22 +97,6 @@ export default function AdminDashboard({
 
 
     // 4. ACTION HANDLERS
-    const handleApprove = async (userId: string) => {
-        if (confirm("Are you sure you want to approve this user?")) {
-            const result = await approveUser(userId);
-            if (result.success) router.refresh();
-            else alert(result.error);
-        }
-    };
-
-    const handleReject = async (userId: string) => {
-        if (confirm("Are you sure you want to delete this requisition?")) {
-            const result = await rejectUser(userId);
-            if (result.success) router.refresh();
-            else alert(result.error);
-        }
-    };
-
     const handleUpdateRole = async (userId: string, newRole: string) => {
         setUpdatingUserId(userId);
         try {
@@ -130,7 +104,7 @@ export default function AdminDashboard({
             if (result.success) {
                 router.refresh();
             } else {
-                alert(result.error);
+                notify.error(result.error || "Failed to update user role.");
             }
         } finally {
             setUpdatingUserId(null);
@@ -144,7 +118,7 @@ export default function AdminDashboard({
             if (result.success) {
                 router.refresh();
             } else {
-                alert(result.error);
+                notify.error(result.error || "Failed to update user department.");
             }
         } finally {
             setUpdatingUserId(null);
@@ -158,7 +132,7 @@ export default function AdminDashboard({
             if (result.success) {
                 router.refresh();
             } else {
-                alert(result.error);
+                notify.error(result.error || "Failed to update workstation assignment.");
             }
         } finally {
             setUpdatingUserId(null);
@@ -173,7 +147,7 @@ export default function AdminDashboard({
             if (result.success) {
                 router.refresh();
             } else {
-                alert(result.error);
+                notify.error(result.error || "Failed to update user status.");
             }
         } finally {
             setUpdatingUserId(null);
@@ -193,18 +167,12 @@ export default function AdminDashboard({
             <main className="flex-1 p-6 lg:p-10 space-y-8 max-w-7xl mx-auto w-full">
 
                 {/* ANALYTICS */}
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
                     <StatsCard
                         label="Total System User"
                         value={analytics.total.toString().padStart(2, '0')}
                         icon={<Users size={28} className="text-white" />}
                         color="bg-emerald-600"
-                    />
-                    <StatsCard
-                        label="Pending Requests"
-                        value={analytics.pending.toString().padStart(2, '0')}
-                        icon={<HourglassMedium size={28} className="text-white" />}
-                        color="bg-yellow-500"
                     />
                     <StatsCard
                         label="Active Users"
@@ -249,15 +217,6 @@ export default function AdminDashboard({
                             </DropdownMenuContent>
                         </DropdownMenu>
 
-                        <Button
-                            variant={viewPendingOnly ? "default" : "outline"}
-                            onClick={() => setViewPendingOnly(!viewPendingOnly)}
-                            className="gap-2"
-                        >
-                            {viewPendingOnly ? <Users size={16} /> : <Clock size={16} />}
-                            <span>{viewPendingOnly ? "All Staff" : "Review Pending"}</span>
-                        </Button>
-
                         <AddUserDialog departments={departments} />
                     </div>
                 </div>
@@ -271,7 +230,6 @@ export default function AdminDashboard({
                                 <TableHead className="font-semibold">Assignment</TableHead>
                                 <TableHead className="font-semibold">System Role</TableHead>
                                 <TableHead className="font-semibold">Status</TableHead>
-                                <TableHead className="font-semibold text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -367,48 +325,20 @@ export default function AdminDashboard({
                                         </DropdownMenu>
                                     </TableCell>
                                     <TableCell>
-                                        {user.isApproved ? (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 px-2">
-                                                        <Badge variant={user.isActive ? "default" : "secondary"} className="text-[10px] font-bold uppercase tracking-wider h-6">
-                                                            {user.isActive ? "ACTIVE" : "INACTIVE"}
-                                                        </Badge>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="start">
-                                                    <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.isActive)}>
-                                                        {user.isActive ? "Set as Inactive" : "Set as Active"}
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        ) : (
-                                            <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider h-6 border-yellow-500 text-yellow-600">
-                                                PENDING
-                                            </Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {!user.isApproved && (
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleApprove(user.id)}
-                                                    className="h-8 w-8 p-0"
-                                                >
-                                                    <Check size={16} />
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="h-8 px-2">
+                                                    <Badge variant={user.isActive ? "default" : "secondary"} className="text-[10px] font-bold uppercase tracking-wider h-6">
+                                                        {user.isActive ? "ACTIVE" : "INACTIVE"}
+                                                    </Badge>
                                                 </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleReject(user.id)}
-                                                    className="h-8 w-8 p-0 text-destructive"
-                                                >
-                                                    <Trash size={16} />
-                                                </Button>
-                                            </div>
-                                        )}
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="start">
+                                                <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.isActive)}>
+                                                    {user.isActive ? "Set as Inactive" : "Set as Active"}
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                             ))}

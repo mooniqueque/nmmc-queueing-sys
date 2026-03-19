@@ -6,7 +6,11 @@
     "scripts": {
         "start": "node dist/server.js",
         "dev": "tsx watch src/server.ts",
-        "build": "tsc"
+        "build": "tsc",
+        "db:inspect": "node scripts/inspect-all-db.cjs",
+        "db:verify": "node scripts/verify-schema-columns.cjs",
+        "db:migrate:status": "prisma migrate status",
+        "db:migrate:deploy": "prisma migrate deploy"
     },
     "dependencies": {
         "@prisma/adapter-mariadb": "^7.4.2",

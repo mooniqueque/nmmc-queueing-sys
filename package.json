@@ -2,7 +2,8 @@
   "name": "nmmc-queueing-sys",
   "private": true,
   "scripts": {
-    "dev": "pnpm -r dev",
+    "predev": "node scripts/dev-preflight.cjs",
+    "dev": "pnpm run predev && pnpm -r --parallel --stream dev",
     "dev:backend": "pnpm --filter nmmcqueue-backend dev",
     "dev:frontend": "pnpm --filter nmmcqueue-frontend dev",
     "build": "pnpm -r build",

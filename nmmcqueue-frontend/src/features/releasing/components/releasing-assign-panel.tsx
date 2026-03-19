@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { VisitWithPatient } from "@/features/triage/types";
 import { calculateAge } from "@/lib/utils";
+import { notify } from "@/lib/notify";
 import { Department, PriorityCategory } from "@/types/models";
 import { BellRinging, Phone, Printer, User, WarningCircle, X } from "@phosphor-icons/react";
 import { useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import { assignTicket, callTicket, noShowTicket } from "../actions";
 
 interface ReleasingAssignPanelProps {
@@ -83,23 +83,23 @@ export function ReleasingAssignPanel({
     const handleCall = () => {
         startTransition(async () => {
             const res = await callTicket(selectedPatient.id);
-            if (res.success) toast.success("Patient called to window");
-            else toast.error(res.error || "Failed to call patient");
+            if (res.success) notify.success("Patient called to window");
+            else notify.error(res.error || "Failed to call patient");
         });
     };
 
     const handleNoShow = () => {
         startTransition(async () => {
             const res = await noShowTicket(selectedPatient.id);
-            if (res.success) toast.success("Patient marked as no-show");
-            else toast.error(res.error || "Failed to update status");
+            if (res.success) notify.success("Patient marked as no-show");
+            else notify.error(res.error || "Failed to update status");
         });
     };
 
     const handleAssign = () => {
         if (!selectedDepartmentId) return;
         if (!autoQueueOption) {
-            toast.error("No queue option configured for this department");
+            notify.error("No queue option configured for this department");
             return;
         }
 
@@ -121,9 +121,9 @@ export function ReleasingAssignPanel({
                     `;
                     import('@/lib/print').then(({ printThermalReceipt }) => printThermalReceipt(html));
                 }
-                toast.success("Ticket printed and assigned successfully");
+                notify.success("Ticket printed and assigned successfully");
             } else {
-                toast.error(res?.error || "Failed to assign ticket");
+                notify.error(res?.error || "Failed to assign ticket");
             }
             onAssignComplete();
         });

@@ -100,21 +100,7 @@ export function TriageForm() {
             } else {
                 setSubmitSuccess(true);
 
-                // Auto-print triage ticket
-                if (res?.data?.ticketNumber) {
-                    const ticketNum = res.data.ticketNumber.toString().padStart(3, '0');
-
-                    const html = `
-                        <div class="header">Northern Mindanao Medical Center</div>
-                        <div class="sub-header">Triage Station</div>
-                        <div class="ticket-label">Window Queue Number</div>
-                        <div class="ticket-number">#${ticketNum}</div>
-                       
-                        <div class="date-time">${new Date().toLocaleString()}</div>
-                        <div class="footer">Please wait for your number to be called at the Window.</div>
-                    `;
-                    import('@/lib/print').then(({ printThermalReceipt }) => printThermalReceipt(html));
-                }
+                // Auto-print triage ticket handled by backend
 
                 setTimeout(() => {
                     resetTriage();

@@ -11,6 +11,19 @@ class ReleasingController {
     assignTicket = asyncHandler(async (req: Request, res: Response) => {
         const userId = (req as any).user?.id;
         const result = await releasingService.assignTicket(req.params.id, req.body, userId);
+        
+        if (result?.ticketNumber) {
+            import('../../lib/printer.js').then(({ printTicket }) => {
+                printTicket({
+                    station: "Registration Window",
+                    label: "Clinic Queue Number",
+                    ticketNumber: result.ticketNumber.toString().padStart(3, '0'),
+                    date: new Date().toLocaleString(),
+                    footer: "Please proceed to the Clinic and wait for your number."
+                }).catch(err => console.error(err));
+            }).catch(err => console.error("Printer util failed to load", err));
+        }
+
         res.status(200).json({ success: true, message: 'Ticket assigned and sent to clinic.', data: result });
     });
 

@@ -12,6 +12,25 @@ class TriageController {
         const userId = (req as any).user?.id;
         if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
         const result = await triageService.submitTriageForm(req.body.values, req.body.visitId, userId);
+        
+        if (result?.ticketNumber) {
+            const prefix1 = result.classification === 'PRIORITY' ? 'PRIO' : 'REG';
+            const prefix2 = result.isNewPatient ? 'NEW' : 'OLD';
+            const formattedTicket = `${prefix1}${prefix2}-${result.ticketNumber.toString().padStart(2, '0')}`;
+            const windowAssignment = result.classification === 'PRIORITY' ? 'Proceed to Window 1' : 'Proceed to Window 4';
+
+            import('../../lib/printer.js').then(({ printTicket }) => {
+                printTicket({
+                    station: "Triage Station",
+                    label: "Window Queue Number",
+                    ticketNumber: formattedTicket,
+                    date: new Date().toLocaleString(),
+                    windowAssignment: windowAssignment,
+                    footer: "Please wait for your number to be called at the Window."
+                }).catch(err => console.error(err));
+            }).catch(err => console.error("Printer util failed to load", err));
+        }
+
         res.status(200).json({ success: true, data: result });
     });
 

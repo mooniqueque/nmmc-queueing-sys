@@ -122,13 +122,16 @@ class TriageService {
             affectedPatientId = patient.id;
             const result = await db.$transaction(async (tx) => {
                 const nextTicket = await ticketService.generateNextTicketNumber(tx, 'WINDOW');
+                const classificationStr = await determineClassification(validData.categoryIds || []);
+                const isNewPatient = (await tx.visit.count({ where: { patientId: patient!.id } })) <= 1;
+                
                 const newVisit = await tx.visit.create({ 
                     data: { 
                         patientId: patient!.id, 
                         ticketNumber: nextTicket, 
                         sequenceKey: 'WINDOW',
                         ...triageUpdates,
-                        classification: await determineClassification(validData.categoryIds || []),
+                        classification: classificationStr,
                         categories: {
                             create: (validData.categoryIds || []).map(id => ({ categoryId: id }))
                         },
@@ -137,7 +140,7 @@ class TriageService {
                         }
                     } 
                 });
-                return { ticketNumber: nextTicket, patientName: `${patient!.firstName} ${patient!.lastName}`.trim() };
+                return { ticketNumber: nextTicket, patientName: `${patient!.firstName} ${patient!.lastName}`.trim(), classification: classificationStr, isNewPatient };
             });
             
             logger.info(`Triage completed for Visit ID: Walk-In`, {
@@ -158,6 +161,8 @@ class TriageService {
             
             const result = await db.$transaction(async (tx) => {
                 const nextTicket = await ticketService.generateNextTicketNumber(tx, 'WINDOW');
+                const classificationStr = await determineClassification(validData.categoryIds || []);
+                const isNewPatient = (await tx.visit.count({ where: { patientId: existingVisit.patientId } })) <= 1;
                 
                 const updatedPatient = await tx.patient.update({ 
                     where: { id: existingVisit.patientId }, 
@@ -170,7 +175,7 @@ class TriageService {
                         ...triageUpdates,
                         ticketNumber: nextTicket,
                         sequenceKey: 'WINDOW',
-                        classification: await determineClassification(validData.categoryIds || []),
+                        classification: classificationStr,
                         categories: {
                             deleteMany: {},
                             create: (validData.categoryIds || []).map(id => ({ categoryId: id }))
@@ -181,7 +186,7 @@ class TriageService {
                     }
                 });
                 
-                return { ticketNumber: nextTicket, patientName: `${updatedPatient.firstName} ${updatedPatient.lastName}`.trim() };
+                return { ticketNumber: nextTicket, patientName: `${updatedPatient.firstName} ${updatedPatient.lastName}`.trim(), classification: classificationStr, isNewPatient };
             });
             
             logger.info(`Triage completed for Visit ID: ${visitId}`, {

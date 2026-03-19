@@ -117,3 +117,40 @@
 {"isManualEntry":false,"level":"info","message":"Triage completed for Visit ID: cmmvpe75n0004m8sckj5ti84u","patientId":"cmmvpe75a0003m8sc7fkq1rat","service":"nmmc-queue-backend","timestamp":"2026-03-18 15:15:44","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y","visitId":"cmmvpe75n0004m8sckj5ti84u"}
 {"classification":"REGULAR","level":"info","message":"Patient queued via Kiosk: pamsgkakgmwgwjnagj olsgnajgajgnw","patientId":"cmmvpmuz20009m8sc8cp7sc37","service":"nmmc-queue-backend","timestamp":"2026-03-18 15:18:49","visitId":"cmmvpmuz7000am8scup2us5lb"}
 {"isManualEntry":false,"level":"info","message":"Triage completed for Visit ID: cmmvpmuz7000am8scup2us5lb","patientId":"cmmvpmuz20009m8sc8cp7sc37","service":"nmmc-queue-backend","timestamp":"2026-03-18 15:20:03","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y","visitId":"cmmvpmuz7000am8scup2us5lb"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:04:14"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:04:48"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:10:30"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx0jcp500004gsctkc8l374","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:11:48","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:11:49"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:18:52"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:18:58"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx0v58o0000jgsco5wrbnn7","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:20:58","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:20:58"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx0yjrk0003jgscaf4fv2gl","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:23:37","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:23:37"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:34:28"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx1gese000070schsr1qtgi","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:37:30","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 13:37:31"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx37d14000370sccn0zn59n","service":"nmmc-queue-backend","timestamp":"2026-03-19 14:26:27","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 14:26:28"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx3xasr000670sc9605wiln","service":"nmmc-queue-backend","timestamp":"2026-03-19 14:46:37","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 14:46:38"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx4llb6000970scey06g6ak","service":"nmmc-queue-backend","timestamp":"2026-03-19 15:05:31","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 15:05:31"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx5m5l7000c70scrgcss2lt","service":"nmmc-queue-backend","timestamp":"2026-03-19 15:33:57","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 15:33:57"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx6t0f4000f70scula1sfws","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:07:16","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:07:17"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx71czu000i70sctmufmgd2","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:13:46","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: Successfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:13:46"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:29:02"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx7n93o0000iosc2to0gc19","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:30:47","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: The media.width.pixel field of the printer profile is not set. The center flag will have no effect.\r\nSuccessfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:30:49"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx7vau30003iosc1gyrdev2","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:37:03","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: The media.width.pixel field of the printer profile is not set. The center flag will have no effect.\r\nSuccessfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:37:04"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx7y53v0006iosco6qt9weu","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:39:15","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: The media.width.pixel field of the printer profile is not set. The center flag will have no effect.\r\nSuccessfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:39:16"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx84qou0009iosc5l6jkg6d","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:44:23","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: The media.width.pixel field of the printer profile is not set. The center flag will have no effect.\r\nSuccessfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:44:24"}
+{"isManualEntry":true,"level":"info","message":"Triage completed for Visit ID: Walk-In","patientId":"cmmx892la000cioscwdm7o15p","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:47:45","userId":"KVsfZ3dGH456iD4bkt858hqszP2Wji8y"}
+{"level":"info","message":"Print success: The media.width.pixel field of the printer profile is not set. The center flag will have no effect.\r\nSuccessfully printed","service":"nmmc-queue-backend","timestamp":"2026-03-19 16:47:46"}

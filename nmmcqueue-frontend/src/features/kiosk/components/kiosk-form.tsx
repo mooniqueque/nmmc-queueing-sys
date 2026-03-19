@@ -15,6 +15,7 @@ import { PriorityCategory } from "@/types/models";
 import React, { FormEvent, useEffect, useState } from "react";
 import { getPatientByHospitalId, registerKioskPatient } from "../actions";
 import { kioskFormSchema, KioskFormValues } from "../schemas";
+import { motion } from "framer-motion";
 
 const initialState: KioskFormValues = {
     hasAppointment: false,
@@ -209,7 +210,7 @@ export function KioskForm() {
                 if (path) newErrors[path] = err.message;
             });
             setErrors(newErrors);
-            setMessage({ type: 'error', text: "Please fix the errors in the form." });
+            setMessage({ type: 'error', text: "Please complete the form before submitting." });
             return;
         }
 
@@ -422,7 +423,7 @@ export function KioskForm() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="gender">Gender *</Label>
+                                <Label htmlFor="gender">Sex *</Label>
                                 <select
                                     id="gender"
                                     name="gender"
@@ -431,9 +432,8 @@ export function KioskForm() {
                                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                                 >
                                     <option value="">Select Gender</option>
-                                    <option value="Male">Male</option>
                                     <option value="Female">Female</option>
-                                    <option value="Prefer not to Say">Prefer not to Say</option>
+                                    <option value="Male">Male</option>
                                 </select>
                                 {errors.gender && <p className="text-xs text-red-500">{errors.gender}</p>}
                             </div>
@@ -457,7 +457,20 @@ export function KioskForm() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="religion">Religion *</Label>
-                                <Input id="religion" name="religion" className="bg-white" value={formData.religion || ''} onChange={handleChange} />
+                                <Input id="religion" list="religions-list" name="religion" className="bg-white" value={formData.religion || ''} onChange={handleChange} placeholder="Type or Select" />
+                                <datalist id="religions-list">
+                                    <option value="Roman Catholic" />
+                                    <option value="Islam" />
+                                    <option value="Protestantism" />
+                                    <option value="Iglesia ni Cristo (INC)" />
+                                    <option value="Philippine Independent Church (Aglipayan)" />
+                                    <option value="Seventh-day Adventist Church" />
+                                    <option value="Members Church of God International (Ang Dating Daan)" />
+                                    <option value="Jesus Miracle Crusade" />
+                                    <option value="Church of Jesus Christ of Latter-day Saints (Mormons)" />
+                                    <option value="Jehovah's Witnesses" />
+                                    <option value="Others" />
+                                </datalist>
                                 {errors.religion && <p className="text-xs text-red-500">{errors.religion}</p>}
                             </div>
                         </div>
@@ -475,7 +488,7 @@ export function KioskForm() {
                             type="button"
                             variant="outline"
                             onClick={handleClearForm}
-                            className="w-full md:w-1/4 h-12 text-base font-semibold border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                            className="w-full md:w-1/6 h-12 text-base font-semibold border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
                         >
                             Clear Form
                         </Button>
@@ -489,16 +502,29 @@ export function KioskForm() {
             {/* Success Modal Overlay */}
             {showSuccessModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-8 flex flex-col items-center text-center space-y-6 animate-in zoom-in-95 duration-300">
                         {/* Success Icon */}
-                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                        <motion.div
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                            className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center"
+                        >
                             <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                                <motion.path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="3"
+                                    d="M5 13l4 4L19 7"
+                                    initial={{ pathLength: 0, opacity: 0 }}
+                                    animate={{ pathLength: 1, opacity: 1 }}
+                                    transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 }}
+                                />
                             </svg>
-                        </div>
+                        </motion.div>
 
                         <div className="space-y-2">
-                            <h2 className="text-2xl font-extrabold text-slate-800">Registration Complete!</h2>
+                            <h2 className="text-2xl font-bold text-slate-800">Registration Complete!</h2>
                             <p className="text-slate-500 text-sm">
                                 Your intake form has been successfully submitted to the Triage Nurse. Please wait for your name to be called.
                             </p>
@@ -509,8 +535,7 @@ export function KioskForm() {
                                 type="button"
                                 className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700"
                                 onClick={() => {
-                                    setShowSuccessModal(false);
-                                    setMessage(null);
+                                    router.push("/kiosk");
                                 }}
                             >
                                 Submit Another ({countdown}s)

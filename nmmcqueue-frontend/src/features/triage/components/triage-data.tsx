@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { getPendingQueue } from "../actions";
+import { getPendingQueue, getMyCurrentTriageVisit } from "../actions";
 import { TriageEntry } from "./triage-entry";
 import { getServerHeaders } from "@/lib/api/server";
 import { API_URL } from "@/lib/api";
@@ -12,15 +12,18 @@ export default async function TriageData() {
     const headers = await getServerHeaders();
     
     let pendingQueue: VisitWithPatient[] = [];
+    let currentVisit: VisitWithPatient | null = null;
     let session: { user: SessionUser } | null = null;
 
     try {
-        const [queueRes, sessionRes] = await Promise.all([
+        const [queueRes, currentRes, sessionRes] = await Promise.all([
             getPendingQueue(),
+            getMyCurrentTriageVisit(),
             fetch(`${API_URL}/auth/get-session`, { headers })
         ]);
 
         pendingQueue = queueRes.success ? queueRes.data : [];
+        currentVisit = currentRes.success ? currentRes.data : null;
         if (sessionRes.ok) {
             session = await sessionRes.json();
         }
@@ -28,5 +31,5 @@ export default async function TriageData() {
         console.error("Error loading triage data:", error);
     }
 
-    return <TriageEntry initialQueue={pendingQueue} user={session?.user} />;
+    return <TriageEntry initialQueue={pendingQueue} currentVisit={currentVisit} user={session?.user} />;
 }

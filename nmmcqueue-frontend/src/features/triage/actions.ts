@@ -43,3 +43,17 @@ export async function removeQueue(visitId: string) {
     if (result.success) revalidatePath("/triage");
     return result;
 }
+
+export async function callNextTriage() {
+    const result = await triageApi.callNextTriage({
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/triage");
+    return result;
+}
+
+export async function getMyCurrentTriageVisit() {
+    return triageApi.getMyCurrentTriageVisit({
+        headers: await getServerHeaders(),
+    });
+}

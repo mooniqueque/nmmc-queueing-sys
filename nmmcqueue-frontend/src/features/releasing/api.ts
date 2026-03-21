@@ -51,3 +51,21 @@ export async function resetDailyQueue(options?: RequestInit) {
     });
     return res.json();
 }
+
+export async function callNextWindow(overrideClassification?: 'PRIORITY' | 'REGULAR', options?: RequestInit) {
+    const res = await fetch(`${API_URL}/releasing/call-next`, {
+        method: "POST",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ overrideClassification }),
+    });
+    return res.json();
+}
+
+export async function getMyCurrentWindowVisit(options?: RequestInit) {
+    const res = await fetch(`${API_URL}/releasing/my-current`, {
+        cache: "no-store",
+        ...options,
+    });
+    return res.json();
+}

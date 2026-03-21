@@ -1,7 +1,5 @@
 "use client"
 
-import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,6 +10,8 @@ import { getQueueOptions } from "@/features/shared/api";
 import { useCurrentTime } from "@/hooks/use-current-time";
 import { calculateAge as libCalculateAge } from "@/lib/utils";
 import { PriorityCategory } from "@/types/models";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { FormEvent, useEffect, useState } from "react";
 import { getPatientByHospitalId, registerKioskPatient } from "../actions";
 import { kioskFormSchema, KioskFormValues } from "../schemas";
@@ -92,9 +92,6 @@ export function KioskForm() {
             timer = setInterval(() => {
                 setCountdown((prev) => prev - 1);
             }, 1000);
-        } else if (!showSuccessModal) {
-            // Reset countdown when modal closes (if they click "Submit Another")
-            setCountdown(5);
         }
         return () => clearInterval(timer);
     }, [showSuccessModal, countdown]);
@@ -231,6 +228,7 @@ export function KioskForm() {
             setFormData(initialState);
             setErrors({});
 
+            setCountdown(5);
             setShowSuccessModal(true);
         } else {
             setMessage({ type: 'error', text: submitResult.error! });
@@ -535,7 +533,9 @@ export function KioskForm() {
                                 type="button"
                                 className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700"
                                 onClick={() => {
-                                    router.push("/kiosk");
+                                    setShowSuccessModal(false);
+                                    setMessage(null);
+                                    setCountdown(5);
                                 }}
                             >
                                 Submit Another ({countdown}s)

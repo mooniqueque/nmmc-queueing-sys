@@ -2,28 +2,29 @@
 
 import { Button } from "@/components/ui/button";
 import { useTransition, useState, useEffect } from "react";
-import { markNoShow, removeQueue, restoreNoShow } from "../actions";
+import { markNoShow, removeQueue, restoreNoShow, callNextTriage } from "../actions";
 import { useTriageQueue } from "../hooks";
 import { VisitWithPatient } from "../types";
 import { useTriageStore } from "../store/use-triage-store";
-import { MagnifyingGlass, ArrowClockwise, CheckCircle, UserMinus, Trash, Clock, Plus } from "@phosphor-icons/react";
+import { MagnifyingGlass, ArrowClockwise, CheckCircle, UserMinus, Trash, Clock, Plus, Play, User } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { calculateAge } from "@/lib/utils";
-
+import { notify } from "@/lib/notify";
 import { SessionUser } from "@/types/auth";
 
 interface TriageQueueSidebarProps {
     initialQueue: VisitWithPatient[];
+    currentVisit: VisitWithPatient | null;
     user?: SessionUser;
 }
 
 export function TriageQueueSidebar({
     initialQueue,
+    currentVisit,
     user
 }: TriageQueueSidebarProps) {
     const { selectedPatient, isManualEntry, isPanelOpen, setSelectedPatient, setSubmitError, setManualEntry } = useTriageStore();
     const selectedPatientId = selectedPatient?.id;
-    const onSelectPatient = setSelectedPatient;
     const onError = setSubmitError;
 
     const { activeQueue, noShowQueue, activeTab, setActiveTab } = useTriageQueue(initialQueue);
@@ -35,18 +36,30 @@ export function TriageQueueSidebar({
         const updateNow = () => setNowMs(Date.now());
         updateNow();
         const intervalId = window.setInterval(updateNow, 60_000);
-
-        return () => {
-            window.clearInterval(intervalId);
-        };
+        return () => window.clearInterval(intervalId);
     }, []);
+
+    // ─── Call Next (Claim-Based) ────────────────────────────
+    const handleCallNext = () => {
+        startTransition(async () => {
+            const res = await callNextTriage();
+            if (res?.success && res.data) {
+                setSelectedPatient(res.data);
+                notify.success("Patient claimed", { description: `${res.data.patient.lastName}, ${res.data.patient.firstName}` });
+            } else if (res?.success && !res.data) {
+                notify.info("Queue is empty", { description: "No patients waiting for triage." });
+            } else {
+                notify.error(res?.error || "Failed to call next patient");
+            }
+        });
+    };
 
     const handleNoShow = (visitId: string, e: React.MouseEvent) => {
         e.stopPropagation();
         startTransition(async () => {
             const res = await markNoShow(visitId);
             if (res?.error) onError(res.error);
-            if (selectedPatientId === visitId) onSelectPatient(null);
+            if (selectedPatientId === visitId) setSelectedPatient(null);
         });
     }
 
@@ -64,7 +77,7 @@ export function TriageQueueSidebar({
         startTransition(async () => {
             const res = await removeQueue(visitId);
             if (res?.error) onError(res.error);
-            if (selectedPatientId === visitId) onSelectPatient(null);
+            if (selectedPatientId === visitId) setSelectedPatient(null);
         });
     }
 
@@ -79,55 +92,85 @@ export function TriageQueueSidebar({
         );
     });
 
-    const myStationId = user?.workstationId;
-    const pairedStationId = user?.workstation?.pairedStationId;
-
-    const myStationQueue = filteredActiveQueue.filter(v =>
-        (pairedStationId && v.originStationId === pairedStationId) ||
-        (!pairedStationId && v.originStationId === myStationId)
-    );
-
-    const otherStationQueue = filteredActiveQueue.filter(v =>
-        (pairedStationId && v.originStationId !== pairedStationId) ||
-        (!pairedStationId && v.originStationId !== myStationId)
-    );
+    // Check if there's an active claimed patient
+    const hasActivePatient = !!currentVisit || (selectedPatient && !isManualEntry);
 
     return (
         <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden relative shadow-sm">
 
-            {/* Split Top Header */}
+            {/* ─── Call Next + Header ─── */}
             <div className="bg-card shrink-0">
-                {/* Header 1: Title and global search */}
-                <div className="border-b border-border flex flex-col xl:flex-row justify-between items-start xl:items-center px-6 py-5 gap-4">
-                    <div>
-                        <h2 className="text-base font-bold text-foreground tracking-tight">Triage Queue</h2>
+                {/* Call Next Button Row */}
+                <div className="border-b border-border px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                        <h2 className="text-sm sm:text-base font-bold text-foreground tracking-tight">Triage Queue</h2>
                         <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5">
                             <strong className="text-primary">{activeQueue.length}</strong> patients waiting
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full xl:w-auto">
-                        <div className="relative w-full xl:w-64">
-                            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={16} weight="bold" />
-                            <Input
-                                placeholder="Search patients..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9 h-9 w-full bg-muted/50 border-border text-xs font-bold rounded-md focus-visible:ring-primary/20"
-                            />
-                        </div>
-                        <button className="h-9 w-9 shrink-0 flex items-center justify-center border border-border rounded-md hover:bg-muted text-muted-foreground transition-colors">
-                            <ArrowClockwise size={16} weight="bold" />
-                        </button>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button
+                            onClick={handleCallNext}
+                            disabled={isPending || hasActivePatient}
+                            className="flex-1 sm:flex-none h-9 sm:h-10 px-4 sm:px-6 font-bold text-xs sm:text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all gap-2 disabled:opacity-50"
+                        >
+                            <Play size={16} weight="fill" />
+                            <span className="hidden xs:inline">Call Next Patient</span>
+                            <span className="xs:hidden">Call Next</span>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 sm:h-10 px-3 font-bold border-dashed border-2 hover:bg-primary/5 hover:text-primary hover:border-primary/50 transition-all gap-2 shrink-0"
+                            onClick={() => setManualEntry(true)}
+                            disabled={hasActivePatient}
+                        >
+                            <Plus size={14} weight="bold" />
+                            <span className="hidden sm:inline">Walk-In</span>
+                        </Button>
                     </div>
                 </div>
 
-                {/* Header 2: Pill Tabs */}
-                <div className="border-b border-border px-6 py-2.5 flex items-center justify-between">
+                {/* ─── Current Patient Banner ─── */}
+                {currentVisit && (
+                    <div
+                        className="border-b-2 border-primary/30 bg-primary/5 px-3 sm:px-6 py-3 flex items-center gap-3 cursor-pointer hover:bg-primary/10 transition-colors"
+                        onClick={() => setSelectedPatient(currentVisit)}
+                    >
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                            <User size={18} weight="bold" className="text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">Currently Serving</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            </div>
+                            <div className="text-xs sm:text-sm font-bold text-foreground truncate">
+                                {currentVisit.patient.lastName}, {currentVisit.patient.firstName}
+                            </div>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary font-bold text-[10px] sm:text-xs shrink-0"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPatient(currentVisit);
+                            }}
+                        >
+                            Open Form →
+                        </Button>
+                    </div>
+                )}
+
+                {/* Search + Tabs */}
+                <div className="border-b border-border px-3 sm:px-6 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-1 p-1 bg-muted rounded-lg border border-border">
                         <button
                             onClick={() => setActiveTab("ACTIVE")}
-                            className={`flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${activeTab === "ACTIVE"
+                            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-md transition-all ${activeTab === "ACTIVE"
                                 ? "bg-background text-foreground shadow-sm"
                                 : "text-muted-foreground hover:text-foreground"
                                 }`}
@@ -139,7 +182,7 @@ export function TriageQueueSidebar({
                         </button>
                         <button
                             onClick={() => setActiveTab("NO_SHOW")}
-                            className={`flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${activeTab === "NO_SHOW"
+                            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-md transition-all ${activeTab === "NO_SHOW"
                                 ? "bg-background text-foreground shadow-sm"
                                 : "text-muted-foreground hover:text-foreground"
                                 }`}
@@ -150,11 +193,21 @@ export function TriageQueueSidebar({
                             </span>
                         </button>
                     </div>
+
+                    <div className="relative w-full sm:w-52 lg:w-64">
+                        <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={14} weight="bold" />
+                        <Input
+                            placeholder="Search patients..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-8 h-8 w-full bg-muted/50 border-border text-xs font-bold rounded-md focus-visible:ring-primary/20"
+                        />
+                    </div>
                 </div>
             </div>
 
             {/* Table Header */}
-            <div className={`grid ${isPanelOpen ? "grid-cols-[50px_1fr_100px_90px]" : "grid-cols-[60px_1fr_110px_100px]"} gap-4 px-6 py-3 bg-muted/30 text-[9px] font-bold text-muted-foreground uppercase tracking-widest shrink-0 border-b border-border`}>
+            <div className={`grid grid-cols-[40px_1fr_70px_60px] sm:grid-cols-[50px_1fr_100px_90px] gap-2 sm:gap-4 px-3 sm:px-6 py-2.5 sm:py-3 bg-muted/30 text-[8px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-widest shrink-0 border-b border-border`}>
                 <div>Queue</div>
                 <div>Patient Name</div>
                 <div className="text-right">Actions</div>
@@ -173,84 +226,28 @@ export function TriageQueueSidebar({
 
                 {activeTab === "ACTIVE" ? (
                     filteredActiveQueue.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-12 text-center">
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 sm:p-12 text-center">
                             <CheckCircle size={40} className="mb-4 text-muted/30" weight="bold" />
                             <p className="text-sm font-bold text-foreground">Queue Empty</p>
-                            <p className="text-[10px] mt-1 mb-6">No active patients waiting.</p>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-9 px-4 font-bold border-dashed border-2 hover:bg-primary/5 hover:text-primary hover:border-primary/50 transition-all gap-2"
-                                onClick={() => setManualEntry(true)}
-                            >
-                                <Plus size={14} weight="bold" />
-                                Manual Patient Entry
-                            </Button>
+                            <p className="text-[10px] mt-1">No active patients waiting.</p>
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            {/* MY STATION SECTION */}
-                            {myStationQueue.length > 0 && (
-                                <div className="flex flex-col">
-                                    <div className="px-6 py-2 bg-muted/20 border-b border-border flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Current Station</span>
-                                    </div>
-                                    {myStationQueue.map((visit) => (
-                                        <PatientRow
-                                            key={visit.id}
-                                            visit={visit}
-                                            isSelected={selectedPatientId === visit.id}
-                                            isPending={isPending}
-                                            isDis={isManualEntry}
-                                            isPanelOpen={isPanelOpen}
-                                            nowMs={nowMs}
-                                            onSelect={() => {
-                                                if (!isManualEntry) {
-                                                    setSubmitError("");
-                                                    setSelectedPatient(visit);
-                                                }
-                                            }}
-                                            onNoShow={handleNoShow}
-                                            onRemove={handleRemove}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* OTHER STATIONS SECTION */}
-                            {otherStationQueue.length > 0 && (
-                                <div className="flex flex-col">
-                                    <div className="px-6 py-2 bg-muted/20 border-b border-border flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-                                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Other Stations / Overflow</span>
-                                    </div>
-                                    {otherStationQueue.map((visit) => (
-                                        <PatientRow
-                                            key={visit.id}
-                                            visit={visit}
-                                            isSelected={selectedPatientId === visit.id}
-                                            isPending={isPending}
-                                            isDis={isManualEntry}
-                                            isPanelOpen={isPanelOpen}
-                                            nowMs={nowMs}
-                                            onSelect={() => {
-                                                if (!isManualEntry) {
-                                                    setSubmitError("");
-                                                    setSelectedPatient(visit);
-                                                }
-                                            }}
-                                            onNoShow={handleNoShow}
-                                            onRemove={handleRemove}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                            {filteredActiveQueue.map((visit) => (
+                                <PatientRow
+                                    key={visit.id}
+                                    visit={visit}
+                                    isPending={isPending}
+                                    nowMs={nowMs}
+                                    onNoShow={handleNoShow}
+                                    onRemove={handleRemove}
+                                />
+                            ))}
                         </div>
                     )
                 ) : (
                     noShowQueue.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-12 text-center">
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 sm:p-12 text-center">
                             <CheckCircle size={40} className="mb-4 text-muted/30" weight="bold" />
                             <p className="text-sm font-bold text-foreground">No Missed Patients</p>
                         </div>
@@ -259,16 +256,16 @@ export function TriageQueueSidebar({
                             {noShowQueue.map((visit) => (
                                 <div
                                     key={visit.id}
-                                    className="w-full text-left grid grid-cols-[60px_1fr_120px] gap-6 items-center px-6 py-4 border-b border-border bg-card"
+                                    className="w-full text-left grid grid-cols-[40px_1fr_80px] sm:grid-cols-[60px_1fr_120px] gap-3 sm:gap-6 items-center px-3 sm:px-6 py-3 sm:py-4 border-b border-border bg-card"
                                 >
-                                    <div className="text-sm font-bold text-muted-foreground">
+                                    <div className="text-xs sm:text-sm font-bold text-muted-foreground">
                                         {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : ''}
                                     </div>
-                                    <div className="min-w-0 pr-4">
-                                        <div className="font-bold text-xs truncate text-muted-foreground line-through">
+                                    <div className="min-w-0 pr-2">
+                                        <div className="font-bold text-[11px] sm:text-xs truncate text-muted-foreground line-through">
                                             {visit.patient.lastName}, {visit.patient.firstName}
                                         </div>
-                                        <div className="text-[9px] font-bold text-muted-foreground/60 mt-0.5 uppercase tracking-widest">
+                                        <div className="text-[8px] sm:text-[9px] font-bold text-muted-foreground/60 mt-0.5 uppercase tracking-widest">
                                             No-Show: {new Date(visit.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                     </div>
@@ -276,7 +273,7 @@ export function TriageQueueSidebar({
                                         <button
                                             disabled={isPending}
                                             onClick={(e) => handleRestore(visit.id, e)}
-                                            className="h-8 px-4 bg-foreground text-background hover:bg-foreground/90 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm"
+                                            className="h-7 sm:h-8 px-2.5 sm:px-4 bg-foreground text-background hover:bg-foreground/90 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm"
                                         >
                                             Restore
                                         </button>
@@ -291,32 +288,24 @@ export function TriageQueueSidebar({
     );
 }
 
+// ─── Read-Only Patient Row (no click-to-select) ────────────
 function PatientRow({
     visit,
-    isSelected,
     isPending,
-    isDis,
-    isPanelOpen,
     nowMs,
-    onSelect,
     onNoShow,
     onRemove
 }: {
     visit: VisitWithPatient;
-    isSelected: boolean;
     isPending: boolean;
-    isDis: boolean;
-    isPanelOpen: boolean;
     nowMs: number | null;
-    onSelect: () => void;
     onNoShow: (id: string, e: React.MouseEvent) => void;
     onRemove: (id: string, e: React.MouseEvent) => void;
 }) {
-    // Keep initial SSR and client hydration deterministic; start live wait clock after mount.
     const createdAtMs = new Date(visit.createdAt).getTime();
     const effectiveNowMs = nowMs ?? createdAtMs;
     const waitMins = Math.max(0, Math.floor((effectiveNowMs - createdAtMs) / 60000));
-    const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins} mins`;
+    const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
     const isWaitingLong = waitMins > 10;
     const isWaitingExtreme = waitMins > 30;
 
@@ -328,25 +317,19 @@ function PatientRow({
 
     return (
         <div
-            onClick={onSelect}
-            className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[50px_1fr_100px_90px]" : "grid-cols-[60px_1fr_110px_100px]"} gap-4 items-center px-6 py-4 transition-all duration-200 cursor-pointer border-b outline-none relative group ${isDis
-                    ? "opacity-50 cursor-not-allowed bg-muted/30 border-border"
-                    : isSelected
-                        ? "bg-primary/5 border-primary/20 z-10 shadow-[inset_3px_0_0_hsl(var(--primary))]"
-                        : "bg-card border-border hover:bg-muted/30"
-                }`}
+            className="w-full text-left grid grid-cols-[40px_1fr_70px_60px] sm:grid-cols-[50px_1fr_100px_90px] gap-2 sm:gap-4 items-center px-3 sm:px-6 py-3 sm:py-4 transition-all duration-200 border-b border-border bg-card group"
         >
             {/* Ticket */}
-            <div className={`flex flex-col gap-1 ${isSelected ? 'text-primary' : 'text-primary/70'}`}>
-                <div className="text-sm font-bold tracking-tight">
+            <div className="flex flex-col gap-0.5 text-primary/70">
+                <div className="text-xs sm:text-sm font-bold tracking-tight">
                     {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : null}
                 </div>
-                <div className="flex flex-wrap gap-1">
-                    {visit.categories && visit.categories.length > 0 && 
+                <div className="flex flex-wrap gap-0.5">
+                    {visit.categories && visit.categories.length > 0 &&
                         visit.categories.map((vc) => (
                             <span
                                 key={vc.categoryId}
-                                className={`text-[8px] font-bold px-1 rounded border uppercase tracking-widest ${vc.category?.isPriority
+                                className={`text-[7px] sm:text-[8px] font-bold px-1 rounded border uppercase tracking-widest ${vc.category?.isPriority
                                         ? "bg-destructive/10 text-destructive border-destructive/20"
                                         : "bg-muted text-muted-foreground border-border"
                                     }`}
@@ -359,57 +342,48 @@ function PatientRow({
             </div>
 
             {/* Name & Demographics */}
-            <div className="min-w-0 pr-4 flex flex-col justify-center gap-0.5">
-                <div className={`flex items-center gap-2 font-bold text-xs truncate ${isSelected ? 'text-foreground' : 'text-foreground/80'}`}>
+            <div className="min-w-0 pr-2 flex flex-col justify-center gap-0.5">
+                <div className="flex items-center gap-1.5 font-bold text-[11px] sm:text-xs truncate text-foreground/80">
                     <span>{visit.patient.lastName}, <span className="opacity-80">{visit.patient.firstName}</span></span>
                     {visit.kioskRegistrationType && (
-                        <span className="text-[8px] font-bold tracking-widest px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary border border-primary/20 leading-none h-fit uppercase mt-0.5">
+                        <span className="hidden sm:inline text-[7px] sm:text-[8px] font-bold tracking-widest px-1 py-0.5 rounded-sm bg-primary/10 text-primary border border-primary/20 leading-none h-fit uppercase mt-0.5">
                             {visit.kioskRegistrationType}
                         </span>
                     )}
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    <div className="text-[9px] font-bold text-muted-foreground flex items-center gap-1.5 flex-wrap uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="text-[8px] sm:text-[9px] font-bold text-muted-foreground flex items-center gap-1 uppercase tracking-wider">
                         {visit.patient.gender.substring(0, 1)} • {calculateAge(visit.patient.dateOfBirth) ?? '??'}y
-                        <span className="opacity-40">•</span>
-                        <span className="italic">{new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="hidden sm:inline opacity-40">•</span>
+                        <span className="hidden sm:inline italic">{new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
-
-                    {visit.originStation && (
-                        <div className="flex items-center gap-1 px-1 py-0.5 bg-muted text-muted-foreground rounded text-[8px] font-bold uppercase tracking-widest border border-border">
-                            {visit.originStation.name}
-                        </div>
-                    )}
                 </div>
             </div>
 
             {/* Action Buttons */}
-            {!isDis && (
-                <div className={`flex items-center justify-end gap-2 transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden lg:group-hover:opacity-100 lg:group-hover:h-auto'}`}>
-                    <button
-                        disabled={isPending}
-                        onClick={(e) => onNoShow(visit.id, e)}
-                        className="p-1.5 hover:bg-amber-100 text-amber-600 rounded transition-colors"
-                        title="Mark as No Show"
-                    >
-                        <UserMinus size={14} weight="bold" />
-                    </button>
-                    <button
-                        disabled={isPending}
-                        onClick={(e) => onRemove(visit.id, e)}
-                        className="p-1.5 hover:bg-destructive/10 text-destructive rounded transition-colors"
-                        title="Remove completely"
-                    >
-                        <Trash size={14} weight="bold" />
-                    </button>
-                </div>
-            )}
-            {isDis && <div />}
+            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button
+                    disabled={isPending}
+                    onClick={(e) => onNoShow(visit.id, e)}
+                    className="p-1 sm:p-1.5 hover:bg-amber-100 text-amber-600 rounded transition-colors"
+                    title="Mark as No Show"
+                >
+                    <UserMinus size={14} weight="bold" />
+                </button>
+                <button
+                    disabled={isPending}
+                    onClick={(e) => onRemove(visit.id, e)}
+                    className="p-1 sm:p-1.5 hover:bg-destructive/10 text-destructive rounded transition-colors"
+                    title="Remove completely"
+                >
+                    <Trash size={14} weight="bold" />
+                </button>
+            </div>
 
-            {/* Wait Time Indicator */}
+            {/* Wait Time */}
             <div className="flex items-center justify-end">
-                <div className={`flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${waitColorClasses}`}>
-                    <Clock size={10} weight="bold" />
+                <div className={`flex items-center justify-center gap-0.5 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold border ${waitColorClasses}`}>
+                    <Clock size={10} weight="bold" className="hidden sm:block" />
                     {waitStr}
                 </div>
             </div>

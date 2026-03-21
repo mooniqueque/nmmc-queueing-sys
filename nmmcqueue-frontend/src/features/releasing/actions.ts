@@ -51,3 +51,17 @@ export async function assignTicket(
     if (result.success) revalidatePath("/releasing", "page");
     return result;
 }
+
+export async function callNextWindow(overrideClassification?: 'PRIORITY' | 'REGULAR') {
+    const result = await releasingApi.callNextWindow(overrideClassification, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/releasing", "page");
+    return result;
+}
+
+export async function getMyCurrentWindowVisit() {
+    return releasingApi.getMyCurrentWindowVisit({
+        headers: await getServerHeaders(),
+    });
+}

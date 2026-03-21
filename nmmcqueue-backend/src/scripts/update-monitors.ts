@@ -5,6 +5,14 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 async function main() {
   const depts = await prisma.department.findMany();
   console.log('Current Departments:', depts.map(d => d.name));
@@ -19,7 +27,8 @@ async function main() {
     await prisma.department.create({
       data: {
         name: cashierRegName,
-        code: 'CASHIER_REG'
+        code: 'CASHIER_REG',
+        slug: slugify(cashierRegName)
       }
     });
     console.log('Added successfully.');

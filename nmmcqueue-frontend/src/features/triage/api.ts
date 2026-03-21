@@ -70,3 +70,19 @@ export async function removeQueue(visitId: string, options?: RequestInit) {
     });
     return res.json();
 }
+
+export async function callNextTriage(options?: RequestInit) {
+    const res = await fetch(`${API_URL}/triage/call-next`, {
+        method: "POST",
+        ...options,
+    });
+    return res.json();
+}
+
+export async function getMyCurrentTriageVisit(options?: RequestInit) {
+    const res = await fetch(`${API_URL}/triage/my-current`, {
+        cache: "no-store",
+        ...options,
+    });
+    return res.json();
+}

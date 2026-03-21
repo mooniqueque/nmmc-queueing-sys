@@ -8,9 +8,6 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
         if (!session || !session.user) {
             return res.status(401).json({ success: false, error: 'Authentication Required' });
         }
-        if ((session.user as any).isApproved === false) {
-            return res.status(403).json({ success: false, error: 'Account pending administrative approval.' });
-        }
         (req as any).user = session.user;
         next();
     } catch {

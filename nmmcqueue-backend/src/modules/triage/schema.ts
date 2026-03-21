@@ -54,6 +54,7 @@ export const triageFormRequestSchema = z.object({
             hasAppointment: z.boolean().default(false),
             departmentId: z.string().optional(),
             categoryIds: z.array(z.string()).optional(),
+            priorityClass: z.string().optional(),
         }),
     }),
 });

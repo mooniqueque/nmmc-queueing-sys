@@ -22,22 +22,6 @@ export async function getAllUsers(options?: RequestInit) {
     return json.data;
 }
 
-export async function approveUser(userId: string, options?: RequestInit) {
-    const res = await fetch(`${API_URL}/users/${userId}/approve`, {
-        method: "POST",
-        ...options,
-    });
-    return res.json();
-}
-
-export async function rejectUser(userId: string, options?: RequestInit) {
-    const res = await fetch(`${API_URL}/users/${userId}/reject`, {
-        method: "POST",
-        ...options,
-    });
-    return res.json();
-}
-
 export async function adminCreateUser(
     data: Record<string, unknown>,
     options?: RequestInit

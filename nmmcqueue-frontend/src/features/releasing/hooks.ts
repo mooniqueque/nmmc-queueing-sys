@@ -9,7 +9,7 @@ export function useReleasingQueue(initialQueue: VisitWithPatient[]) {
 
     const activeQueue = initialQueue.filter(v => 
         v.status === "WAITING_WINDOW" || 
-        v.status === "IN_PROGRESS" || 
+        v.status === "IN_WINDOW" || 
         v.status === "NO_SHOW"
     );
 

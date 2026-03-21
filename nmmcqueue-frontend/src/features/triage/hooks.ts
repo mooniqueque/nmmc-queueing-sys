@@ -12,7 +12,7 @@ export function useTriageQueue(initialQueue: VisitWithPatient[]) {
 
     const [activeTab, setActiveTab] = useState<TabType>("ACTIVE");
 
-    const activeQueue = initialQueue.filter(v => v.status === "KIOSK_SUBMITTED");
+    const activeQueue = initialQueue.filter(v => v.status === "WAITING_TRIAGE");
     const noShowQueue = initialQueue.filter(v => v.status === "NO_SHOW");
 
     return {

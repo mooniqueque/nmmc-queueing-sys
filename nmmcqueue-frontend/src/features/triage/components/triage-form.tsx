@@ -92,6 +92,9 @@ export function TriageForm() {
                 setSubmitError(res.error as string);
             } else {
                 setSubmitSuccess(true);
+
+                // Auto-print triage ticket handled by backend
+
                 setTimeout(() => {
                     resetTriage();
                     setSubmitSuccess(false);
@@ -238,8 +241,8 @@ export function TriageForm() {
 
                                 <div className="flex flex-col items-end justify-center">
                                     {submitError && (
-                                        <span className="flex items-center gap-1.5 text-rose-400 text-sm font-bold mb-3 absolute -top-8 right-0 bg-rose-50 px-4 py-2 rounded-lg border border-rose-200">
-                                            <WarningCircle size={16} weight="bold" /> {submitError}
+                                        <span className={`flex items-center gap-1.5 text-[11px] font-bold mb-3 absolute -top-8 right-0 px-4 py-2 rounded-lg border uppercase tracking-widest animate-in slide-in-from-bottom-2 ${submitError.includes('Hardware Print') ? 'bg-red-500 text-white border-red-600 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'text-destructive bg-destructive/10 border-destructive/20'}`}>
+                                            <WarningCircle size={14} weight="bold" /> {submitError}
                                         </span>
                                     )}
                                     {submitSuccess && (

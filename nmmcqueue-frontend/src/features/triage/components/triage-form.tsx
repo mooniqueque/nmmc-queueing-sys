@@ -265,7 +265,7 @@ export function TriageForm() {
 
                                 <div className="flex flex-col items-end justify-center min-w-[200px]">
                                     {submitError && (
-                                        <span className="flex items-center gap-1.5 text-destructive text-[11px] font-bold mb-3 absolute -top-8 right-0 bg-destructive/10 px-4 py-2 rounded-lg border border-destructive/20 uppercase tracking-widest animate-in slide-in-from-bottom-2">
+                                        <span className={`flex items-center gap-1.5 text-[11px] font-bold mb-3 absolute -top-8 right-0 px-4 py-2 rounded-lg border uppercase tracking-widest animate-in slide-in-from-bottom-2 ${submitError.includes('Hardware Print') ? 'bg-red-500 text-white border-red-600 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'text-destructive bg-destructive/10 border-destructive/20'}`}>
                                             <WarningCircle size={14} weight="bold" /> {submitError}
                                         </span>
                                     )}

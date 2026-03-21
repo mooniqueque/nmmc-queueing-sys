@@ -121,15 +121,18 @@ class TriageService {
             }
             affectedPatientId = patient.id;
             const result = await db.$transaction(async (tx) => {
-                const nextTicket = await ticketService.generateNextTicketNumber(tx, 'WINDOW');
-                const classificationStr = await determineClassification(validData.categoryIds || []);
+                let classificationStr = (validData.priorityClass as 'REGULAR' | 'PRIORITY') || undefined;
+                if (!classificationStr) {
+                    classificationStr = await determineClassification(validData.categoryIds || []);
+                }
+                const nextTicket = await ticketService.generateNextTicketNumber(tx, `WINDOW_${classificationStr}`);
                 const isNewPatient = (await tx.visit.count({ where: { patientId: patient!.id } })) <= 1;
                 
                 const newVisit = await tx.visit.create({ 
                     data: { 
                         patientId: patient!.id, 
                         ticketNumber: nextTicket, 
-                        sequenceKey: 'WINDOW',
+                        sequenceKey: `WINDOW_${classificationStr}`,
                         ...triageUpdates,
                         classification: classificationStr,
                         categories: {
@@ -160,8 +163,11 @@ class TriageService {
             const dob = validData.dateOfBirth ? new Date(validData.dateOfBirth) : undefined;
             
             const result = await db.$transaction(async (tx) => {
-                const nextTicket = await ticketService.generateNextTicketNumber(tx, 'WINDOW');
-                const classificationStr = await determineClassification(validData.categoryIds || []);
+                let classificationStr = (validData.priorityClass as 'REGULAR' | 'PRIORITY') || undefined;
+                if (!classificationStr) {
+                    classificationStr = await determineClassification(validData.categoryIds || []);
+                }
+                const nextTicket = await ticketService.generateNextTicketNumber(tx, `WINDOW_${classificationStr}`);
                 const isNewPatient = (await tx.visit.count({ where: { patientId: existingVisit.patientId } })) <= 1;
                 
                 const updatedPatient = await tx.patient.update({ 
@@ -174,7 +180,7 @@ class TriageService {
                     data: {
                         ...triageUpdates,
                         ticketNumber: nextTicket,
-                        sequenceKey: 'WINDOW',
+                        sequenceKey: `WINDOW_${classificationStr}`,
                         classification: classificationStr,
                         categories: {
                             deleteMany: {},

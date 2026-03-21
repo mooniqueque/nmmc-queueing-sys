@@ -15,20 +15,23 @@ class TriageController {
         
         if (result?.ticketNumber) {
             const prefix1 = result.classification === 'PRIORITY' ? 'PRIO' : 'REG';
-            const prefix2 = result.isNewPatient ? 'NEW' : 'OLD';
-            const formattedTicket = `${prefix1}${prefix2}-${result.ticketNumber.toString().padStart(2, '0')}`;
+            const formattedTicket = `${prefix1}-${result.ticketNumber.toString().padStart(2, '0')}`;
             const windowAssignment = result.classification === 'PRIORITY' ? 'Proceed to Window 1' : 'Proceed to Window 4';
 
-            import('../../lib/printer.js').then(({ printTicket }) => {
-                printTicket({
+            try {
+                const { printTicket } = await import('../../lib/printer.js');
+                await printTicket({
                     station: "Triage Station",
                     label: "Window Queue Number",
                     ticketNumber: formattedTicket,
                     date: new Date().toLocaleString(),
                     windowAssignment: windowAssignment,
                     footer: "Please wait for your number to be called at the Window."
-                }).catch(err => console.error(err));
-            }).catch(err => console.error("Printer util failed to load", err));
+                });
+            } catch (err: any) {
+                console.error("Printer util failed:", err);
+                return res.status(500).json({ success: false, error: `Hardware Print Error: ${err.message}` });
+            }
         }
 
         res.status(200).json({ success: true, data: result });

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { notify } from "@/lib/notify";
 import { Department } from "@/types/models";
 import { Trash } from "@phosphor-icons/react";
 import { useState } from "react";
@@ -120,7 +121,7 @@ export default function DepartmentSettings({
 
         const result = await deleteDepartment(id);
         if (!result.success) {
-            alert(result.error || "Failed to delete department");
+            notify.error(result.error || "Failed to delete department");
         }
     };
 

@@ -73,7 +73,6 @@ export interface User {
     workstationId?: string;
     workstation?: WorkStation;
     isActive: boolean;
-    isApproved: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

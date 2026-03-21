@@ -1,16 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { AUTH_GET_SESSION_URL, hasSessionUser, type SessionLike } from "./lib/config/auth-endpoints";
 
 export default async function middleware(request: NextRequest) {
-    let session = null;
+    let session: SessionLike | null = null;
     try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL;
-        const response = await fetch(`${backendUrl}/auth/get-session`, {
+        const response = await fetch(AUTH_GET_SESSION_URL, {
             headers: {
                 cookie: request.headers.get("cookie") || "",
             },
+            cache: "no-store",
         });
         if (response.ok) {
-            session = await response.json();
+            const payload: unknown = await response.json();
+            if (hasSessionUser(payload)) {
+                session = payload;
+            }
         }
     } catch (error) {
         console.error("Error fetching session from middleware:", error);
@@ -19,13 +23,8 @@ export default async function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname;
 
     // All routes that require authentication
-    const protectedRoutes = ["/admin-dashboard", "/admin-caller", "/admin-releasing", "/admin-departments", "/admin-monitor", "/admin-reports", "/admin-triage", "/releasing", "/caller", "/triage"];
+    const protectedRoutes = ["/admin-dashboard", "/admin-caller", "/admin-releasing", "/admin-departments", "/admin-monitor", "/admin-reports", "/admin-triage", "/manage-releasing", "/releasing", "/caller", "/triage"];
     const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
-
-    // Block unapproved users everywhere
-    if (session && session.user.isApproved === false && path !== "/login") {
-        return NextResponse.redirect(new URL("/login?error=unapproved", request.url));
-    }
 
     if (isProtectedRoute) {
         if (!session) {
@@ -33,9 +32,12 @@ export default async function middleware(request: NextRequest) {
         }
 
         const role = session.user.role;
+        if (!role) {
+            return NextResponse.redirect(new URL("/login", request.url));
+        }
 
         // Admin-only routes (all /admin-* paths)
-        if (path.startsWith("/admin-") && role !== "ADMIN") {
+        if ((path.startsWith("/admin-") || path.startsWith("/manage-releasing")) && role !== "ADMIN") {
             return NextResponse.redirect(new URL("/", request.url));
         }
 
@@ -73,5 +75,5 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/", "/login", "/admin-dashboard/:path*", "/admin-caller/:path*", "/admin-releasing/:path*", "/admin-departments/:path*", "/admin-monitor/:path*", "/admin-reports/:path*", "/admin-triage/:path*", "/releasing/:path*", "/caller/:path*", "/triage/:path*"],
+    matcher: ["/", "/login", "/admin-dashboard/:path*", "/admin-caller/:path*", "/admin-releasing/:path*", "/admin-departments/:path*", "/admin-monitor/:path*", "/admin-reports/:path*", "/admin-triage/:path*", "/manage-releasing/:path*", "/releasing/:path*", "/caller/:path*", "/triage/:path*"],
 };

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { 
     VideoCamera, 
     Upload, 
@@ -62,11 +62,11 @@ export default function MonitorSettings() {
         if (e.target.files && e.target.files[0]) {
             const selectedFile = e.target.files[0];
             if (selectedFile.type !== "video/mp4") {
-                toast.error("Only MP4 files are allowed");
+                notify.error("Only MP4 files are allowed");
                 return;
             }
             if (selectedFile.size > 100 * 1024 * 1024) {
-                toast.error("File size must be under 100MB");
+                notify.error("File size must be under 100MB");
                 return;
             }
             setFile(selectedFile);
@@ -75,7 +75,7 @@ export default function MonitorSettings() {
 
     const handleUpload = async () => {
         if (!selectedDeptId || !file) {
-            toast.error("Please select a department and a file");
+            notify.error("Please select a department and a file");
             return;
         }
 
@@ -83,14 +83,14 @@ export default function MonitorSettings() {
         try {
             const res = await uploadVideo(selectedDeptId, file);
             if (res.success) {
-                toast.success("Video uploaded successfully!");
+                notify.success("Video uploaded successfully!");
                 setFile(null);
                 loadDepartments(); // Refresh to show new video
             } else {
-                toast.error(res.error || "Upload failed");
+                notify.error(res.error || "Upload failed");
             }
-        } catch (error) {
-            toast.error("An error occurred during upload");
+        } catch {
+            notify.error("An error occurred during upload");
         } finally {
             setUploading(false);
         }

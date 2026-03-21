@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
 import { VisitWithPatient } from "@/features/triage/types";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { callPatient, servePatient, noShowPatient, restorePatient } from "../api";
 import { 
     Clock, Users, SpeakerHigh, UserMinus, CheckCircle, Hash, Phone, Heartbeat, Thermometer, Info, ArrowUpRight, ArrowSquareOut
@@ -58,28 +58,28 @@ export default function UserCallerDashboard({
 
     // Action Handlers
     const handleCallNext = async () => {
-        if (!nextVisit) return toast.info("No more patients in the waiting list.");
-        if (inProgressVisit) return toast.error("Please Mark Served or No Show the current patient first.");
+        if (!nextVisit) return notify.info("No more patients in the waiting list.");
+        if (inProgressVisit) return notify.error("Please Mark Served or No Show the current patient first.");
         
         setIsProcessing(true);
         try {
             await callPatient(nextVisit.id);
-            toast.success(`Calling patient P-${nextVisit.ticketNumber?.toString().padStart(3, '0') ?? 'N/A'}`);
+            notify.success(`Calling patient P-${nextVisit.ticketNumber?.toString().padStart(3, '0') ?? 'N/A'}`);
         } catch {
-            toast.error("Failed to call patient.");
+            notify.error("Failed to call patient.");
         } finally {
             setIsProcessing(false);
         }
     };
 
     const handleServe = async () => {
-        if (!inProgressVisit) return toast.error("No active patient to serve.");
+        if (!inProgressVisit) return notify.error("No active patient to serve.");
         setIsProcessing(true);
         try {
             await servePatient(inProgressVisit.id);
-            toast.success("Patient consultation completed.");
+            notify.success("Patient consultation completed.");
         } catch {
-            toast.error("Failed to mark patient as served.");
+            notify.error("Failed to mark patient as served.");
         } finally {
             setIsProcessing(false);
         }
@@ -87,13 +87,13 @@ export default function UserCallerDashboard({
 
     const handleNoShow = async () => {
         const targetVisit = inProgressVisit || nextVisit;
-        if (!targetVisit) return toast.error("No patient selected to mark as No Show.");
+        if (!targetVisit) return notify.error("No patient selected to mark as No Show.");
         setIsProcessing(true);
         try {
             await noShowPatient(targetVisit.id);
-            toast.error(`Patient P-${targetVisit.ticketNumber?.toString().padStart(3, '0') ?? 'N/A'} marked as NO SHOW`);
+            notify.error(`Patient P-${targetVisit.ticketNumber?.toString().padStart(3, '0') ?? 'N/A'} marked as NO SHOW`);
         } catch {
-            toast.error("Failed to process No Show.");
+            notify.error("Failed to process No Show.");
         } finally {
             setIsProcessing(false);
         }
@@ -101,20 +101,20 @@ export default function UserCallerDashboard({
 
     const handleReferral = async () => {
         const targetVisit = inProgressVisit || nextVisit;
-        if (!targetVisit) return toast.error("No patient selected for referral.");
-        if (!targetDeptId) return toast.error("Please select a target department.");
+        if (!targetVisit) return notify.error("No patient selected for referral.");
+        if (!targetDeptId) return notify.error("Please select a target department.");
 
         setIsProcessing(true);
         try {
             const res = await transferPatient(targetVisit.id, targetDeptId);
             if (res.success) {
-                toast.success(`Patient referred successfully.`);
+                notify.success("Patient referred successfully.");
                 resetReferral();
             } else {
-                toast.error(res.error || "Failed to refer patient.");
+                notify.error(res.error || "Failed to refer patient.");
             }
         } catch {
-            toast.error("An error occurred during referral.");
+            notify.error("An error occurred during referral.");
         } finally {
             setIsProcessing(false);
         }
@@ -124,9 +124,9 @@ export default function UserCallerDashboard({
         setIsProcessing(true);
         try {
             await restorePatient(visitId);
-            toast.success("Patient restored to active queue.");
+            notify.success("Patient restored to active queue.");
         } catch {
-            toast.error("Failed to restore patient.");
+            notify.error("Failed to restore patient.");
         } finally {
             setIsProcessing(false);
         }

@@ -32,7 +32,7 @@ async function printTable(title, sql) {
 (async () => {
   await printTable("department (top 10)", "SELECT id, name, slug, code, createdAt FROM department ORDER BY createdAt ASC LIMIT 10");
   await printTable("workstation (top 10)", "SELECT id, name, type, stationNo, isActive, departmentId FROM workstation ORDER BY name ASC LIMIT 10");
-  await printTable("user (top 10)", "SELECT id, name, email, role, isApproved, departmentId, workstationId, createdAt FROM user ORDER BY createdAt ASC LIMIT 10");
+  await printTable("user (top 10)", "SELECT id, name, email, role, departmentId, workstationId, createdAt FROM user ORDER BY createdAt ASC LIMIT 10");
   await printTable("account (top 10)", "SELECT id, userId, providerId, createdAt FROM account ORDER BY createdAt ASC LIMIT 10");
   await printTable("session (top 10)", "SELECT id, userId, expiresAt, createdAt FROM session ORDER BY createdAt ASC LIMIT 10");
   await printTable("visit (top 10)", "SELECT id, patientId, departmentId, ticketNumber, status, createdAt FROM visit ORDER BY createdAt ASC LIMIT 10");

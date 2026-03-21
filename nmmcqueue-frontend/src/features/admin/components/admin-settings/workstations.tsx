@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { notify } from "@/lib/notify";
 import { WorkStation, Department, WorkstationType } from "@/types/models";
 import { Trash } from "@phosphor-icons/react";
 import { useState } from "react";
@@ -51,7 +52,7 @@ export default function WorkstationSettings({
         if (!confirm("Are you sure you want to delete this workstation?")) return;
         const result = await deleteWorkstation(id);
         if (!result.success) {
-            alert(result.error || "Failed to delete workstation");
+            notify.error(result.error || "Failed to delete workstation");
         }
     };
 

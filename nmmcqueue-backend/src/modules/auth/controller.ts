@@ -4,18 +4,6 @@ import { auth } from './auth.js';
 import { asyncHandler, AppError } from '../../middleware/error-handler.js';
 
 class AuthController {
-    approveUser = asyncHandler(async (req: Request, res: Response) => {
-        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
-        await db.user.update({ where: { id: req.params.id }, data: { isApproved: true } });
-        res.status(200).json({ success: true });
-    });
-
-    rejectUser = asyncHandler(async (req: Request, res: Response) => {
-        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
-        await db.user.delete({ where: { id: req.params.id } });
-        res.status(200).json({ success: true });
-    });
-
     adminCreateUser = asyncHandler(async (req: Request, res: Response) => {
         if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
         const { email, name, employeeID, role, department, workstationId } = req.body;
@@ -38,7 +26,7 @@ class AuthController {
                 department,
                 departmentId: (departmentId as string) || undefined,
                 workstationId: workstationId || undefined,
-                birthDate: new Date().toISOString(), contactNumber: '09000000000', isApproved: true,
+                birthDate: new Date().toISOString(), contactNumber: '09000000000',
             } as any,
         });
         res.status(200).json({ success: true });

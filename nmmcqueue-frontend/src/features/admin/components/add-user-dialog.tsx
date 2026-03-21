@@ -21,6 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { Department, WorkStation, WorkstationType } from "@/types/models";
 import { CaretUpDown, Check, UserPlus } from '@phosphor-icons/react';
@@ -77,7 +78,7 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
                 setFormData({ name: '', email: '', employeeID: '', role: '', department: '', workstationId: '' });
                 router.refresh();
             } else {
-                alert(result.error);
+                notify.error(result.error || "Failed to create user.");
             }
         } finally {
             setIsSubmitting(false);

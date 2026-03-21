@@ -1,6 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/database/auth-client";
+import { notify } from "@/lib/notify";
 import { CircleNotch, Eye, EyeClosed } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -49,7 +50,7 @@ export default function LoginForm() {
             password: values.password,
         });
         if (error) {
-            alert(error.message || "Invalid Username or Password");
+            notify.error(error.message || "Invalid Username or Password");
             setIsLoading(false);
         }
         else {
@@ -127,10 +128,7 @@ export default function LoginForm() {
                                 />
                                 {/* Dont have an account */}
                                 <div className="text-left text-sm">
-                                    Dont have an account?{" "}
-                                    <a href="/signup" className="underline underline-offset-4">
-                                        Sign up
-                                    </a>
+                                    Admin will use this account to create user. No self signup.
                                 </div>
 
                                 {/* Submit Button */}

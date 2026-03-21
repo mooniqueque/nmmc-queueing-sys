@@ -36,7 +36,6 @@ export const auth = betterAuth({
             role: { type: 'string' },
             birthDate: { type: 'string' },
             contactNumber: { type: 'string' },
-            isApproved: { type: 'boolean' },
         },
     },
 });

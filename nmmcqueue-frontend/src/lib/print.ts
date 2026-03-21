@@ -1,9 +1,11 @@
+import { notify } from "@/lib/notify";
+
 export function printThermalReceipt(htmlContent: string) {
     // Open a new window (or tab, depending on user browser settings)
     const printWindow = window.open('', '_blank');
     
     if (!printWindow) {
-        alert("Please allow popups for this site to print tickets.");
+        notify.error("Please allow popups for this site to print tickets.");
         return;
     }
 

@@ -16,7 +16,7 @@ import { calculateAge } from "@/lib/utils";
 import { Department, PriorityCategory } from "@/types/models";
 import { ArrowsCounterClockwise, ChartBar, Queue, CheckCircle } from "@phosphor-icons/react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { resetDailyQueue } from "../actions";
 import { useReleasingQueue } from "../hooks";
 import { ReleasingAssignPanel } from "./releasing-assign-panel";
@@ -92,13 +92,13 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         try {
             const res = await resetDailyQueue();
             if (res.success) {
-                toast.success("Queue Reset", { description: "Daily sequence and visits have been reset successfully." });
+                notify.success("Queue Reset", { description: "Daily sequence and visits have been reset successfully." });
                 setResetDialogOpen(false);
             } else {
-                toast.error("Reset Failed", { description: res.message || "Could not reset queue." });
+                notify.error("Reset Failed", { description: res.message || "Could not reset queue." });
             }
         } catch {
-            toast.error("Error", { description: "An unexpected error occurred during reset." });
+            notify.error("Error", { description: "An unexpected error occurred during reset." });
         } finally {
             setIsResetting(false);
         }

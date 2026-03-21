@@ -23,8 +23,8 @@ class MonitorService {
                     createdAt: { gte: today, lt: tomorrow }
                 },
                 orderBy: { calledAt: 'desc' },
-                select: { 
-                    ticketNumber: true, 
+                select: {
+                    ticketNumber: true,
                     classification: true,
                     categories: {
                         include: {
@@ -43,7 +43,18 @@ class MonitorService {
             };
         }));
 
-        return status;
+        const waitlistVisits = await db.visit.findMany({
+            where: {
+                status: 'WAITING_WINDOW',
+                createdAt: { gte: today, lt: tomorrow }
+            },
+            orderBy: { queueDate: 'asc' },
+            take: 4,
+            select: { ticketNumber: true }
+        });
+        const upcoming = waitlistVisits.map(v => String(v.ticketNumber).padStart(3, '0'));
+
+        return { active: status, upcoming };
     }
 
     async getDepartmentStatus(slugOrId: string) {
@@ -76,8 +87,8 @@ class MonitorService {
                 createdAt: { gte: today, lt: tomorrow }
             },
             orderBy: { calledAt: 'asc' },
-            select: { 
-                ticketNumber: true, 
+            select: {
+                ticketNumber: true,
                 classification: true,
                 categories: {
                     include: {
@@ -87,28 +98,39 @@ class MonitorService {
             }
         });
 
+        const upcomingVisits = await db.visit.findMany({
+            where: {
+                departmentId,
+                status: 'WAITING_CLINIC',
+                createdAt: { gte: today, lt: tomorrow }
+            },
+            orderBy: { queueDate: 'asc' },
+            take: 4,
+            select: { ticketNumber: true }
+        });
+        const upcoming = upcomingVisits.map(v => String(v.ticketNumber).padStart(3, '0'));
+
+        let active: any[] = [];
+
+        // If a patient is actively sitting with a doctor, show them
         if (activeVisits.length > 0) {
-            return activeVisits.map((visit) => ({
+            active = activeVisits.map((visit) => ({
                 windowName: department?.code || department?.name || 'CLINIC',
-                stationNo: 1, // Default to 1 as it's a centralized caller
+                stationNo: 1,
                 ticketNumber: String(visit.ticketNumber).padStart(3, '0'),
                 classification: visit.classification,
                 categories: visit.categories.map(vc => vc.category)
             }));
+            return { active, upcoming };
         }
 
-        // 3. Fallback: Check for workstations if no visits are active 
-        // (Allows the monitor to show "Wait..." rows if stations are defined but idle)
+        // Otherwise check the empty caller windows to show "Wait..."
         const stations = await db.workStation.findMany({
-            where: { 
-                departmentId,
-                type: 'CALLER', 
-                isActive: true 
-            },
+            where: { departmentId, type: 'CALLER', isActive: true },
             orderBy: { stationNo: 'asc' }
         });
 
-        const status = await Promise.all(stations.map(async (station) => {
+        active = await Promise.all(stations.map(async (station) => {
             const currentVisit = await db.visit.findFirst({
                 where: {
                     departmentId,
@@ -118,15 +140,7 @@ class MonitorService {
                     createdAt: { gte: today, lt: tomorrow }
                 },
                 orderBy: { calledAt: 'desc' },
-                select: { 
-                    ticketNumber: true, 
-                    classification: true,
-                    categories: {
-                        include: {
-                            category: true
-                        }
-                    }
-                }
+                select: { ticketNumber: true, classification: true, categories: { include: { category: true } } }
             });
 
             return {
@@ -138,7 +152,8 @@ class MonitorService {
             };
         }));
 
-        return status;
+        return { active, upcoming };
+
     }
 
     async getDepartmentsVideos() {

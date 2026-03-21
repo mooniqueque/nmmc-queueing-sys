@@ -15,7 +15,7 @@ interface DepartmentMonitorProps {
 
 export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     const currentTime = useCurrentTime();
-    const { windows, loading } = useWindowMonitor(slug);
+    const { windows, upcoming, loading } = useWindowMonitor(slug);
     const [departmentName, setDepartmentName] = useState("LOADING...");
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -38,6 +38,7 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     const formatDate = (date: Date) => {
         return date.toLocaleDateString([], {
             weekday: "long",
+            year: "numeric",
             month: "short",
             day: "numeric",
         }).toUpperCase();
@@ -67,51 +68,49 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
                     </div>
                 </div>
                 <div className="text-right flex flex-col items-end justify-center">
-                    <div className="text-4xl font-bold tabular-nums tracking-tight text-slate-900">
-                        {currentTime ? formatTime(currentTime) : ''}
-                    </div>
-                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-1">
-                        {currentTime ? formatDate(currentTime) : ''}
+                    <div className="text-2xl font-bold tabular-nums tracking-tight text-emerald-700">
+                        {currentTime ? formatDate(currentTime) : ''} | {currentTime ? formatTime(currentTime) : ''}
                     </div>
                 </div>
             </header>
 
-            <main className="flex-1 px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden max-w-[1800px] mx-auto w-full">
+            <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden max-w-[1800px] mx-auto w-full">
                 {/* LEFT COLUMN: CALLING LIST IN A CLEAN SHADCN CARD */}
-                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-sm border-slate-200 rounded-xl bg-white">
-                    <div className="flex justify-between px-8 py-5 border-b border-slate-100 bg-slate-50/50">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Station Name</span>
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Now Serving</span>
+                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-md border-2 border-slate-200 rounded-xl bg-white">
+                    <div className="flex justify-between px-12 py-8 border-b-2 border-slate-100 bg-slate-50/50">
+                        <span className="text-base font-black text-slate-400 uppercase tracking-[0.2em]">Lane Name</span>
+                        <span className="text-base font-black text-slate-400 uppercase tracking-[0.2em]">Now Serving</span>
                     </div>
 
                     <div className="flex-1 overflow-y-auto w-full">
                         {loading ? (
-                            <div className="p-12 text-center text-slate-400 font-medium uppercase tracking-widest text-sm">Loading Monitor...</div>
+                            <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">Loading Monitor...</div>
                         ) : windows.length === 0 ? (
-                            <div className="p-12 text-center text-slate-400 font-medium uppercase tracking-widest text-sm">No active stations</div>
+                            <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">No active stations</div>
                         ) : windows.map((window, index) => (
-                            <div key={index} className="flex flex-row items-center justify-between px-8 py-6 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                            <div key={index} className="flex flex-row items-center justify-between px-12 py-10 border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                                    <span className="text-sm font-black text-slate-400 uppercase tracking-widest mb-2">
                                         Station {window.stationNo}
                                     </span>
-                                    <span className="text-2xl font-bold text-slate-800 tracking-tight">
+                                    <span className="text-4xl font-extrabold text-slate-800 tracking-tight">
                                         {window.windowName}
                                     </span>
                                 </div>
                                 <div className="text-right">
                                     {window.ticketNumber ? (
-                                        <span className="text-6xl font-black text-slate-900 tracking-tighter tabular-nums drop-shadow-sm">
+                                        <span className="text-8xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none">
                                             {window.ticketNumber}
                                         </span>
                                     ) : (
-                                        <span className="text-xl font-medium text-slate-300 uppercase tracking-widest italic">Waiting...</span>
+                                        <span className="text-3xl font-bold text-slate-300 uppercase tracking-widest italic py-4">Waiting...</span>
                                     )}
                                 </div>
                             </div>
                         ))}
                     </div>
                 </Card>
+
 
                 {/* RIGHT COLUMN: MULTIMEDIA & ANNOUNCEMENTS */}
                 <div className="lg:col-span-7 flex flex-col gap-6 h-full">
@@ -139,27 +138,37 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
                         </div>
                     </Card>
 
-                    {/* PUBLIC ANNOUNCEMENT */}
-                    <Card className="p-6 bg-white shadow-sm border-slate-200 rounded-xl flex items-center justify-between">
-                        <div>
-                            <h3 className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Public Announcement</h3>
-                            <p className="text-lg font-semibold text-slate-800 tracking-tight">Please prepare your Requirements and Valid IDs.</p>
+                    {/* UPCOMING WAITLIST - COMPACT FOR PUBLIC VIEWING */}
+                    <Card className="p-4 bg-white shadow-md border-2 border-slate-100 rounded-xl flex flex-col justify-center shrink-0">
+                        <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-2">
+                            <div>
+                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Waitlist</h3>
+                                <p className="text-xl font-bold text-slate-800 tracking-tight leading-none">Next in Line</p>
+                            </div>
+                            <div className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-bold uppercase tracking-widest ring-1 ring-emerald-200">
+                                {upcoming.length} Waiting
+                            </div>
                         </div>
-                        <div className="size-10 bg-emerald-50 rounded-full flex items-center justify-center">
-                            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
+
+                        <div className="flex justify-start gap-4 flex-wrap">
+                            {upcoming.length > 0 ? upcoming.map((num, i) => (
+                                <div key={i} className="px-6 py-2 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-lg text-slate-900 font-black text-4xl tracking-tighter tabular-nums drop-shadow-sm">
+                                    {num}
+                                </div>
+                            )) : (
+                                <span className="text-slate-400 font-medium italic text-lg py-2">No upcoming patients.</span>
+                            )}
                         </div>
                     </Card>
                 </div>
             </main>
 
             {/* MINIMALIST MARQUEE FOOTER */}
-            <footer className="bg-white border-t border-slate-200 py-3 px-8 shrink-0 overflow-hidden whitespace-nowrap shadow-sm">
+            <footer className="bg-white border-t border-slate-200 py-5 px-5 shrink-0 overflow-hidden whitespace-nowrap shadow-sm">
                 <div className="animate-marquee inline-block">
-                    <span className="text-slate-600 font-medium text-xs uppercase tracking-widest mx-16">Welcome to Northern Mindanao Medical Center</span>
-                    <span className="text-emerald-700 font-bold text-xs uppercase tracking-[0.2em] mx-16">Health is Wealth • Serbisyo Para sa Lahat</span>
-                    <span className="text-slate-600 font-medium text-xs uppercase tracking-widest mx-16">Service Hours: 8:00 AM - 5:00 PM</span>
+                    <span className="text-slate-600 font-bold text-lg uppercase tracking-widest mx-16">Welcome to Northern Mindanao Medical Center</span>
+                    <span className="text-emerald-700 font-bold text-lg uppercase tracking-[0.2em] mx-16">Health is Wealth • Serbisyo Para sa Lahat</span>
+                    <span className="text-slate-600 font-bold text-lg uppercase tracking-widest mx-16">Service Hours: 8:00 AM - 5:00 PM</span>
                 </div>
             </footer>
 

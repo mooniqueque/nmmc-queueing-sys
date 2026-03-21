@@ -8,6 +8,24 @@ class ReleasingController {
         res.status(200).json({ success: true, data: queue });
     });
 
+    callNextWindow = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        const overrideClassification = req.body?.overrideClassification as 'PRIORITY' | 'REGULAR' | undefined;
+        const visit = await releasingService.callNextWindow(userId, overrideClassification);
+        if (!visit) {
+            return res.status(200).json({ success: true, data: null, message: 'No patients waiting in window queue.' });
+        }
+        res.status(200).json({ success: true, data: visit });
+    });
+
+    getMyCurrentVisit = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        const visit = await releasingService.getMyCurrentVisit(userId);
+        res.status(200).json({ success: true, data: visit });
+    });
+
     assignTicket = asyncHandler(async (req: Request, res: Response) => {
         const userId = (req as any).user?.id;
         const result = await releasingService.assignTicket(req.params.id, req.body, userId);

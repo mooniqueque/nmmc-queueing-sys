@@ -61,6 +61,23 @@ class TriageController {
         const queue = await triageService.getPendingQueue();
         res.status(200).json({ success: true, data: queue });
     });
+
+    callNextTriage = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        const visit = await triageService.callNextTriage(userId);
+        if (!visit) {
+            return res.status(200).json({ success: true, data: null, message: 'No patients waiting in triage queue.' });
+        }
+        res.status(200).json({ success: true, data: visit });
+    });
+
+    getMyCurrentVisit = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        const visit = await triageService.getMyCurrentVisit(userId);
+        res.status(200).json({ success: true, data: visit });
+    });
 }
 
 export const triageController = new TriageController();

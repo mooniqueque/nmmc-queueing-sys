@@ -14,9 +14,10 @@ enum UserRole {
 }
 
 enum VisitStatus {
-  PENDING_TRIAGE
-  KIOSK_SUBMITTED
+  WAITING_TRIAGE
+  IN_TRIAGE
   WAITING_WINDOW
+  IN_WINDOW
   WAITING_CLINIC
   IN_PROGRESS
   COMPLETED
@@ -60,6 +61,8 @@ model User {
   sessions        Session[]
   triagedVisits   Visit[]   @relation("UserTriage")
   calledVisits    Visit[]   @relation("UserCall")
+  triageClaimedVisits  Visit[] @relation("TriageClaim")
+  windowClaimedVisits  Visit[] @relation("WindowClaim")
   dept            Department? @relation(fields: [departmentId], references: [id])
   workstationId   String?
   workstation     WorkStation? @relation(fields: [workstationId], references: [id])
@@ -181,7 +184,7 @@ model Visit {
   sequenceKey         String?
   windowTicketNumber  Int?
   kioskRegistrationType String?     @default("UNREGISTERED")
-  status              VisitStatus @default(PENDING_TRIAGE)
+  status              VisitStatus @default(WAITING_TRIAGE)
   bloodPressure   String?
   heartRate       Int?
   respiratoryRate Int?
@@ -202,6 +205,10 @@ model Visit {
   calledByUserId  String?
   calledAtStationId String?
   windowNumber    Int?
+  triageClaimedById  String?
+  windowClaimedById  String?
+  triageStartedAt    DateTime?
+  windowStartedAt    DateTime?
   queueDate       DateTime    @default(now())
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -215,6 +222,8 @@ model Visit {
   patient         Patient     @relation(fields: [patientId], references: [id])
   triagedByUser   User?       @relation("UserTriage", fields: [triagedByUserId], references: [id])
   calledByUser    User?       @relation("UserCall", fields: [calledByUserId], references: [id])
+  triageClaimedBy User?       @relation("TriageClaim", fields: [triageClaimedById], references: [id])
+  windowClaimedBy User?       @relation("WindowClaim", fields: [windowClaimedById], references: [id])
   calledAtStation WorkStation? @relation("CalledAtStation", fields: [calledAtStationId], references: [id])
   
   originStationId String?
@@ -234,6 +243,7 @@ model Visit {
   @@index([status])
   @@index([createdAt])
   @@index([classification])
+  @@index([status, classification, createdAt])
   @@unique([queueDate, sequenceKey, ticketNumber])
   @@map("visit")
 }

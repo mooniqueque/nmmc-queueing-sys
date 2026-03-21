@@ -6,9 +6,10 @@ export enum UserRole {
 }
 
 export enum VisitStatus {
-    PENDING_TRIAGE = "PENDING_TRIAGE",
-    KIOSK_SUBMITTED = "KIOSK_SUBMITTED",
+    WAITING_TRIAGE = "WAITING_TRIAGE",
+    IN_TRIAGE = "IN_TRIAGE",
     WAITING_WINDOW = "WAITING_WINDOW",
+    IN_WINDOW = "IN_WINDOW",
     WAITING_CLINIC = "WAITING_CLINIC",
     IN_PROGRESS = "IN_PROGRESS",
     COMPLETED = "COMPLETED",
@@ -126,6 +127,10 @@ export interface Visit {
     calledAt?: Date | string;
     calledByUserId?: string;
     windowNumber?: number;
+    triageClaimedById?: string;
+    windowClaimedById?: string;
+    triageStartedAt?: Date | string;
+    windowStartedAt?: Date | string;
     queueDate?: Date | string;
     createdAt: Date;
     updatedAt: Date;

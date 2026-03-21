@@ -2,26 +2,44 @@ import { getQueueOptionsByDepartment } from '@/features/admin/queue-option-actio
 import { getDepartments } from '@/features/admin/department-actions';
 import { Department } from "@/types/models";
 import { connection } from "next/server";
-import { getPendingQueue } from '../actions';
+import { getPendingQueue, getMyCurrentWindowVisit } from '../actions';
 import { ReleasingEntry } from './releasing-entry';
+import { getServerHeaders } from "@/lib/api/server";
+import { API_URL } from "@/lib/api";
+import { SessionUser } from "@/types/auth";
 
 export default async function ReleasingData() {
     await connection();
+
+    const headers = await getServerHeaders();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let departments: any[] = [];
     let queueOptionsByDepartment = {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let pendingQueue: any[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let currentVisit: any = null;
+    let session: { user: SessionUser } | null = null;
 
     try {
-        const response = await getDepartments();
-        departments = response.data || [];
+        const [deptResponse, queueResponse, currentRes, sessionRes] = await Promise.all([
+            getDepartments(),
+            getPendingQueue(),
+            getMyCurrentWindowVisit(),
+            fetch(`${API_URL}/auth/get-session`, { headers })
+        ]);
+
+        departments = deptResponse.data || [];
         const departmentNames = departments.map((dept: Department) => dept.name);
         queueOptionsByDepartment = await getQueueOptionsByDepartment(departmentNames);
 
-        const queueResponse = await getPendingQueue();
         pendingQueue = queueResponse.success ? queueResponse.data : [];
+        currentVisit = currentRes.success ? currentRes.data : null;
+
+        if (sessionRes.ok) {
+            session = await sessionRes.json();
+        }
     } catch {
         // Build-time handle
     }
@@ -32,6 +50,8 @@ export default async function ReleasingData() {
                 initialQueue={pendingQueue}
                 departments={departments}
                 queueOptionsByDepartment={queueOptionsByDepartment}
+                currentVisit={currentVisit}
+                user={session?.user}
             />
         </div>
     );

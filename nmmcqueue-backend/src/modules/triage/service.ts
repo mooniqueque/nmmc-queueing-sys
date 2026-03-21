@@ -61,7 +61,7 @@ class TriageService {
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const existingVisit = await tx.visit.findFirst({ where: { patientId: patient.id, createdAt: { gte: today }, status: { in: ['KIOSK_SUBMITTED', 'IN_PROGRESS', 'WAITING_CLINIC'] } } });
+            const existingVisit = await tx.visit.findFirst({ where: { patientId: patient.id, createdAt: { gte: today }, status: { in: ['WAITING_TRIAGE', 'IN_TRIAGE', 'WAITING_WINDOW', 'IN_WINDOW', 'IN_PROGRESS', 'WAITING_CLINIC'] } } });
             if (existingVisit) throw new AppError('ALREADY_IN_QUEUE', 400);
 
             const classification = await determineClassification(rawData.categoryIds || []);
@@ -69,7 +69,7 @@ class TriageService {
             const visit = await tx.visit.create({ 
                 data: { 
                     patientId: patient.id, 
-                    status: 'KIOSK_SUBMITTED', 
+                    status: 'WAITING_TRIAGE', 
                     ticketNumber: null, // No ticket assigned yet at Kiosk
                     sequenceKey: null,
                     kioskRegistrationType: rawData.kioskRegistrationType || 'UNREGISTERED',
@@ -80,7 +80,7 @@ class TriageService {
                         create: (rawData.categoryIds || []).map(id => ({ categoryId: id }))
                     },
                     statusHistory: {
-                        create: { status: 'KIOSK_SUBMITTED' }
+                        create: { status: 'WAITING_TRIAGE' }
                     }
                 } 
             });
@@ -216,7 +216,7 @@ class TriageService {
         return db.visit.findMany({
             where: {
                 createdAt: { gte: today, lt: tomorrow },
-                status: { in: ['KIOSK_SUBMITTED', 'NO_SHOW'] },
+                status: { in: ['WAITING_TRIAGE', 'NO_SHOW'] },
             },
             include: {
                 patient: true,
@@ -246,8 +246,8 @@ class TriageService {
         await db.visit.update({ 
             where: { id: visitId }, 
             data: { 
-                status: 'KIOSK_SUBMITTED',
-                statusHistory: { create: { status: 'KIOSK_SUBMITTED', changedBy: userId } }
+                status: 'WAITING_TRIAGE',
+                statusHistory: { create: { status: 'WAITING_TRIAGE', changedBy: userId } }
             } 
         }); 
     }
@@ -256,6 +256,98 @@ class TriageService {
         const patient = await db.patient.findUnique({ where: { hospitalId: hospitalId.trim() } });
         if (!patient) throw new Error('Hospital ID not found.');
         return patient;
+    }
+
+    /**
+     * CLAIM-BASED: Atomically claim the next WAITING_TRIAGE patient.
+     * Uses a transaction with a status guard to prevent race conditions.
+     */
+    async callNextTriage(userId: string) {
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            include: { workstation: true }
+        });
+        if (!user?.workstationId) throw new AppError('You must be assigned to a workstation to call patients.', 400);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        return db.$transaction(async (tx) => {
+            // Find the next patient in FIFO order
+            const nextVisit = await tx.visit.findFirst({
+                where: {
+                    createdAt: { gte: today, lt: tomorrow },
+                    status: 'WAITING_TRIAGE',
+                },
+                orderBy: { createdAt: 'asc' },
+                include: { patient: true }
+            });
+
+            if (!nextVisit) return null; // Queue empty
+
+            // Atomic claim: update ONLY if status is still WAITING_TRIAGE
+            const claimed = await tx.visit.updateMany({
+                where: {
+                    id: nextVisit.id,
+                    status: 'WAITING_TRIAGE', // concurrency guard
+                },
+                data: {
+                    status: 'IN_TRIAGE',
+                    triageClaimedById: userId,
+                    triageStartedAt: new Date(),
+                    triageStationId: user.workstationId,
+                }
+            });
+
+            if (claimed.count === 0) {
+                throw new AppError('Patient was already claimed by another user. Try again.', 409);
+            }
+
+            // Fetch the updated visit with patient data
+            const updatedVisit = await tx.visit.findUnique({
+                where: { id: nextVisit.id },
+                include: {
+                    patient: true,
+                    categories: { include: { category: true } }
+                }
+            });
+
+            await tx.visitStatusHistory.create({
+                data: { visitId: nextVisit.id, status: 'IN_TRIAGE', changedBy: userId }
+            });
+
+            logger.info(`Triage claimed patient: ${nextVisit.patient.firstName} ${nextVisit.patient.lastName}`, {
+                visitId: nextVisit.id,
+                userId,
+                workstationId: user.workstationId
+            });
+
+            return updatedVisit;
+        });
+    }
+
+    /**
+     * Get the visit currently claimed by this triage user (IN_TRIAGE).
+     */
+    async getMyCurrentVisit(userId: string) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        return db.visit.findFirst({
+            where: {
+                triageClaimedById: userId,
+                status: 'IN_TRIAGE',
+                createdAt: { gte: today, lt: tomorrow },
+            },
+            include: {
+                patient: true,
+                categories: { include: { category: true } }
+            }
+        });
     }
 }
 

@@ -2,10 +2,12 @@ import 'dotenv/config';
 import { app } from './app.js';
 import { db } from './config/database.js';
 import logger from './lib/logger.js';
+import { startFailsafeTimer, stopFailsafeTimer } from './lib/failsafe.js';
 
 const PORT = process.env.PORT || 3001;
 const server = app.listen(PORT, () => {
     logger.info(`[server]: Server is running at http://localhost:${PORT}`);
+    startFailsafeTimer();
 });
 
 /**
@@ -13,6 +15,7 @@ const server = app.listen(PORT, () => {
  */
 const shutdown = async (signal: string) => {
     logger.info(`${signal} signal received: closing HTTP server`);
+    stopFailsafeTimer();
     server.close(async () => {
         logger.info('HTTP server closed');
         try {

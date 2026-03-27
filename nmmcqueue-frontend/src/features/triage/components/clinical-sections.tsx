@@ -2,9 +2,12 @@
 
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Controller, useFormContext } from "react-hook-form";
 import { TriageFormValues } from "../schemas";
-import { WarningCircle, Wind, Virus, ThermometerHot, FirstAidKit, Syringe, Notepad, Info } from "@phosphor-icons/react";
+import { WarningCircle, Wind, Virus, ThermometerHot, FirstAidKit, Syringe, Notepad, Info, Stethoscope } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import * as departmentApi from "@/lib/api/departments";
 
 export function SymptomsSection() {
     const { control } = useFormContext<TriageFormValues>();
@@ -57,7 +60,23 @@ export function SymptomsSection() {
 }
 
 export function ClinicalNotesSection() {
-    const { register, formState: { errors } } = useFormContext<TriageFormValues>();
+    const { register, control, formState: { errors } } = useFormContext<TriageFormValues>();
+    const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+    const [loadingDepts, setLoadingDepts] = useState(true);
+
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const depts = await departmentApi.getAllDepartments();
+                setDepartments(depts);
+            } catch (err) {
+                console.error("Failed to fetch departments:", err);
+            } finally {
+                setLoadingDepts(false);
+            }
+        };
+        fetchDepartments();
+    }, []);
 
     return (
         <div className="bg-muted/10 p-6 rounded-xl border border-border shadow-sm mt-8">
@@ -67,6 +86,31 @@ export function ClinicalNotesSection() {
             </h3>
 
             <div className="space-y-6">
+                <div className="space-y-2 relative">
+                    <Label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
+                        <Stethoscope size={14} weight="bold" className="text-muted-foreground/60" /> Referral Department *
+                    </Label>
+                    <Controller
+                        control={control}
+                        name="departmentId"
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                                <SelectTrigger className="h-10 rounded-lg border-border bg-background px-4 text-xs font-bold transition-all focus:ring-primary/20 focus:border-primary/50">
+                                    <SelectValue placeholder={loadingDepts ? "Loading departments..." : "Select Department"} />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-lg border-border bg-background">
+                                    {departments.map((dept) => (
+                                        <SelectItem key={dept.id} value={dept.id} className="text-xs font-bold py-2">
+                                            {dept.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                    {errors.departmentId && <span className="absolute -bottom-5 left-2 text-destructive text-[10px] font-bold uppercase tracking-widest">{errors.departmentId.message}</span>}
+                </div>
+
                 <div className="space-y-2 relative">
                     <Label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
                         Chief Complaint *

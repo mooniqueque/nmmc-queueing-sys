@@ -1,24 +1,24 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { getDepartments, getQueueOptions } from "@/features/shared/api";
-import { Department, PriorityCategory } from "@/types/models";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CaretDoubleRight, PaperPlaneRight, Tag, WarningCircle } from "@phosphor-icons/react";
 import { useEffect, useState, useTransition } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { submitTriageForm } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
+import { ClipboardText, CaretDoubleRight, PaperPlaneRight, WarningCircle, Tag } from "@phosphor-icons/react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { getQueueOptions } from "@/features/shared/api";
+import { PriorityCategory } from "@/types/models";
 
-import { useTriageStore } from "../store/use-triage-store";
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
 import { VitalsSection } from "./vitals-section";
+import { useTriageStore } from "../store/use-triage-store";
 
 export function TriageForm() {
     const {
@@ -30,17 +30,13 @@ export function TriageForm() {
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
-    const [departments, setDepartments] = useState<Department[]>([]);
 
     useEffect(() => {
         getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
-        getDepartments().then(res => {
-            if (res.success) setDepartments(res.data);
-        });
     }, []);
 
     const methods = useForm<z.input<typeof triageFormSchema>, unknown, TriageFormValues>({
-        resolver: zodResolver(triageFormSchema),
+        resolver: zodResolver(triageFormSchema as any),
         defaultValues: {
             isManualEntry: false,
             firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Male",
@@ -48,7 +44,6 @@ export function TriageForm() {
             bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
             hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
             priorityClass: "REGULAR",
-            departmentId: "",
             categoryIds: []
         }
     });
@@ -62,7 +57,6 @@ export function TriageForm() {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: "REGULAR",
-                departmentId: "",
                 categoryIds: []
             });
         } else if (selectedPatient) {
@@ -81,8 +75,7 @@ export function TriageForm() {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: selectedPatient.classification || "REGULAR",
-                departmentId: selectedPatient.departmentId || "",
-                categoryIds: selectedPatient.categories?.map(c => c.categoryId) || []
+                categoryIds: selectedPatient.categories?.map((c: any) => c.categoryId) || []
             });
         } else {
             methods.reset();
@@ -112,19 +105,21 @@ export function TriageForm() {
     };
 
     return (
-        <div className="bg-card rounded-xl border border-border overflow-hidden relative shadow-sm">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
             {/* Header Block */}
-            <div className="bg-muted/30 border-b border-border pt-8 px-8 pb-6 flex justify-between items-end relative overflow-hidden">
+            <div className="bg-slate-50 border-b border-slate-200 pt-8 px-8 pb-6 flex justify-between items-end relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-lg blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
                 <div className="relative z-10">
                     <div className="flex items-center gap-3">
-                        <h2 className="text-base font-bold text-foreground uppercase tracking-tight">Triage Assessment Form</h2>
+                        <h2 className="text-m font-bold text-slate-900 uppercase tracking-tight">Triage Assessment Form</h2>
                     </div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-1">
+                    <p className="text-sm font-medium text-slate-400 tracking-widest">
                         To be filled out by Triage Officer
                     </p>
                 </div>
 
-                <div className="relative z-10 flex items-center space-x-3 bg-background px-3 py-2 rounded-lg border border-border shadow-sm transition-all hover:shadow-md">
+                <div className="relative z-0 flex items-center space-x-3 bg-white px-2 py-2 rounded-lg shadow-sm border border-slate-200 transition-all hover:shadow-md">
                     <Switch
                         id="manual-entry"
                         checked={isManualEntry}
@@ -133,22 +128,22 @@ export function TriageForm() {
                             setSubmitSuccess(false);
                             setManualEntry(checked);
                         }}
-                        className="data-[state=checked]:bg-primary shadow-inner"
+                        className="data-[state=checked]:bg-emerald-600 shadow-inner"
                     />
-                    <Label htmlFor="manual-entry" className="font-bold text-xs text-foreground cursor-pointer select-none uppercase tracking-wider">
-                        Manual Entry
+                    <Label htmlFor="manual-entry" className="font-bold text-[15px] text-slate-700 cursor-pointer select-none">
+                        Walk-in / Manual Entry
                     </Label>
                 </div>
             </div>
 
             <div className="p-8">
                 {(!isManualEntry && !selectedPatient) ? (
-                    <div className="h-[60vh] flex flex-col items-center justify-center text-muted-foreground bg-muted/20 rounded-xl border border-border border-dashed">
-                        <div className="w-16 h-16 bg-background rounded-lg flex items-center justify-center shadow-sm border border-border mb-6">
-                            <CaretDoubleRight size={28} weight="bold" className="text-muted/30" />
+                    <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-[20px] border border-slate-200 border-dashed">
+                        <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100 mb-6">
+                            <CaretDoubleRight size={32} weight="duotone" className="text-slate-300" />
                         </div>
-                        <h3 className="text-lg font-bold text-foreground mb-1">Select a Patient</h3>
-                        <p className="text-[10px] font-medium uppercase tracking-widest">Click a patient from the list, or toggle Manual Entry.</p>
+                        <h3 className="text-xl font-bold text-slate-600 mb-2">Select a Patient</h3>
+                        <p className="text-sm font-medium">Click a patient from the Waiting List on the right, or toggle Manual Entry above.</p>
                     </div>
                 ) : (
                     <FormProvider {...methods}>
@@ -160,67 +155,48 @@ export function TriageForm() {
                             <ClinicalNotesSection />
 
                             {/* Submission Footer */}
-                            <div className="mt-12 bg-muted/10 p-6 rounded-xl flex items-center justify-between border border-border shadow-sm">
-                                <div className="flex gap-4">
-                                    <div className="w-48">
-                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 block pl-1">
+                            <div className=" mt-8 bg-slate-50/70 p-6 rounded-lg p-6 flex items-center justify-between border border-slate-200/60 shadow-sm">
+                                <div className="flex gap-6">
+                                    <div className="w-56">
+                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
                                             Acuity / Disposition
                                         </Label>
                                         <Controller
                                             control={methods.control}
                                             name="disposition"
                                             render={({ field }) => (
-                                                <Select onValueChange={field.onChange} value={field.value || ""}>
-                                                    <SelectTrigger className="h-10 rounded-lg border-border bg-background text-xs font-bold transition-all focus:ring-primary/20">
-                                                        <SelectValue placeholder="Select Acuity..." />
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <SelectTrigger className={`h-14 rounded-lg border-slate-300 bg-slate-200/50 text-base font-bold transition-all ${field.value === "EMERGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-slate-500/20" :
+                                                        field.value === "URGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-amber-500/20" :
+                                                            "text-slate-800"
+                                                        }`}>
+                                                        <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent className="rounded-lg border-border bg-background">
-                                                        <SelectItem value="NON-URGENT" className="font-bold py-2 text-xs">Non-Urgent</SelectItem>
-                                                        <SelectItem value="URGENT" className="font-bold py-2 text-xs text-amber-600">Urgent</SelectItem>
-                                                        <SelectItem value="EMERGENT" className="font-bold py-2 text-xs text-destructive">Emergent (Critical)</SelectItem>
+                                                    <SelectContent className="rounded-lg shadow-2xl border-slate-300 bg-slate-100 text-slate-200">
+                                                        <SelectItem value="NON-URGENT" className="font-bold py-3 focus:bg-slate-200 text-slate-600">Non-Urgent</SelectItem>
+                                                        <SelectItem value="URGENT" className="font-bold py-3 text-slate-600 focus:bg-slate-200">Urgent</SelectItem>
+                                                        <SelectItem value="EMERGENT" className="font-bold py-3 text-slate-600 focus:bg-slate-200">Emergent (Critical)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
                                         />
                                     </div>
-                                    <div className="flex-1 min-w-[140px]">
-                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 block pl-1">
-                                            Classification
+                                    <div className="flex-1">
+                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
+                                            Patient Classification
                                         </Label>
                                         <Controller
                                             control={methods.control}
                                             name="priorityClass"
                                             render={({ field }) => (
                                                 <Select onValueChange={field.onChange} value={field.value}>
-                                                    <SelectTrigger className={`h-10 rounded-lg border-border bg-background text-xs font-bold transition-all focus:ring-primary/20 ${field.value === "PRIORITY" ? "text-primary border-primary/30 ring-1 ring-primary/10" : "text-foreground"}`}>
+                                                    <SelectTrigger className={`h-11 rounded-xl border-slate-600 bg-slate-700/50 text-sm font-bold transition-all ${field.value === "PRIORITY" ? "text-emerald-400 border-emerald-500/50 ring-2 ring-emerald-500/20" : "text-white"
+                                                        }`}>
                                                         <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent className="rounded-lg border-border bg-background">
-                                                        <SelectItem value="REGULAR" className="font-bold py-2 text-xs">Regular</SelectItem>
-                                                        <SelectItem value="PRIORITY" className="font-bold py-2 text-xs text-primary">Priority</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="w-56">
-                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 block pl-1">
-                                            Assign Clinical Dept
-                                        </Label>
-                                        <Controller
-                                            control={methods.control}
-                                            name="departmentId"
-                                            render={({ field }) => (
-                                                <Select onValueChange={field.onChange} value={field.value || ""}>
-                                                    <SelectTrigger className="h-10 rounded-lg border-border bg-background text-xs font-bold transition-all focus:ring-primary/20">
-                                                        <SelectValue placeholder="Select Dept..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-lg border-border bg-background">
-                                                        {departments.map((dept) => (
-                                                            <SelectItem key={dept.id} value={dept.id} className="font-bold py-2 text-xs">
-                                                                {dept.name}
-                                                            </SelectItem>
-                                                        ))}
+                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-700 bg-slate-800 text-slate-200">
+                                                        <SelectItem value="REGULAR" className="font-bold py-2 focus:bg-slate-700">Regular</SelectItem>
+                                                        <SelectItem value="PRIORITY" className="font-bold py-2 text-emerald-400 focus:bg-slate-700">Priority</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
@@ -229,14 +205,14 @@ export function TriageForm() {
                                 </div>
 
                                 {availableCategories.length > 0 && (
-                                    <div className="mt-4 p-4 bg-muted/30 rounded-xl border border-border">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <Tag size={16} weight="bold" className="text-primary" />
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Priority Categories</span>
+                                    <div className="mt-4 p-4 bg-slate-700/30 rounded-xl border border-slate-600/50">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Tag size={18} weight="duotone" className="text-emerald-400" />
+                                            <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">Priority Tags / Categories</span>
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             {availableCategories.map(cat => (
-                                                <div key={cat.id} className="flex items-center space-x-2 bg-background p-2.5 rounded-lg border border-border hover:border-primary/30 transition-all shadow-sm">
+                                                <div key={cat.id} className="flex items-center space-x-2 bg-slate-700/50 p-2 rounded-lg border border-slate-600/50 hover:border-emerald-500/50 transition-colors">
                                                     <Controller
                                                         control={methods.control}
                                                         name="categoryIds"
@@ -254,7 +230,7 @@ export function TriageForm() {
                                                             />
                                                         )}
                                                     />
-                                                    <label htmlFor={`triage-cat-${cat.id}`} className="text-[11px] font-bold text-foreground cursor-pointer uppercase tracking-tight">
+                                                    <label htmlFor={`triage-cat-${cat.id}`} className="text-xs font-bold text-slate-200 cursor-pointer">
                                                         {cat.name}
                                                     </label>
                                                 </div>
@@ -263,29 +239,29 @@ export function TriageForm() {
                                     </div>
                                 )}
 
-                                <div className="flex flex-col items-end justify-center min-w-[200px]">
+                                <div className="flex flex-col items-end justify-center">
                                     {submitError && (
                                         <span className={`flex items-center gap-1.5 text-[11px] font-bold mb-3 absolute -top-8 right-0 px-4 py-2 rounded-lg border uppercase tracking-widest animate-in slide-in-from-bottom-2 ${submitError.includes('Hardware Print') ? 'bg-red-500 text-white border-red-600 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'text-destructive bg-destructive/10 border-destructive/20'}`}>
                                             <WarningCircle size={14} weight="bold" /> {submitError}
                                         </span>
                                     )}
                                     {submitSuccess && (
-                                        <span className="flex items-center gap-1.5 text-primary text-[11px] font-bold mb-3 absolute -top-8 right-0 bg-primary/10 px-4 py-2 rounded-lg border border-primary/20 uppercase tracking-widest animate-in slide-in-from-bottom-2">
-                                            Assessment Completed!
+                                        <span className="flex items-center gap-1.5 text-emerald-600 text-sm font-bold mb-3 absolute -top-8 right-0 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-200">
+                                            Triage Assessment Completed!
                                         </span>
                                     )}
 
                                     <Button
                                         type="submit"
                                         disabled={isPending}
-                                        className={`h-11 w-full px-6 text-xs tracking-widest uppercase font-bold transition-all rounded-xl shadow-md ${isPending || submitSuccess
-                                            ? "bg-muted text-muted-foreground cursor-not-allowed shadow-none"
-                                            : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20 active:scale-[0.98]"
+                                        className={`h-10 px-4 text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-lg ${isPending || submitSuccess
+                                            ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                            : "bg-emerald-500 hover:bg-emerald-400 text-white hover:-translate-y-1 hover:shadow-emerald-500/25"
                                             }`}
                                     >
-                                        {isPending ? "Processing..." : (
+                                        {isPending ? "Submitting..." : (
                                             <span className="flex items-center gap-2">
-                                                Complete Assessment <PaperPlaneRight size={18} weight="bold" />
+                                                Send to Releasing <PaperPlaneRight size={20} weight="fill" />
                                             </span>
                                         )}
                                     </Button>

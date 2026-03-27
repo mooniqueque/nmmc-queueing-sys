@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-
 import { API_URL } from "@/lib/api";
 
 const BACKEND_URL = API_URL;
@@ -13,18 +12,25 @@ interface WindowStatus {
 
 export function useWindowMonitor(slugOrId?: string) {
     const [windows, setWindows] = useState<WindowStatus[]>([]);
+    const [upcoming, setUpcoming] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchStatus = useCallback(async () => {
         try {
-            const endpoint = slugOrId 
+            const endpoint = slugOrId
                 ? `${BACKEND_URL}/monitor/department/${slugOrId}`
                 : `${BACKEND_URL}/monitor/windows`;
-                
+
             const res = await fetch(endpoint);
             const json = await res.json();
             if (json.success) {
-                setWindows(json.data);
+                // Determine if backend returned new object format or old array format
+                if (Array.isArray(json.data)) {
+                    setWindows(json.data);
+                } else if (json.data && json.data.active) {
+                    setWindows(json.data.active);
+                    setUpcoming(json.data.upcoming || []);
+                }
             }
         } catch (error) {
             console.error("Monitor Fetch Error:", error);
@@ -35,8 +41,6 @@ export function useWindowMonitor(slugOrId?: string) {
 
     useEffect(() => {
         fetchStatus();
-
-        // Setup SSE for real-time updates
         const topic = slugOrId || 'WINDOW';
         const eventSource = new EventSource(`${BACKEND_URL}/monitor/stream?topic=${topic}`, { withCredentials: true });
 
@@ -56,5 +60,5 @@ export function useWindowMonitor(slugOrId?: string) {
         };
     }, [fetchStatus, slugOrId]);
 
-    return { windows, loading };
+    return { windows, upcoming, loading };
 }

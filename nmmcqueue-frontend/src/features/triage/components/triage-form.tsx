@@ -10,10 +10,10 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { submitTriageForm } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
-import { ClipboardText, CaretDoubleRight, PaperPlaneRight, WarningCircle, Tag } from "@phosphor-icons/react";
+import { ClipboardText, CaretDoubleRight, Printer, WarningCircle, Tag } from "@phosphor-icons/react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getQueueOptions } from "@/features/shared/api";
-import { PriorityCategory } from "@/types/models";
+import { getQueueOptions, getDepartments } from "@/features/shared/api";
+import { PriorityCategory, Department } from "@/types/models";
 
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
@@ -30,9 +30,15 @@ export function TriageForm() {
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
 
     useEffect(() => {
         getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
+        getDepartments().then(res => {
+            if (res.data) {
+                setDepartments(res.data.filter((d: Department) => !d.name.toLowerCase().includes('admin') && !d.name.toLowerCase().includes('triage') && !d.name.toLowerCase().includes('window')));
+            }
+        });
     }, []);
 
     const methods = useForm<z.input<typeof triageFormSchema>, unknown, TriageFormValues>({
@@ -154,10 +160,10 @@ export function TriageForm() {
                             <SymptomsSection />
                             <ClinicalNotesSection />
 
-                            {/* Submission Footer */}
-                            <div className=" mt-8 bg-slate-50/70 p-6 rounded-lg p-6 flex items-center justify-between border border-slate-200/60 shadow-sm">
-                                <div className="flex gap-6">
-                                    <div className="w-56">
+                                {/* Submission Footer */}
+                            <div className=" mt-8 bg-slate-50/70 p-6 rounded-xl border border-slate-200/60 shadow-sm">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    <div className="flex-1">
                                         <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
                                             Acuity / Disposition
                                         </Label>
@@ -201,6 +207,28 @@ export function TriageForm() {
                                                 </Select>
                                             )}
                                         />
+                                    </div>
+                                    <div className="flex-1">
+                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
+                                            Clinical Department *
+                                        </Label>
+                                        <Controller
+                                            control={methods.control}
+                                            name="departmentId"
+                                            render={({ field }) => (
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-sm font-bold transition-all border ${methods.formState.errors.departmentId ? 'border-destructive ring-1 ring-destructive/20' : 'border-slate-300'}`}>
+                                                        <SelectValue placeholder="Select Department" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-300 bg-white">
+                                                        {departments.map(dept => (
+                                                            <SelectItem key={dept.id} value={dept.id} className="font-bold py-2 focus:bg-slate-100">{dept.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                        {methods.formState.errors.departmentId && <span className="text-destructive text-[10px] font-bold uppercase tracking-widest mt-1 block">{methods.formState.errors.departmentId.message}</span>}
                                     </div>
                                 </div>
 
@@ -254,14 +282,14 @@ export function TriageForm() {
                                     <Button
                                         type="submit"
                                         disabled={isPending}
-                                        className={`h-10 px-4 text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-lg ${isPending || submitSuccess
+                                        className={`h-12 px-6 mt-6 w-full sm:w-auto text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-xl ${isPending || submitSuccess
                                             ? "bg-slate-700 text-slate-400 cursor-not-allowed"
                                             : "bg-emerald-500 hover:bg-emerald-400 text-white hover:-translate-y-1 hover:shadow-emerald-500/25"
                                             }`}
                                     >
                                         {isPending ? "Submitting..." : (
                                             <span className="flex items-center gap-2">
-                                                Send to Releasing <PaperPlaneRight size={20} weight="fill" />
+                                                Print Ticket & Send <Printer size={22} weight="fill" />
                                             </span>
                                         )}
                                     </Button>

@@ -9,8 +9,20 @@ class WorkstationController {
     });
 
     create = asyncHandler(async (req: Request, res: Response) => {
-        const station = await workstationService.create(req.body);
-        res.status(201).json({ success: true, data: station });
+        const { type, customName, departmentId, count } = req.body;
+        
+        if (!type) {
+            res.status(400).json({ success: false, error: 'Type is required' });
+            return;
+        }
+
+        const stations = await workstationService.createWithAutoIncrement({
+            type,
+            customName,
+            departmentId,
+            count: count ? Number(count) : 1
+        });
+        res.status(201).json({ success: true, data: stations.length === 1 ? stations[0] : stations });
     });
 
     update = asyncHandler(async (req: Request, res: Response) => {

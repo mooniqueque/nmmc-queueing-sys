@@ -13,6 +13,12 @@ class MonitorService {
             orderBy: { stationNo: 'asc' }
         });
 
+        const formatTicket = (ticketNo: number | null | undefined, classification: string | null | undefined) => {
+            if (!ticketNo) return null;
+            const prefix = classification === 'PRIORITY' ? 'PRIO' : 'REG';
+            return `${prefix}-${String(ticketNo).padStart(3, '0')}`;
+        };
+
         // For each window, find the currently serving ticket (IN_PROGRESS)
         const status = await Promise.all(windows.map(async (window) => {
             const currentVisit = await db.visit.findFirst({
@@ -37,7 +43,7 @@ class MonitorService {
             return {
                 windowName: window.name,
                 stationNo: window.stationNo,
-                ticketNumber: currentVisit ? String(currentVisit.ticketNumber).padStart(3, '0') : null,
+                ticketNumber: currentVisit ? formatTicket(currentVisit.ticketNumber, currentVisit.classification) : null,
                 classification: currentVisit?.classification,
                 categories: currentVisit?.categories.map(vc => vc.category)
             };
@@ -50,9 +56,9 @@ class MonitorService {
             },
             orderBy: { queueDate: 'asc' },
             take: 4,
-            select: { ticketNumber: true }
+            select: { ticketNumber: true, classification: true }
         });
-        const upcoming = waitlistVisits.map(v => String(v.ticketNumber).padStart(3, '0'));
+        const upcoming = waitlistVisits.map(v => formatTicket(v.ticketNumber, v.classification) as string).filter(Boolean);
 
         return { active: status, upcoming };
     }
@@ -98,6 +104,12 @@ class MonitorService {
             }
         });
 
+        const formatTicket = (ticketNo: number | null | undefined, classification: string | null | undefined) => {
+            if (!ticketNo) return null;
+            const prefix = classification === 'PRIORITY' ? 'PRIO' : 'REG';
+            return `${prefix}-${String(ticketNo).padStart(3, '0')}`;
+        };
+
         const upcomingVisits = await db.visit.findMany({
             where: {
                 departmentId,
@@ -106,9 +118,9 @@ class MonitorService {
             },
             orderBy: { queueDate: 'asc' },
             take: 4,
-            select: { ticketNumber: true }
+            select: { ticketNumber: true, classification: true }
         });
-        const upcoming = upcomingVisits.map(v => String(v.ticketNumber).padStart(3, '0'));
+        const upcoming = upcomingVisits.map(v => formatTicket(v.ticketNumber, v.classification) as string).filter(Boolean);
 
         let active: any[] = [];
 
@@ -117,7 +129,7 @@ class MonitorService {
             active = activeVisits.map((visit) => ({
                 windowName: department?.code || department?.name || 'CLINIC',
                 stationNo: 1,
-                ticketNumber: String(visit.ticketNumber).padStart(3, '0'),
+                ticketNumber: formatTicket(visit.ticketNumber, visit.classification),
                 classification: visit.classification,
                 categories: visit.categories.map(vc => vc.category)
             }));
@@ -146,7 +158,7 @@ class MonitorService {
             return {
                 windowName: station.name,
                 stationNo: station.stationNo,
-                ticketNumber: currentVisit ? String(currentVisit.ticketNumber).padStart(3, '0') : null,
+                ticketNumber: currentVisit ? formatTicket(currentVisit.ticketNumber, currentVisit.classification) : null,
                 classification: currentVisit?.classification,
                 categories: currentVisit?.categories.map(vc => vc.category)
             };

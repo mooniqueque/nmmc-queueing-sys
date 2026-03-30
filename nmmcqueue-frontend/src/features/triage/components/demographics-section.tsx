@@ -9,18 +9,16 @@ import { TriageFormValues } from "../schemas";
 import { CalendarBlank, UserCircle, MapPin, IdentificationBadge } from "@phosphor-icons/react";
 import { calculateAge } from "@/lib/utils";
 
-interface DemographicsSectionProps {
-    isManualEntry: boolean;
-    hasSelectedPatient: boolean;
-}
+// Props removed as demographics are now always editable
 
-export function DemographicsSection({ isManualEntry, hasSelectedPatient }: DemographicsSectionProps) {
+export function DemographicsSection() {
     const { register, control, formState: { errors } } = useFormContext<TriageFormValues>();
     const watchDob = useWatch({ control, name: "dateOfBirth" });
 
     const todayString = new Date().toISOString().split('T')[0];
 
-    const disabled = !isManualEntry && hasSelectedPatient;
+    // Demographics are always editable so the nurse can update outdated or incorrect info
+    const disabled = false;
 
     return (
         <div className="bg-muted/10 p-6 rounded-xl border border-border shadow-sm transition-all mb-8">

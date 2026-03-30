@@ -106,6 +106,9 @@ export function WorkstationForm({ workstations, departments }: WorkstationFormPr
                                     ))}
                                 </SelectContent>
                             </Select>
+                            <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
+                                Tip: For monitor lane routing, include queue option code/name in station name (e.g. REGULAR, PRIORITY, PWD).
+                            </p>
                         </div>
                     )}
 

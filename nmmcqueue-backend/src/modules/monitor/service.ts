@@ -90,10 +90,18 @@ class MonitorService {
             return `${prefix}-${String(ticketNo).padStart(3, '0')}`;
         };
 
+        const normalize = (value: string) => value.trim().toUpperCase();
+
         // 2. Get all CALLER stations for this department (in order)
         const stations = await db.workStation.findMany({
             where: { departmentId, type: 'CALLER', isActive: true },
             orderBy: { stationNo: 'asc' }
+        });
+
+        // Reuse existing lane options (priority categories) for lane matching.
+        const laneOptions = await db.priorityCategory.findMany({
+            where: { departmentId },
+            select: { id: true, name: true, code: true, isPriority: true }
         });
 
         // 3. Get ALL IN_PROGRESS patients (regardless of windowNumber)
@@ -112,19 +120,78 @@ class MonitorService {
             }
         });
 
-        // 4. Build active display: map patients to stations
-        const active = stations.map((station, index) => {
-            const patient = inProgressPatients[index] || null;
+        // 4. Build lane configs from workstation names + lane options.
+        const stationConfigs = stations.map((station) => {
+            const stationName = normalize(station.name);
+            const matchedLaneOption = laneOptions.find((option) => {
+                const code = normalize(option.code);
+                const name = normalize(option.name);
+                return stationName.includes(code) || stationName.includes(name);
+            });
+
+            let inferredLaneType: 'PRIORITY' | 'REGULAR' | 'ANY' = 'ANY';
+            if (matchedLaneOption) {
+                inferredLaneType = matchedLaneOption.isPriority ? 'PRIORITY' : 'REGULAR';
+            } else if (stationName.includes('PRIOR') || stationName.includes('PRIO')) {
+                inferredLaneType = 'PRIORITY';
+            } else if (stationName.includes('REG')) {
+                inferredLaneType = 'REGULAR';
+            }
+
             return {
-                windowName: station.name,
-                stationNo: station.stationNo,
+                station,
+                laneOptionId: matchedLaneOption?.id,
+                laneType: inferredLaneType
+            };
+        });
+
+        const remainingPatients = [...inProgressPatients];
+        const assignedPatients: Array<(typeof inProgressPatients)[number] | null> = stationConfigs.map(() => null);
+
+        const isPriorityPatient = (patient: (typeof inProgressPatients)[number]) => {
+            const hasPriorityCategory = patient.categories.some((visitCategory) => visitCategory.category?.isPriority);
+            return patient.classification === 'PRIORITY' || hasPriorityCategory;
+        };
+
+        // First pass: honor lane option/category hints per station.
+        stationConfigs.forEach((config, index) => {
+            const patientIndex = remainingPatients.findIndex((patient) => {
+                if (config.laneOptionId) {
+                    return patient.categories.some((visitCategory) =>
+                        visitCategory.categoryId === config.laneOptionId || visitCategory.category?.id === config.laneOptionId
+                    );
+                }
+                if (config.laneType === 'PRIORITY') return isPriorityPatient(patient);
+                if (config.laneType === 'REGULAR') return !isPriorityPatient(patient);
+                return false;
+            });
+
+            if (patientIndex >= 0) {
+                assignedPatients[index] = remainingPatients[patientIndex];
+                remainingPatients.splice(patientIndex, 1);
+            }
+        });
+
+        // Second pass: ensure in-progress patients are still displayed even without explicit lane matches.
+        stationConfigs.forEach((_, index) => {
+            if (!assignedPatients[index] && remainingPatients.length > 0) {
+                assignedPatients[index] = remainingPatients.shift() ?? null;
+            }
+        });
+
+        // 5. Build active display rows.
+        const active = stationConfigs.map((config, index) => {
+            const patient = assignedPatients[index];
+            return {
+                windowName: config.station.name,
+                stationNo: config.station.stationNo,
                 ticketNumber: patient ? formatTicket(patient.ticketNumber, patient.classification) : null,
                 classification: patient?.classification,
                 categories: patient?.categories.map(vc => vc.category)
             };
         });
 
-        // 5. Get upcoming patients waiting in WAITING_CLINIC
+        // 6. Get upcoming patients waiting in WAITING_CLINIC
         const upcomingVisits = await db.visit.findMany({
             where: {
                 departmentId,

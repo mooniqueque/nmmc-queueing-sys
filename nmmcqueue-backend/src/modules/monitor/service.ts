@@ -16,22 +16,23 @@ class MonitorService {
         const formatTicket = (ticketNo: number | null | undefined, classification: string | null | undefined) => {
             if (!ticketNo) return null;
             const prefix = classification === 'PRIORITY' ? 'PRIO' : 'REG';
-            return `${prefix}-${String(ticketNo).padStart(3, '0')}`;
+            return `${prefix}-${String(ticketNo)}`;
         };
 
-        // For each window, find the currently serving ticket (IN_PROGRESS)
+        // For each window, find the currently serving ticket (IN_WINDOW)
         const status = await Promise.all(windows.map(async (window) => {
             const currentVisit = await db.visit.findFirst({
                 where: {
                     windowNumber: window.stationNo,
-                    status: 'IN_PROGRESS',
-                    sequenceKey: 'WINDOW',
+                    status: 'IN_WINDOW',
+                    sequenceKey: { startsWith: 'WINDOW' },
                     createdAt: { gte: today, lt: tomorrow }
                 },
                 orderBy: { calledAt: 'desc' },
                 select: {
                     ticketNumber: true,
                     classification: true,
+                    calledAt: true,
                     categories: {
                         include: {
                             category: true
@@ -45,6 +46,7 @@ class MonitorService {
                 stationNo: window.stationNo,
                 ticketNumber: currentVisit ? formatTicket(currentVisit.ticketNumber, currentVisit.classification) : null,
                 classification: currentVisit?.classification,
+                calledAt: currentVisit?.calledAt || null,
                 categories: currentVisit?.categories.map(vc => vc.category)
             };
         }));

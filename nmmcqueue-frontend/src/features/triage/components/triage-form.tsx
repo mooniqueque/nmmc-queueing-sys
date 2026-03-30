@@ -8,9 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState, useTransition } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import { submitTriageForm } from "../actions";
+import { submitTriageForm, markNoShow } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
-import { CaretDoubleRight, Printer, WarningCircle, Tag, CaretDown, Check } from "@phosphor-icons/react";
+import { CaretDoubleRight, Printer, WarningCircle, Tag, CaretDown, Check, XCircle } from "@phosphor-icons/react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -117,6 +117,19 @@ export function TriageForm() {
                 }, 2000);
             }
         });
+    };
+
+    const handleNoShowClick = () => {
+        if (!selectedPatient) return;
+        if (window.confirm(`Are you sure you want to mark ${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName} as NO SHOW? They will be removed from the active queue.`)) {
+            startTransition(async () => {
+                const res = await markNoShow(selectedPatient.id);
+                if (!res.error) {
+                    resetTriage();
+                    methods.reset();
+                }
+            });
+        }
     };
 
     return (
@@ -317,20 +330,35 @@ export function TriageForm() {
                                         </span>
                                     )}
 
-                                    <Button
-                                        type="submit"
-                                        disabled={isPending}
-                                        className={`h-12 px-6 mt-6 w-full sm:w-auto text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-xl ${isPending || submitSuccess
-                                            ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                                            : "bg-emerald-500 hover:bg-emerald-400 text-white hover:-translate-y-1 hover:shadow-emerald-500/25"
-                                            }`}
-                                    >
-                                        {isPending ? "Submitting..." : (
-                                            <span className="flex items-center gap-2">
-                                                Print Ticket & Send <Printer size={22} weight="fill" />
-                                            </span>
+                                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                                        {!isManualEntry && selectedPatient && (
+                                            <Button
+                                                type="button"
+                                                disabled={isPending}
+                                                onClick={handleNoShowClick}
+                                                variant="outline"
+                                                className="h-12 px-6 mt-6 w-full sm:w-auto text-[15px] tracking-widest uppercase font-black transition-all border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 rounded-xl bg-rose-50/50 hover:border-rose-300"
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    Mark No Show <XCircle size={22} weight="fill" />
+                                                </span>
+                                            </Button>
                                         )}
-                                    </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={isPending || submitSuccess}
+                                            className={`h-12 px-6 mt-6 w-full sm:w-auto text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-xl ${isPending || submitSuccess
+                                                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                                : "bg-emerald-500 hover:bg-emerald-400 text-white hover:-translate-y-1 hover:shadow-emerald-500/25"
+                                                }`}
+                                        >
+                                            {isPending ? "Submitting..." : (
+                                                <span className="flex items-center gap-2">
+                                                    Print Ticket & Send <Printer size={22} weight="fill" />
+                                                </span>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </form>

@@ -258,6 +258,46 @@ class TriageService {
         return patient;
     }
 
+    async searchPatients(query: string) {
+        return db.patient.findMany({
+            where: {
+                OR: [
+                    { firstName: { contains: query } },
+                    { lastName: { contains: query } },
+                    { hospitalId: { contains: query } }
+                ]
+            },
+            take: 15,
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async mergePatient(visitId: string, targetPatientId: string) {
+        const visit = await db.visit.findUnique({ where: { id: visitId } });
+        if (!visit) throw new AppError('Visit not found', 404);
+
+        const sourcePatientId = visit.patientId;
+        if (sourcePatientId === targetPatientId) return visit;
+
+        const targetPatient = await db.patient.findUnique({ where: { id: targetPatientId } });
+        if (!targetPatient) throw new AppError('Target Patient not found', 404);
+
+        return db.$transaction(async (tx) => {
+            const updatedVisit = await tx.visit.update({
+                where: { id: visitId },
+                data: { patientId: targetPatientId, kioskRegistrationType: 'REGISTERED' } // now properly linked
+            });
+
+            // Cleanup the temporary unlinked shell if it's completely orphaned
+            const remainingVisits = await tx.visit.count({ where: { patientId: sourcePatientId } });
+            if (remainingVisits === 0) {
+                await tx.patient.delete({ where: { id: sourcePatientId } });
+            }
+
+            return updatedVisit;
+        });
+    }
+
     /**
      * CLAIM-BASED: Atomically claim the next WAITING_TRIAGE patient.
      * Uses a transaction with a status guard to prevent race conditions.
@@ -320,6 +360,65 @@ class TriageService {
 
             logger.info(`Triage claimed patient: ${nextVisit.patient.firstName} ${nextVisit.patient.lastName}`, {
                 visitId: nextVisit.id,
+                userId,
+                workstationId: user.workstationId
+            });
+
+            return updatedVisit;
+        });
+    }
+
+    /**
+     * CLAIM-BASED: Explicitly claim a specific patient (e.g. No Show or specific Waiter)
+     */
+    async callSpecificTriage(visitId: string, userId: string) {
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            include: { workstation: true }
+        });
+        if (!user?.workstationId) throw new AppError('You must be assigned to a workstation to call patients.', 400);
+
+        return db.$transaction(async (tx) => {
+            const visitToCall = await tx.visit.findUnique({
+                where: { id: visitId },
+                include: { patient: true }
+            });
+
+            if (!visitToCall || (visitToCall.status !== 'NO_SHOW' && visitToCall.status !== 'WAITING_TRIAGE')) {
+                throw new AppError('Patient is not waiting or no-show.', 400);
+            }
+
+            const claimed = await tx.visit.updateMany({
+                where: {
+                    id: visitId,
+                    status: visitToCall.status // concurrency guard
+                },
+                data: {
+                    status: 'IN_TRIAGE',
+                    triageClaimedById: userId,
+                    triageStartedAt: new Date(),
+                    triageStationId: user.workstationId,
+                }
+            });
+
+            if (claimed.count === 0) {
+                throw new AppError('Patient was already claimed by another user.', 409);
+            }
+
+            const updatedVisit = await tx.visit.findUnique({
+                where: { id: visitId },
+                include: {
+                    patient: true,
+                    categories: { include: { category: true } }
+                }
+            });
+
+            await tx.visitStatusHistory.create({
+                data: { visitId: visitId, status: 'IN_TRIAGE', changedBy: userId }
+            });
+
+            logger.info(`Triage specifically called patient: ${visitToCall.patient.firstName} ${visitToCall.patient.lastName}`, {
+                visitId: visitId,
                 userId,
                 workstationId: user.workstationId
             });

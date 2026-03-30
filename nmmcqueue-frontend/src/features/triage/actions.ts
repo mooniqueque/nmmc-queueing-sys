@@ -36,6 +36,20 @@ export async function restoreNoShow(visitId: string) {
     return result;
 }
 
+export async function searchPatients(query: string) {
+    return triageApi.searchPatients(query, {
+        headers: await getServerHeaders(),
+    });
+}
+
+export async function mergePatient(visitId: string, targetPatientId: string) {
+    const result = await triageApi.mergePatient(visitId, targetPatientId, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/triage");
+    return result;
+}
+
 export async function removeQueue(visitId: string) {
     const result = await triageApi.removeQueue(visitId, {
         headers: await getServerHeaders(),
@@ -56,4 +70,12 @@ export async function getMyCurrentTriageVisit() {
     return triageApi.getMyCurrentTriageVisit({
         headers: await getServerHeaders(),
     });
+}
+
+export async function callSpecificTriage(visitId: string) {
+    const result = await triageApi.callSpecificTriage(visitId, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/triage");
+    return result;
 }

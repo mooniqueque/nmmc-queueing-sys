@@ -247,7 +247,7 @@ export function ReleasingAssignPanel({
                                 {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}
                             </h2>
                             <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-[11px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
-                                <span>Ticket: <strong className="text-primary">{selectedPatient.ticketNumber ? `#${selectedPatient.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}</strong></span>
+                                <span>Ticket: <strong className="text-primary">{selectedPatient.ticketNumber ? `#${selectedPatient.ticketNumber}` : 'NO TICKET'}</strong></span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
                                 <span>{selectedPatient.patient.gender}</span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
@@ -311,7 +311,7 @@ export function ReleasingAssignPanel({
                         variant="outline"
                         onClick={handleNoShow}
                         disabled={isPending || isNoShow}
-                        className="w-full h-10 sm:h-11 border-border text-muted-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs gap-2 rounded-xl hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 transition-all shadow-sm"
+                        className="flex-1 h-10 sm:h-11 border-border text-muted-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs gap-2 rounded-xl hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 transition-all shadow-sm"
                     >
                         <X size={16} weight="bold" />
                         Mark No Show

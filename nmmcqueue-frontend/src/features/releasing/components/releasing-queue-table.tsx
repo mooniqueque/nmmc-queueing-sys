@@ -16,6 +16,7 @@ interface ReleasingQueueTableProps {
     searchQuery: string;
     onSearchChange: (val: string) => void;
     isPanelOpen?: boolean;
+    onRowClick?: (visit: VisitWithPatient) => void;
 }
 
 const TABS: { key: QueueCategory; label: string; shortLabel?: string; color: string; activeBg: string; activeText: string }[] = [
@@ -32,7 +33,8 @@ export function ReleasingQueueTable({
     onTabChange,
     searchQuery,
     onSearchChange,
-    isPanelOpen
+    isPanelOpen,
+    onRowClick
 }: ReleasingQueueTableProps) {
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 8;
@@ -128,11 +130,12 @@ export function ReleasingQueueTable({
                             return (
                                 <div
                                     key={visit.id}
-                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[50px_1fr_80px] sm:grid-cols-[60px_1fr_120px]" : "grid-cols-[50px_1fr_80px] sm:grid-cols-[80px_1fr_1fr_120px]"} gap-2 sm:gap-6 items-center px-3 sm:px-6 lg:px-8 py-3 sm:py-4 transition-all duration-200 min-h-[56px] sm:min-h-[72px] border-b border-border bg-background`}
+                                    onClick={() => onRowClick && onRowClick(visit)}
+                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[50px_1fr_80px] sm:grid-cols-[60px_1fr_120px]" : "grid-cols-[50px_1fr_80px] sm:grid-cols-[80px_1fr_1fr_120px]"} gap-2 sm:gap-6 items-center px-3 sm:px-6 lg:px-8 py-3 sm:py-4 transition-all duration-200 min-h-[56px] sm:min-h-[72px] border-b border-border bg-background ${onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}`}
                                 >
                                     {/* Ticket */}
                                     <div className="text-sm sm:text-base font-bold text-primary/60">
-                                        {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : '—'}
+                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : '—'}
                                     </div>
 
                                     {/* Name & Demographics */}

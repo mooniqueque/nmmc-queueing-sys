@@ -267,6 +267,11 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                     searchQuery={searchQuery}
                                     onSearchChange={setSearchQuery}
                                     isPanelOpen={!!selectedPatient}
+                                    onRowClick={(p) => {
+                                        // Ensure we do not re-select the currently serving patient into the assign panel
+                                        // Unless they are actually just waiting or no-show.
+                                        setSelectedPatient(p);
+                                    }}
                                 />
                             </div>
 

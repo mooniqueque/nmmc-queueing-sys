@@ -6,11 +6,11 @@ import { markNoShow, removeQueue, restoreNoShow, callNextTriage } from "../actio
 import { useTriageQueue } from "../hooks";
 import { VisitWithPatient } from "../types";
 import { useTriageStore } from "../store/use-triage-store";
-import { MagnifyingGlass, ArrowClockwise, CheckCircle, UserMinus, Trash, Clock, Plus, Play, User } from "@phosphor-icons/react";
+import { MagnifyingGlass, Clock, CheckCircle, User, Play, Plus, UserMinus, Trash } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
-import { calculateAge } from "@/lib/utils";
 import { notify } from "@/lib/notify";
 import { SessionUser } from "@/types/auth";
+import { calculateAge } from "@/lib/utils";
 
 interface TriageQueueSidebarProps {
     initialQueue: VisitWithPatient[];
@@ -21,9 +21,8 @@ interface TriageQueueSidebarProps {
 export function TriageQueueSidebar({
     initialQueue,
     currentVisit,
-    user
 }: TriageQueueSidebarProps) {
-    const { selectedPatient, isManualEntry, isPanelOpen, setSelectedPatient, setSubmitError, setManualEntry } = useTriageStore();
+    const { selectedPatient, isManualEntry, setSelectedPatient, setSubmitError, setManualEntry } = useTriageStore();
     const selectedPatientId = selectedPatient?.id;
     const onError = setSubmitError;
 
@@ -49,7 +48,7 @@ export function TriageQueueSidebar({
             } else if (res?.success && !res.data) {
                 notify.info("Queue is empty", { description: "No patients waiting for triage." });
             } else {
-                notify.error(res?.error || "Failed to call next patient");
+                notify.error(res?.message || res?.error || "Failed to call next patient");
             }
         });
     };
@@ -112,8 +111,8 @@ export function TriageQueueSidebar({
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Button
                             onClick={handleCallNext}
-                            disabled={isPending || hasActivePatient}
-                            className="flex-1 sm:flex-none h-9 sm:h-10 px-4 sm:px-6 font-bold text-xs sm:text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all gap-2 disabled:opacity-50"
+                            disabled={isPending || !!hasActivePatient}
+                            className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-widest text-xs rounded-xl shadow-md hover:shadow-lg transition-all gap-2 disabled:opacity-50"
                         >
                             <Play size={16} weight="fill" />
                             <span className="hidden xs:inline">Call Next Patient</span>
@@ -125,7 +124,7 @@ export function TriageQueueSidebar({
                             size="sm"
                             className="h-9 sm:h-10 px-3 font-bold border-dashed border-2 hover:bg-primary/5 hover:text-primary hover:border-primary/50 transition-all gap-2 shrink-0"
                             onClick={() => setManualEntry(true)}
-                            disabled={hasActivePatient}
+                            disabled={!!hasActivePatient}
                         >
                             <Plus size={14} weight="bold" />
                             <span className="hidden sm:inline">Walk-In</span>

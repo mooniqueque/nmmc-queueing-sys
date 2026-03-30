@@ -2,16 +2,37 @@
 
 import { Card } from "@/components/ui/card";
 import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
+import { CallOverlay } from "@/features/monitoring/components/call-overlay";
 import { useCurrentTime } from "@/hooks/use-current-time";
 import { API_URL } from "@/lib/api";
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function WindowMonitor() {
     const currentTime = useCurrentTime();
     const { windows, upcoming, loading } = useWindowMonitor();
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
+    const [callData, setCallData] = useState<{ ticket: string; windowName: string } | null>(null);
+    const prevWindowsRef = useRef<any[]>([]);
+
+    useEffect(() => {
+        if (windows.length > 0 && prevWindowsRef.current.length > 0) {
+            let newCall = null;
+            windows.forEach(win => {
+                const prev = prevWindowsRef.current.find(p => p.stationNo === win.stationNo);
+                if (prev && win.ticketNumber && prev.ticketNumber !== win.ticketNumber) {
+                    newCall = win;
+                }
+            });
+
+            if (newCall) {
+                setCallData({ ticket: newCall.ticketNumber, windowName: newCall.windowName });
+                setTimeout(() => setCallData(null), 7000); // 7s modal popup
+            }
+        }
+        prevWindowsRef.current = windows;
+    }, [windows]);
 
     useEffect(() => {
         // Fetch securely from the Public monitor API
@@ -46,6 +67,7 @@ export default function WindowMonitor() {
 
     return (
         <div className="w-full h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden">
+            <CallOverlay callData={callData} />
             {/* MINIMALIST HEADER */}
             <header className="bg-white px-8 py-5 flex justify-between items-center sticky top-0 z-10 border-b border-slate-200 w-full shrink-0 shadow-sm">
                 <div className="flex items-center gap-6">
@@ -98,7 +120,7 @@ export default function WindowMonitor() {
                                             <span className="text-8xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
                                                 {window.ticketNumber}
                                             </span>
-                                            {window.priorityClass && (
+                                            {window.priorityClass && false && (
                                                 <span className="text-sm font-extrabold text-slate-400 uppercase tracking-[0.2em] mt-3">
                                                     Class: {window.priorityClass}
                                                 </span>
@@ -167,9 +189,9 @@ export default function WindowMonitor() {
             {/* MINIMALIST MARQUEE FOOTER */}
             <footer className="bg-white border-t border-slate-200 py-5 px-5 shrink-0 overflow-hidden whitespace-nowrap shadow-sm">
                 <div className="animate-marquee inline-block">
-                    <span className="text-slate-600 font-bold text-lg uppercase tracking-widest mx-16">REG 51</span>
-                    <span className="text-emerald-700 font-bold text-lg uppercase tracking-[0.2em] mx-16">REG 59</span>
-                    <span className="text-slate-600 font-bold text-lg uppercase tracking-widest mx-16">REG 67</span>
+                    <span className="text-slate-600 font-bold text-lg uppercase tracking-widest mx-16">Welcome to Northern Mindanao Medical Center</span>
+                    <span className="text-emerald-700 font-bold text-lg uppercase tracking-[0.2em] mx-16">Health is Wealth • Serbisyo Para sa Lahat</span>
+                    <span className="text-slate-600 font-bold text-lg uppercase tracking-widest mx-16">Service Hours: 8:00 AM - 5:00 PM</span>
                 </div>
             </footer>
 

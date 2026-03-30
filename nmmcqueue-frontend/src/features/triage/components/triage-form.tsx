@@ -10,10 +10,12 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { submitTriageForm } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
-import { ClipboardText, CaretDoubleRight, PaperPlaneRight, WarningCircle, Tag } from "@phosphor-icons/react";
+import { CaretDoubleRight, Printer, WarningCircle, Tag, CaretDown, Check } from "@phosphor-icons/react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getQueueOptions } from "@/features/shared/api";
-import { PriorityCategory } from "@/types/models";
+import { getQueueOptions, getDepartments } from "@/features/shared/api";
+import { PriorityCategory, Department } from "@/types/models";
 
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
@@ -30,9 +32,15 @@ export function TriageForm() {
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
 
     useEffect(() => {
         getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
+        getDepartments().then(res => {
+            if (res.data) {
+                setDepartments(res.data.filter((d: Department) => !d.name.toLowerCase().includes('admin') && !d.name.toLowerCase().includes('triage') && !d.name.toLowerCase().includes('window')));
+            }
+        });
     }, []);
 
     const methods = useForm<z.input<typeof triageFormSchema>, unknown, TriageFormValues>({
@@ -149,35 +157,35 @@ export function TriageForm() {
                     <FormProvider {...methods}>
                         <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-0 relative">
                             {/* The inner sections handle their own top margins for a masonry/stack effect */}
-                            <DemographicsSection isManualEntry={isManualEntry} hasSelectedPatient={!!selectedPatient} />
+                            <DemographicsSection />
                             <VitalsSection />
                             <SymptomsSection />
                             <ClinicalNotesSection />
 
-                            {/* Submission Footer */}
-                            <div className=" mt-8 bg-slate-50/70 p-6 rounded-lg p-6 flex items-center justify-between border border-slate-200/60 shadow-sm">
-                                <div className="flex gap-6">
-                                    <div className="w-56">
+                                {/* Submission Footer */}
+                            <div className=" mt-8 bg-slate-50/70 p-6 rounded-xl border border-slate-200/60 shadow-sm">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    <div className="flex-1">
                                         <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
-                                            Acuity / Disposition
+                                            Acuity / Disposition *
                                         </Label>
                                         <Controller
                                             control={methods.control}
                                             name="disposition"
                                             render={({ field }) => (
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <SelectTrigger className={`h-14 rounded-lg border-slate-300 bg-slate-200/50 text-base font-bold transition-all ${field.value === "EMERGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-slate-500/20" :
-                                                        field.value === "URGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-amber-500/20" :
-                                                            "text-slate-800"
-                                                        }`}>
-                                                        <SelectValue />
+                                                <div className="relative">
+                                                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-sm font-bold transition-all border ${methods.formState.errors.disposition ? 'border-destructive ring-1 ring-destructive/20' : field.value === "EMERGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-slate-500/20" : field.value === "URGENT" ? "text-slate-800 border-amber-500/50 ring-2 ring-amber-500/20" : "border-slate-300 text-slate-800"}`}>
+                                                        <SelectValue placeholder="Select Acuity" />
                                                     </SelectTrigger>
-                                                    <SelectContent className="rounded-lg shadow-2xl border-slate-300 bg-slate-100 text-slate-200">
-                                                        <SelectItem value="NON-URGENT" className="font-bold py-3 focus:bg-slate-200 text-slate-600">Non-Urgent</SelectItem>
-                                                        <SelectItem value="URGENT" className="font-bold py-3 text-slate-600 focus:bg-slate-200">Urgent</SelectItem>
-                                                        <SelectItem value="EMERGENT" className="font-bold py-3 text-slate-600 focus:bg-slate-200">Emergent (Critical)</SelectItem>
+                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-300 bg-white">
+                                                        <SelectItem value="NON-URGENT" className="font-bold py-2 focus:bg-slate-100 text-slate-800">Non-Urgent</SelectItem>
+                                                        <SelectItem value="URGENT" className="font-bold py-2 focus:bg-slate-100 text-slate-800">Urgent</SelectItem>
+                                                        <SelectItem value="EMERGENT" className="font-bold py-2 focus:bg-slate-100 text-slate-800">Emergent (Critical)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                                {methods.formState.errors.disposition && <span className="text-destructive text-[10px] font-bold uppercase tracking-widest mt-1 absolute block">{methods.formState.errors.disposition.message}</span>}
+                                                </div>
                                             )}
                                         />
                                     </div>
@@ -190,15 +198,66 @@ export function TriageForm() {
                                             name="priorityClass"
                                             render={({ field }) => (
                                                 <Select onValueChange={field.onChange} value={field.value}>
-                                                    <SelectTrigger className={`h-11 rounded-xl border-slate-600 bg-slate-700/50 text-sm font-bold transition-all ${field.value === "PRIORITY" ? "text-emerald-400 border-emerald-500/50 ring-2 ring-emerald-500/20" : "text-white"
-                                                        }`}>
-                                                        <SelectValue />
+                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-sm font-bold transition-all border border-slate-300 ${field.value === "PRIORITY" ? "text-emerald-600 ring-1 ring-emerald-500/50 border-emerald-500/50" : "text-slate-800"}`}>
+                                                        <SelectValue placeholder="Select Classification" />
                                                     </SelectTrigger>
-                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-700 bg-slate-800 text-slate-200">
-                                                        <SelectItem value="REGULAR" className="font-bold py-2 focus:bg-slate-700">Regular</SelectItem>
-                                                        <SelectItem value="PRIORITY" className="font-bold py-2 text-emerald-400 focus:bg-slate-700">Priority</SelectItem>
+                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-300 bg-white">
+                                                        <SelectItem value="REGULAR" className="font-bold py-2 focus:bg-slate-100 text-slate-800">Regular</SelectItem>
+                                                        <SelectItem value="PRIORITY" className="font-bold py-2 focus:bg-slate-100 text-emerald-600">Priority</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
+                                            Clinical Department *
+                                        </Label>
+                                        <Controller
+                                            control={methods.control}
+                                            name="departmentId"
+                                            render={({ field }) => (
+                                                <div className="relative">
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            role="combobox"
+                                                            className={`flex items-center justify-between w-full h-11 px-3 rounded-xl bg-white text-sm font-bold transition-all border ${methods.formState.errors.departmentId ? 'border-destructive ring-1 ring-destructive/20 text-destructive' : 'border-slate-300 text-slate-800'}`}
+                                                        >
+                                                            {field.value
+                                                                ? departments.find((dept) => dept.id === field.value)?.name || "Select Department"
+                                                                : <span className="font-normal text-slate-500 opacity-80">Select Department</span>}
+                                                            <CaretDown className="h-4 w-4 opacity-50" />
+                                                        </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[300px] p-0 rounded-xl border-slate-300 shadow-2xl bg-white" align="start">
+                                                        <Command>
+                                                            <CommandInput placeholder="Search department..." className="h-11 font-medium" />
+                                                            <CommandList className="max-h-[200px] overflow-y-auto overflow-x-hidden custom-scrollbar">
+                                                                <CommandEmpty className="py-4 text-center text-sm font-medium text-slate-500">No department found.</CommandEmpty>
+                                                                <CommandGroup>
+                                                                    {departments.map((dept) => (
+                                                                        <CommandItem
+                                                                            key={dept.id}
+                                                                            value={dept.name}
+                                                                            onSelect={() => {
+                                                                                field.onChange(dept.id);
+                                                                                // The Shadcn Command trigger doesn't auto close by default on raw select sometimes without ref or popover state hook, but typically it will just update
+                                                                            }}
+                                                                            className="font-bold py-2 cursor-pointer data-[selected=true]:bg-slate-100 text-slate-800"
+                                                                        >
+                                                                            <Check className={`mr-2 h-4 w-4 ${field.value === dept.id ? "opacity-100" : "opacity-0"}`} />
+                                                                            {dept.name}
+                                                                        </CommandItem>
+                                                                    ))}
+                                                                </CommandGroup>
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                                {methods.formState.errors.departmentId && <span className="text-destructive text-[10px] font-bold uppercase tracking-widest mt-1 absolute block">{methods.formState.errors.departmentId.message}</span>}
+                                                </div>
                                             )}
                                         />
                                     </div>
@@ -254,14 +313,14 @@ export function TriageForm() {
                                     <Button
                                         type="submit"
                                         disabled={isPending}
-                                        className={`h-10 px-4 text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-lg ${isPending || submitSuccess
+                                        className={`h-12 px-6 mt-6 w-full sm:w-auto text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-xl ${isPending || submitSuccess
                                             ? "bg-slate-700 text-slate-400 cursor-not-allowed"
                                             : "bg-emerald-500 hover:bg-emerald-400 text-white hover:-translate-y-1 hover:shadow-emerald-500/25"
                                             }`}
                                     >
                                         {isPending ? "Submitting..." : (
                                             <span className="flex items-center gap-2">
-                                                Send to Releasing <PaperPlaneRight size={20} weight="fill" />
+                                                Print Ticket & Send <Printer size={22} weight="fill" />
                                             </span>
                                         )}
                                     </Button>

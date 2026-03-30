@@ -13,9 +13,26 @@ import { PriorityCategory } from "@/types/models";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { FormEvent, useEffect, useState } from "react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CaretDown, Check } from "@phosphor-icons/react";
 import { getPatientByHospitalId, registerKioskPatient } from "../actions";
 import { kioskFormSchema, KioskFormValues } from "../schemas";
 import { motion } from "framer-motion";
+
+const RELIGION_OPTIONS = [
+    "Roman Catholic",
+    "Islam",
+    "Protestantism",
+    "Iglesia ni Cristo (INC)",
+    "Philippine Independent Church (Aglipayan)",
+    "Seventh-day Adventist Church",
+    "Members Church of God International (Ang Dating Daan)",
+    "Jesus Miracle Crusade",
+    "Church of Jesus Christ of Latter-day Saints (Mormons)",
+    "Jehovah's Witnesses",
+    "Others"
+];
 
 const initialState: KioskFormValues = {
     hasAppointment: false,
@@ -455,20 +472,43 @@ export function KioskForm() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="religion">Religion *</Label>
-                                <Input id="religion" list="religions-list" name="religion" className="bg-white" value={formData.religion || ''} onChange={handleChange} placeholder="Type or Select" />
-                                <datalist id="religions-list">
-                                    <option value="Roman Catholic" />
-                                    <option value="Islam" />
-                                    <option value="Protestantism" />
-                                    <option value="Iglesia ni Cristo (INC)" />
-                                    <option value="Philippine Independent Church (Aglipayan)" />
-                                    <option value="Seventh-day Adventist Church" />
-                                    <option value="Members Church of God International (Ang Dating Daan)" />
-                                    <option value="Jesus Miracle Crusade" />
-                                    <option value="Church of Jesus Christ of Latter-day Saints (Mormons)" />
-                                    <option value="Jehovah's Witnesses" />
-                                    <option value="Others" />
-                                </datalist>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <button
+                                            type="button"
+                                            role="combobox"
+                                            className={`flex items-center justify-between w-full h-10 px-3 rounded-md bg-white text-sm transition-all border ${errors.religion ? 'border-red-500 ring-1 ring-red-500/20 text-red-500' : 'border-slate-200 text-slate-800 focus:ring-2 focus:ring-slate-400'}`}
+                                        >
+                                            {formData.religion
+                                                ? formData.religion
+                                                : <span className="font-normal text-slate-500">Select Religion</span>}
+                                            <CaretDown className="h-4 w-4 opacity-50" />
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0 rounded-md border-slate-300 shadow-xl bg-white" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Search religion..." className="h-10 text-sm" />
+                                            <CommandList className="max-h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar">
+                                                <CommandEmpty className="py-4 text-center text-sm font-medium text-slate-500">No religion found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {RELIGION_OPTIONS.map((rel) => (
+                                                        <CommandItem
+                                                            key={rel}
+                                                            value={rel}
+                                                            onSelect={() => {
+                                                                handleChange({ name: "religion", value: rel });
+                                                            }}
+                                                            className="text-sm py-2 cursor-pointer data-[selected=true]:bg-slate-100 text-slate-800"
+                                                        >
+                                                            <Check className={`mr-2 h-4 w-4 ${formData.religion === rel ? "opacity-100" : "opacity-0"}`} />
+                                                            {rel}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                                 {errors.religion && <p className="text-xs text-red-500">{errors.religion}</p>}
                             </div>
                         </div>

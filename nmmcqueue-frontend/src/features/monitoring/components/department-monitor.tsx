@@ -3,11 +3,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { getDepartmentsVideos } from "@/features/monitoring/actions";
 import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
+import { CallOverlay } from "@/features/monitoring/components/call-overlay";
 import { useCurrentTime } from "@/hooks/use-current-time";
 import { API_URL } from "@/lib/api";
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface DepartmentMonitorProps {
     slug: string;
@@ -18,6 +19,30 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     const { windows, upcoming, loading } = useWindowMonitor(slug);
     const [departmentName, setDepartmentName] = useState("LOADING...");
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
+    const [callData, setCallData] = useState<{ ticket: string; windowName: string } | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prevWindowsRef = useRef<any[]>([]);
+
+    useEffect(() => {
+        if (windows.length > 0 && prevWindowsRef.current.length > 0) {
+            let newCall = null;
+            windows.forEach(win => {
+                const prev = prevWindowsRef.current.find(p => p.stationNo === win.stationNo);
+                if (prev && win.ticketNumber && prev.ticketNumber !== win.ticketNumber) {
+                    newCall = win;
+                }
+            });
+
+            if (newCall) {
+                setTimeout(() => {
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    setCallData({ ticket: newCall!.ticketNumber!, windowName: newCall!.windowName });
+                    setTimeout(() => setCallData(null), 7000); // 7s modal popup
+                }, 0);
+            }
+        }
+        prevWindowsRef.current = windows;
+    }, [windows]);
 
     useEffect(() => {
         getDepartmentsVideos().then(res => {
@@ -51,6 +76,7 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
 
     return (
         <div className="w-full h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden">
+            <CallOverlay callData={callData} />
             {/* MINIMALIST HEADER */}
             <header className="bg-white px-8 py-5 flex justify-between items-center sticky top-0 z-10 border-b border-slate-200 w-full shrink-0 shadow-sm">
                 <div className="flex items-center gap-6">

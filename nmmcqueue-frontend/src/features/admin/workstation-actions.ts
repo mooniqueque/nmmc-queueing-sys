@@ -17,7 +17,7 @@ export async function getWorkstations() {
     }
 }
 
-export async function createWorkstation(data: { name: string, type: string, stationNo: number, departmentId?: string }) {
+export async function createWorkstation(data: { type: string, customName?: string, departmentId?: string, count?: number }) {
     try {
         const response = await fetch(`${BACKEND_URL}/workstations`, {
             method: "POST",

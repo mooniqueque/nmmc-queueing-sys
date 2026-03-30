@@ -11,8 +11,11 @@ triageRouter.post('/kiosk/register', kioskLimiter, validate(kioskFormRequestSche
 triageRouter.get('/kiosk/patient/:id', triageController.getPatientByHospitalId);
 // Protected Routes (Triage Nurse / Admin / Staff assistance)
 triageRouter.use(requireRole(['TRIAGE_NURSE', 'WINDOW_CLERK', 'CLINIC_CALLER']));
+triageRouter.get('/patients/search', triageController.searchPatients);
+triageRouter.post('/:visitId/merge-patient', triageController.mergePatient);
 triageRouter.get('/pending', triageController.getPendingQueue);
 triageRouter.post('/call-next', triageController.callNextTriage);
+triageRouter.post('/:id/call-specific', triageController.callSpecificTriage);
 triageRouter.get('/my-current', triageController.getMyCurrentVisit);
 triageRouter.post('/submit', validate(triageFormRequestSchema), triageController.submitTriage);
 triageRouter.post('/:id/no-show', triageController.markNoShow);

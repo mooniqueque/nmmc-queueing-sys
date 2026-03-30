@@ -57,6 +57,24 @@ class TriageController {
         res.status(200).json({ success: true, data: patient });
     });
 
+    searchPatients = asyncHandler(async (req: Request, res: Response) => {
+        const query = req.query.q as string;
+        if (!query) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+        const patients = await triageService.searchPatients(query);
+        res.status(200).json({ success: true, data: patients });
+    });
+
+    mergePatient = asyncHandler(async (req: Request, res: Response) => {
+        const visitId = req.params.visitId;
+        const targetPatientId = req.body.targetPatientId;
+        if (!targetPatientId) return res.status(400).json({ success: false, error: 'targetPatientId is required.' });
+        
+        const result = await triageService.mergePatient(visitId, targetPatientId);
+        res.status(200).json({ success: true, data: result });
+    });
+
     getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
         const queue = await triageService.getPendingQueue();
         res.status(200).json({ success: true, data: queue });
@@ -69,6 +87,14 @@ class TriageController {
         if (!visit) {
             return res.status(200).json({ success: true, data: null, message: 'No patients waiting in triage queue.' });
         }
+        res.status(200).json({ success: true, data: visit });
+    });
+
+    callSpecificTriage = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        const visitId = req.params.id;
+        const visit = await triageService.callSpecificTriage(visitId, userId);
         res.status(200).json({ success: true, data: visit });
     });
 

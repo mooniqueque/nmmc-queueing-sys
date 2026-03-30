@@ -24,16 +24,9 @@ export default function KioskWelcomePage() {
                     <p className="text-slate-600">Please select an option below to proceed.</p>
                 </div>
                 <div className="flex flex-col gap-2">
-                    {/* Registered Button - Passes type=registered in the URL */}
-                    <Link href="/kiosk/form?type=registered" className="w-full">
-                        <Button className="w-full h-16 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700">
-                            Registered Patient (OLD)
-                        </Button>
-                    </Link>
-                    {/* Unregistered Button - Passes type=unregistered in the URL */}
-                    <Link href="/kiosk/form?type=unregistered" className="w-full">
-                        <Button className="w-full h-16 text-lg font-semibold bg-slate-700 hover:bg-slate-800">
-                            Unregistered Patient (NEW)
+                    <Link href="/kiosk/form" className="w-full">
+                        <Button className="w-full h-16 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20">
+                            Register for Consultation
                         </Button>
                     </Link>
                     <div className="pt-4 border-t border-slate-300 mt-2">

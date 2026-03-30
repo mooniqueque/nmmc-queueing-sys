@@ -63,6 +63,23 @@ export async function restoreNoShow(visitId: string, options?: RequestInit) {
     return res.json();
 }
 
+export async function searchPatients(query: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/triage/patients/search?q=${encodeURIComponent(query)}`, {
+        ...options,
+    });
+    return res.json();
+}
+
+export async function mergePatient(visitId: string, targetPatientId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/triage/${visitId}/merge-patient`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ targetPatientId }),
+        ...options,
+    });
+    return res.json();
+}
+
 export async function removeQueue(visitId: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/triage/${visitId}`, {
         method: "DELETE",
@@ -82,6 +99,14 @@ export async function callNextTriage(options?: RequestInit) {
 export async function getMyCurrentTriageVisit(options?: RequestInit) {
     const res = await fetch(`${API_URL}/triage/my-current`, {
         cache: "no-store",
+        ...options,
+    });
+    return res.json();
+}
+
+export async function callSpecificTriage(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/triage/${visitId}/call-specific`, {
+        method: "POST",
         ...options,
     });
     return res.json();

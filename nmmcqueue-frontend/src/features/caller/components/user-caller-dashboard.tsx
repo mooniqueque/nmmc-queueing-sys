@@ -64,7 +64,7 @@ export default function UserCallerDashboard({
         setIsProcessing(true);
         try {
             await callPatient(nextVisit.id);
-            notify.success(`Calling patient P-${nextVisit.ticketNumber?.toString().padStart(3, '0') ?? 'N/A'}`);
+            notify.success(`Calling patient P-${nextVisit.ticketNumber?.toString() ?? 'N/A'}`);
         } catch {
             notify.error("Failed to call patient.");
         } finally {
@@ -91,7 +91,7 @@ export default function UserCallerDashboard({
         setIsProcessing(true);
         try {
             await noShowPatient(targetVisit.id);
-            notify.error(`Patient P-${targetVisit.ticketNumber?.toString().padStart(3, '0') ?? 'N/A'} marked as NO SHOW`);
+            notify.error(`Patient P-${targetVisit.ticketNumber?.toString() ?? 'N/A'} marked as NO SHOW`);
         } catch {
             notify.error("Failed to process No Show.");
         } finally {
@@ -225,7 +225,7 @@ export default function UserCallerDashboard({
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`text-base font-bold ${isNext ? "text-primary" : "text-muted-foreground"}`}>
-                                                        {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}
+                                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : 'NO TICKET'}
                                                     </span>
                                                     {isNext && (
                                                         <span className="bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-primary/20">
@@ -271,7 +271,7 @@ export default function UserCallerDashboard({
                                             {isNext && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
                                             <div className="flex justify-between items-start mb-1">
                                                 <span className={`text-base font-bold ${isNext ? "text-primary" : "text-muted-foreground"}`}>
-                                                    {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}
+                                                    {visit.ticketNumber ? `#${visit.ticketNumber}` : 'NO TICKET'}
                                                 </span>
                                                 <span className="bg-muted text-muted-foreground text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-border">
                                                     From: {visit.referredFrom?.name || "N/A"}
@@ -300,7 +300,7 @@ export default function UserCallerDashboard({
                                     >
                                         <div className="flex justify-between items-start mb-2">
                                             <span className="text-base font-bold text-destructive">
-                                                {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}
+                                                {visit.ticketNumber ? `#${visit.ticketNumber}` : 'NO TICKET'}
                                             </span>
                                             <Button
                                                 size="sm"
@@ -370,7 +370,7 @@ export default function UserCallerDashboard({
                                                     <div className="relative z-10 flex flex-col items-center">
                                                         <span className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Ticket No.</span>
                                                         <span className="text-5xl font-black text-emerald-900 tracking-tighter">
-                                                            {activeTarget.ticketNumber ? `#${activeTarget.ticketNumber.toString().padStart(3, '0')}` : '---'}
+                                                            {activeTarget.ticketNumber ? `#${activeTarget.ticketNumber}` : '---'}
                                                         </span>
                                                     </div>
                                                 </div>

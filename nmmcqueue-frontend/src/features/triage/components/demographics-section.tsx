@@ -8,12 +8,13 @@ import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { TriageFormValues } from "../schemas";
 import { CalendarBlank, UserCircle, MapPin, IdentificationBadge } from "@phosphor-icons/react";
 import { calculateAge } from "@/lib/utils";
-
-// Props removed as demographics are now always editable
+import { useTriageStore } from "../store/use-triage-store";
+import { PatientLinkDialog } from "./patient-link-dialog";
 
 export function DemographicsSection() {
-    const { register, control, formState: { errors } } = useFormContext<TriageFormValues>();
+    const { register, control, formState: { errors }, setValue } = useFormContext<TriageFormValues>();
     const watchDob = useWatch({ control, name: "dateOfBirth" });
+    const { selectedPatient } = useTriageStore();
 
     const todayString = new Date().toISOString().split('T')[0];
 
@@ -23,10 +24,33 @@ export function DemographicsSection() {
     return (
         <div className="bg-muted/10 p-6 rounded-xl border border-border shadow-sm transition-all mb-8">
             <div className="flex justify-between items-center bg-card -mt-6 -mx-6 px-6 py-4 rounded-t-xl border-b border-border shadow-sm mb-6">
-                <h3 className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
-                    <IdentificationBadge size={18} className="text-primary" weight="bold" />
-                    Patient Demographics
-                </h3>
+                <div className="flex items-center gap-4">
+                    <h3 className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+                        <IdentificationBadge size={18} className="text-primary" weight="bold" />
+                        Patient Demographics
+                    </h3>
+                    
+                    {selectedPatient && selectedPatient.kioskRegistrationType === 'UNREGISTERED' && (
+                        <PatientLinkDialog 
+                            visitId={selectedPatient.id} 
+                            currentPatientName={`${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName}`}
+                            onMergeSuccess={(mergedVisit) => {
+                                // Close out or reset if needed, for now just auto-sync the new demographics to the form
+                                if (mergedVisit && mergedVisit.patient) {
+                                    setValue('firstName', mergedVisit.patient.firstName);
+                                    setValue('lastName', mergedVisit.patient.lastName);
+                                    setValue('middleName', mergedVisit.patient.middleName || "");
+                                    setValue('dateOfBirth', new Date(mergedVisit.patient.dateOfBirth).toISOString().split('T')[0]);
+                                    setValue('gender', mergedVisit.patient.gender);
+                                    setValue('address', mergedVisit.patient.address || "");
+                                    setValue('birthPlace', mergedVisit.patient.birthPlace || "");
+                                    setValue('religion', mergedVisit.patient.religion || "");
+                                    setValue('civilStatus', mergedVisit.patient.civilStatus || "Single");
+                                }
+                            }}
+                        />
+                    )}
+                </div>
 
                 <Controller
                     control={control}

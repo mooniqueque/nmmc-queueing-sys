@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, SpeakerSlash } from "@phosphor-icons/react";
 
 interface CallOverlayProps {
-    callData: { ticket: string; windowName: string } | null;
+    callData: { ticket: string; windowName: string; calledAt: string | null } | null;
 }
 
 export function CallOverlay({ callData }: CallOverlayProps) {
@@ -16,80 +16,145 @@ export function CallOverlay({ callData }: CallOverlayProps) {
     useEffect(() => {
         const handleInteraction = () => {
             if (!audioContextRef.current) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
                 if (AudioContextClass) {
                     audioContextRef.current = new AudioContextClass();
                     audioContextRef.current.resume();
                 }
+            } else if (audioContextRef.current.state === 'suspended') {
+                audioContextRef.current.resume();
             }
+            
+            // Dummy silent speech to unlock SpeechSynthesis on iOS/Safari/Chrome
+            if ('speechSynthesis' in window) {
+                const dummy = new SpeechSynthesisUtterance('');
+                dummy.volume = 0;
+                window.speechSynthesis.speak(dummy);
+            }
+            
             setAudioAllowed(true);
         };
         
         window.addEventListener('click', handleInteraction, { once: true });
-        return () => window.removeEventListener('click', handleInteraction);
+        window.addEventListener('touchstart', handleInteraction, { once: true });
+        
+        // Eagerly load voices and attach listener for async loading (Chrome bug fix)
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
+        
+        return () => {
+            window.removeEventListener('click', handleInteraction);
+            window.removeEventListener('touchstart', handleInteraction);
+        };
     }, []);
 
     useEffect(() => {
         if (!callData) return;
 
         // 1. Play Bell Chime (Synthesized)
-        const playChime = () => {
+        const playChime = async () => {
              try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
                 if (!audioContextRef.current) {
                     audioContextRef.current = new AudioContextClass();
                 }
                 const ctx = audioContextRef.current;
+                
                 if (ctx?.state === 'suspended') {
-                    ctx.resume();
+                    console.log("[Audio] Attempting to unlock suspended context...");
+                    await ctx.resume().catch(() => {});
                 }
 
-                if (ctx) {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    
-                    osc.type = "sine";
-                    // Ding
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    // Dong
-                    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.3);
-                    
-                    gain.gain.setValueAtTime(0, ctx.currentTime);
-                    gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
-                    
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    
-                    osc.start();
-                    osc.stop(ctx.currentTime + 1.5);
+                if (ctx?.state === 'suspended') {
+                    console.warn("[Audio] Context remains suspended. Autoplay is blocked by the browser. Awaiting user interaction.");
+                    setAudioAllowed(false);
+                    return false; // Indicating failure
                 }
+
+                const osc = ctx!.createOscillator();
+                const gain = ctx!.createGain();
+                
+                osc.type = "sine";
+                // Ding
+                osc.frequency.setValueAtTime(880, ctx!.currentTime);
+                // Dong
+                osc.frequency.setValueAtTime(659.25, ctx!.currentTime + 0.3);
+                
+                gain.gain.setValueAtTime(0, ctx!.currentTime);
+                gain.gain.linearRampToValueAtTime(0.5, ctx!.currentTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx!.currentTime + 1.5);
+                
+                osc.connect(gain);
+                gain.connect(ctx!.destination);
+                
+                osc.start(ctx!.currentTime);
+                osc.stop(ctx!.currentTime + 1.5);
+                return true;
              } catch (err) {
-                 console.warn("Audio chime blocked or failed", err);
+                 console.error("[Audio] Audio chime failed:", err);
                  setAudioAllowed(false);
+                 return false;
              }
         };
 
         // 2. Play Text-to-Speech
         const playTTS = () => {
+            if (!('speechSynthesis' in window)) return;
             try {
-                // Remove dashes or format for better dictation: "REG-01" -> "REG 0 1"
+                window.speechSynthesis.cancel();
                 const cleanTicket = callData.ticket.replace('-', ' ');
-                const utterance = new SpeechSynthesisUtterance(`Calling number, ${cleanTicket}, to ${callData.windowName}`);
+                const text = `Calling number, ${cleanTicket}, to ${callData.windowName}`;
+                
+                const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = 0.9;
                 utterance.pitch = 1;
-                speechSynthesis.speak(utterance);
+
+                const voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) {
+                    // Try to find a female voice (often contains 'female', 'zira', 'samantha', 'victoria')
+                    const femaleVoice = voices.find(v => 
+                        v.lang.startsWith("en-") && 
+                        (v.name.toLowerCase().includes("female") || 
+                         v.name.toLowerCase().includes("zira") || 
+                         v.name.toLowerCase().includes("samantha") || 
+                         v.name.toLowerCase().includes("victoria"))
+                    );
+                    
+                    const selectedVoice = femaleVoice || voices.find(v => v.lang.startsWith("en-") && v.name.includes("Google")) || voices.find(v => v.lang.startsWith("en-")) || voices[0];
+                    utterance.voice = selectedVoice;
+                }
+                
+                utterance.onerror = (e) => {
+                    console.error("[TTS] Error speaking:", e);
+                    if (e.error === "not-allowed") {
+                        setAudioAllowed(false);
+                    }
+                };
+                
+                window.speechSynthesis.speak(utterance);
             } catch (err) {
-                 console.warn("TTS failed", err);
+                 console.error("[TTS] SpeechSynthesis failed:", err);
                  setAudioAllowed(false);
             }
         };
 
-        playChime();
-        // Wait for chime to mostly finish before speaking
-        setTimeout(() => {
-            playTTS();
-        }, 800);
+        playChime().then((chimeSuccess) => {
+            // Only play TTS if Chime wasn't completely blocked by autoplay
+            if (chimeSuccess) {
+                setTimeout(() => {
+                    playTTS();
+                }, 800);
+            } else {
+                // If chime failed due to autoplay block, TTS will also definitely fail.
+                setAudioAllowed(false);
+            }
+        });
 
     }, [callData]);
 
@@ -97,16 +162,24 @@ export function CallOverlay({ callData }: CallOverlayProps) {
         <>
             {/* Audio Warning Badge if blocked */}
             {!audioAllowed && (
-                <div className="fixed top-6 right-6 z-50 bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded-full shadow-lg flex items-center gap-3 cursor-pointer hover:bg-red-200 transition-colors" onClick={() => {
+                <div className="fixed top-6 right-6 z-50 bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded-full shadow-xl flex items-center gap-3 cursor-pointer hover:bg-red-200 transition-colors animate-bounce" onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
                     if (AudioContextClass) {
-                        audioContextRef.current = new AudioContextClass();
+                        if (!audioContextRef.current) {
+                            audioContextRef.current = new AudioContextClass();
+                        }
                         audioContextRef.current.resume();
+                    }
+                    if ('speechSynthesis' in window) {
+                        const dummy = new SpeechSynthesisUtterance('');
+                        dummy.volume = 0;
+                        window.speechSynthesis.speak(dummy);
                     }
                     setAudioAllowed(true);
                 }}>
                     <SpeakerSlash size={20} weight="bold" />
-                    <span className="text-sm font-bold">Click here to enable audio announcements</span>
+                    <span className="text-sm font-bold">Monitor Audio Blocked: Click here to Unlock</span>
                 </div>
             )}
 

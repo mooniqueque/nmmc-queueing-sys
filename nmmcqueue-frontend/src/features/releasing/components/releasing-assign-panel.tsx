@@ -8,7 +8,7 @@ import { calculateAge } from "@/lib/utils";
 import { Department, PriorityCategory } from "@/types/models";
 import { Printer, User, WarningCircle, X } from "@phosphor-icons/react";
 import { useMemo, useState, useTransition } from "react";
-import { assignTicket, noShowTicket } from "../actions";
+import { assignTicket, noShowTicket, callTicket } from "../actions";
 
 interface ReleasingAssignPanelProps {
     selectedPatient: VisitWithPatient;
@@ -80,7 +80,19 @@ export function ReleasingAssignPanel({
         return queueOptions.find((opt) => !opt.isPriority) ?? recommendedOption ?? queueOptions[0];
     }, [selectedDepartmentId, queueOptions, selectedPatient.classification, recommendedOption]);
 
-    // handleCall removed — patient is already claimed via /call-next
+    const handleCallSpecific = () => {
+        startTransition(async () => {
+            const res = await callTicket(selectedPatient.id);
+            if (res.success) {
+                notify.success("Patient Called", {
+                    description: `Calling ${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName}`
+                });
+                onAssignComplete(); // Close panel and update active
+            } else {
+                notify.error(res.error || "Failed to call patient");
+            }
+        });
+    };
 
     const handleNoShow = () => {
         startTransition(async () => {
@@ -153,7 +165,7 @@ export function ReleasingAssignPanel({
                                 {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}
                             </h2>
                             <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-[11px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
-                                <span>Ticket: <strong className="text-primary">{selectedPatient.ticketNumber ? `#${selectedPatient.ticketNumber.toString().padStart(3, '0')}` : 'NO TICKET'}</strong></span>
+                                <span>Ticket: <strong className="text-primary">{selectedPatient.ticketNumber ? `#${selectedPatient.ticketNumber}` : 'NO TICKET'}</strong></span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
                                 <span>{selectedPatient.patient.gender}</span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
@@ -196,12 +208,23 @@ export function ReleasingAssignPanel({
                 </div>
 
                 {/* Quick Actions — No-Show only (Call is handled by call-next) */}
-                <div className="mb-6 sm:mb-8">
+                <div className="mb-6 sm:mb-8 flex gap-2 w-full">
+                    {/* Re-Call specific patient (Waiting or No Show) */}
+                    <Button
+                        variant="secondary"
+                        onClick={handleCallSpecific}
+                        disabled={isPending}
+                        className="flex-1 h-10 sm:h-11 border border-border text-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs gap-2 rounded-xl transition-all shadow-sm"
+                    >
+                        <WarningCircle size={16} weight="bold" className="text-primary" />
+                        Call Patient
+                    </Button>
+                    
                     <Button
                         variant="outline"
                         onClick={handleNoShow}
                         disabled={isPending || isNoShow}
-                        className="w-full h-10 sm:h-11 border-border text-muted-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs gap-2 rounded-xl hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 transition-all shadow-sm"
+                        className="flex-1 h-10 sm:h-11 border-border text-muted-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs gap-2 rounded-xl hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 transition-all shadow-sm"
                     >
                         <X size={16} weight="bold" />
                         Mark No Show

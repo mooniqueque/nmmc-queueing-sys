@@ -67,7 +67,7 @@ class ReleasingService {
             status: 'WAITING_WINDOW' as const,
         };
 
-        return db.$transaction(async (tx) => {
+        const result = await db.$transaction(async (tx) => {
             let nextVisit = null;
 
             if (overrideClassification) {
@@ -158,6 +158,12 @@ class ReleasingService {
 
             return updatedVisit;
         });
+
+        if (result) {
+            await emitQueueUpdate('WINDOW');
+        }
+        
+        return result;
     }
 
     /**
@@ -197,7 +203,10 @@ class ReleasingService {
         const claimed = await db.visit.updateMany({
             where: {
                 id: visitId,
-                status: 'WAITING_WINDOW', // Only claim if still waiting
+                OR: [
+                    { status: { in: ['WAITING_WINDOW', 'NO_SHOW'] } },
+                    { status: 'IN_WINDOW', windowClaimedById: userId }
+                ]
             },
             data: {
                 status: 'IN_WINDOW',

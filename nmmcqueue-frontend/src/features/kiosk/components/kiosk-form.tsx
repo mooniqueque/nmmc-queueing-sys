@@ -11,12 +11,12 @@ import { useCurrentTime } from "@/hooks/use-current-time";
 import { calculateAge as libCalculateAge } from "@/lib/utils";
 import { PriorityCategory } from "@/types/models";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import React, { FormEvent, useEffect, useState } from "react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CaretDown, Check } from "@phosphor-icons/react";
-import { getPatientByHospitalId, registerKioskPatient } from "../actions";
+import { registerKioskPatient } from "../actions";
 import { kioskFormSchema, KioskFormValues } from "../schemas";
 import { motion } from "framer-motion";
 
@@ -54,13 +54,10 @@ const initialState: KioskFormValues = {
 };
 
 export function KioskForm() {
-    const searchParams = useSearchParams();
     const router = useRouter();
-    const isRegistered = searchParams.get("type") === "registered";
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [countdown, setCountdown] = useState(5);
     const [isLoading, setIsLoading] = useState(false);
-    const [isSearching, setIsSearching] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [isHydrated, setIsHydrated] = useState(false);
     const currentTime = useCurrentTime();
@@ -175,42 +172,8 @@ export function KioskForm() {
         return age !== null ? age : "Invalid";
     };
 
-    async function handleSearchId() {
-        if (!formData.hospitalId || !formData.hospitalId.trim()) {
-            setMessage({ type: 'error', text: "Please enter a Hospital ID to search." });
-            return;
-        }
-
-        setIsSearching(true);
-        setMessage(null);
-        const result = await getPatientByHospitalId(formData.hospitalId);
-        setIsSearching(false);
-
-        if (result.success && result.data) {
-            setMessage({ type: 'success', text: "Patient record found." });
-            const dobDate = new Date(result.data.dateOfBirth);
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-            setFormData(prev => ({
-                ...prev,
-                hospitalId: result.data.hospitalId || "",
-                firstName: result.data.firstName,
-                middleName: result.data.middleName || "",
-                lastName: result.data.lastName,
-                dobMonth: monthNames[dobDate.getMonth()],
-                dobDay: String(dobDate.getDate()).padStart(2, '0'),
-                dobYear: String(dobDate.getFullYear()),
-                gender: result.data.gender as KioskFormValues["gender"],
-                address: result.data.address || "",
-                contactNo: result.data.contactNo || "",
-                birthPlace: result.data.birthPlace || "",
-                religion: result.data.religion || "",
-                civilStatus: result.data.civilStatus as KioskFormValues["civilStatus"],
-            }));
-        } else {
-            setMessage({ type: 'error', text: result.error! });
-        }
-    }
+    // Removed handleSearchId because Kiosk users should not search for Hospital ID.
+    // Triage will handle linking to existing active records.
 
     async function onSubmit(e: FormEvent) {
         e.preventDefault();
@@ -232,7 +195,7 @@ export function KioskForm() {
         setMessage(null);
         const submitResult = await registerKioskPatient({
             ...formData,
-            kioskRegistrationType: isRegistered ? 'REGISTERED' : 'UNREGISTERED'
+            kioskRegistrationType: 'UNREGISTERED' // Implicitly unresolved until Triage Links them
         });
         setIsLoading(false);
 
@@ -337,25 +300,6 @@ export function KioskForm() {
                             </div>
                         )}
                     </div>
-
-                    {/* Section: Returning Patient Search */}
-                    {isRegistered && (<div className="flex items-end gap-2 border-b pb-6">
-                        <div className="flex-1 space-y-2">
-                            <Label htmlFor="hospitalId" className="text-xs font-semibold text-slate-500 uppercase">Hospital ID (Returning Patients Only)</Label>
-                            <Input
-                                id="hospitalId"
-                                name="hospitalId"
-                                placeholder="NMMC-XXXX"
-                                className="max-w-xs bg-white"
-                                value={formData.hospitalId}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <Button type="button" variant="secondary" onClick={handleSearchId} disabled={isSearching}>
-                            {isSearching ? "Searching..." : "Search Records"}
-                        </Button>
-                    </div>
-                    )}
 
 
                     {/* Section: Patient Demographics */}

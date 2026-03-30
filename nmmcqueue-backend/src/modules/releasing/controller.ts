@@ -35,7 +35,7 @@ class ReleasingController {
                 printTicket({
                     station: "Registration Window",
                     label: "Clinic Queue Number",
-                    ticketNumber: result.ticketNumber.toString().padStart(3, '0'),
+                    ticketNumber: result.ticketNumber.toString(),
                     date: new Date().toLocaleString(),
                     footer: "Please proceed to the Clinic and wait for your number."
                 }).catch(err => console.error(err));

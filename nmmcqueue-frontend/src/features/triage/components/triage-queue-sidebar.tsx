@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { notify } from "@/lib/notify";
 import { SessionUser } from "@/types/auth";
 import { calculateAge } from "@/lib/utils";
+import { useAnalytics } from "@/features/shared/hooks/use-analytics";
+import { HistoryTable } from "@/features/shared/components/history-table";
 
 interface TriageQueueSidebarProps {
     initialQueue: VisitWithPatient[];
@@ -30,6 +32,8 @@ export function TriageQueueSidebar({
     const [isPending, startTransition] = useTransition();
     const [searchQuery, setSearchQuery] = useState("");
     const [nowMs, setNowMs] = useState<number | null>(null);
+
+    const { data: analyticsData } = useAnalytics("triage");
 
     useEffect(() => {
         const updateNow = () => setNowMs(Date.now());
@@ -204,6 +208,15 @@ export function TriageQueueSidebar({
                                 {noShowQueue.length}
                             </span>
                         </button>
+                        <button
+                            onClick={() => setActiveTab("HISTORY")}
+                            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-md transition-all ${activeTab === "HISTORY"
+                                ? "bg-background text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                                }`}
+                        >
+                            <span>History</span>
+                        </button>
                     </div>
 
                     <div className="relative w-full sm:w-52 lg:w-64">
@@ -219,12 +232,14 @@ export function TriageQueueSidebar({
             </div>
 
             {/* Table Header */}
-            <div className={`grid grid-cols-[40px_1fr_70px_60px] sm:grid-cols-[50px_1fr_100px_90px] gap-2 sm:gap-4 px-3 sm:px-6 py-2.5 sm:py-3 bg-muted/30 text-[8px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-widest shrink-0 border-b border-border`}>
-                <div>Queue</div>
-                <div>Patient Name</div>
-                <div className="text-right">Actions</div>
-                <div className="text-right">Wait</div>
-            </div>
+            {activeTab !== "HISTORY" && (
+                <div className={`grid grid-cols-[40px_1fr_70px_60px] sm:grid-cols-[50px_1fr_100px_90px] gap-2 sm:gap-4 px-3 sm:px-6 py-2.5 sm:py-3 bg-muted/30 text-[8px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-widest shrink-0 border-b border-border`}>
+                    <div>Queue</div>
+                    <div>Patient Name</div>
+                    <div className="text-right">Actions</div>
+                    <div className="text-right">Wait</div>
+                </div>
+            )}
 
             {/* List Body */}
             <div className="flex-1 overflow-y-auto bg-card relative custom-scrollbar">
@@ -257,7 +272,7 @@ export function TriageQueueSidebar({
                             ))}
                         </div>
                     )
-                ) : (
+                ) : activeTab === "NO_SHOW" ? (
                     noShowQueue.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 sm:p-12 text-center">
                             <CheckCircle size={40} className="mb-4 text-muted/30" weight="bold" />
@@ -301,7 +316,11 @@ export function TriageQueueSidebar({
                             ))}
                         </div>
                     )
-                )}
+                ) : activeTab === "HISTORY" ? (
+                    <div className="flex flex-col">
+                        <HistoryTable items={analyticsData.recentHistory} />
+                    </div>
+                ) : null}
             </div>
         </div>
     );

@@ -1,87 +1,65 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatsCard } from './stats-card';
-import React from 'react';
-import {
-    AlertTriangle,
-    Clock,
-    Users,
-    TrendingUp
-} from "lucide-react";
-import dynamic from 'next/dynamic';
 import { AdminHeader } from "@/components/layouts/admin-header";
 import { SessionUser } from "@/types/auth";
-import { getBarChartOptions, getDonutChartOptions } from './triage-chart';
-import { VolumeData, CategoryData, DestinationData, TriageActivity, TriageKPIs } from '../types';
-
-
-const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
-
-interface TriageNurseStatsProps {
-    volumeData?: VolumeData[];
-    categoryData?: CategoryData[];
-    destinationData?: DestinationData[];
-    recentActivities?: TriageActivity[];
-    kpis?: TriageKPIs;
-    totalPatients?: number;
-}
-
-const DEFAULT_VOLUME_DATA: VolumeData[] = [
-    { time: '08:00', patients: 12 }, { time: '09:00', patients: 25 },
-    { time: '10:00', patients: 32 }, { time: '11:00', patients: 28 },
-    { time: '12:00', patients: 15 }, { time: '13:00', patients: 22 },
-    { time: '14:00', patients: 30 }, { time: '15:00', patients: 18 },
-    { time: '16:00', patients: 10 },
-];
-
-const DEFAULT_CATEGORY_DATA: CategoryData[] = [
-    { name: 'Emergency', value: 8, color: '#ef4444' }, // red-500
-    { name: 'Urgent', value: 35, color: '#eab308' },  // yellow-500
-    { name: 'Non-Urgent', value: 65, color: '#10b981' }, // emerald-500
-];
-
-
-const DEFAULT_KPIS: TriageKPIs = {
-    totalTriagedToday: 108,
-    totalTriagedChangePct: 12,
-    emergentCases: 8,
-    avgTriageTimeMins: 4.2,
-    avgTriageTimeChangeMins: -0.5,
-    currentlyWaiting: 15
-};
-
-
+import { Department } from "@/types/models";
+import { useAnalytics } from "@/features/shared/hooks/use-analytics";
+import { HourlyVolumeChart, ClassificationPieChart, StatusDistributionChart } from "@/features/shared/components/analytics-charts";
+import { HistoryTable } from "@/features/shared/components/history-table";
+import { Users, Clock, TrendUp, Warning } from "@phosphor-icons/react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function TriageNurseStats({
     loggedInUser,
-    volumeData = DEFAULT_VOLUME_DATA,
-    categoryData = DEFAULT_CATEGORY_DATA,
-    kpis = DEFAULT_KPIS,
-}: TriageNurseStatsProps & {
-    loggedInUser?: SessionUser
+    departments = [],
+}: {
+    loggedInUser?: SessionUser;
+    departments?: Department[];
 }) {
+    const [departmentId, setDepartmentId] = useState("ALL");
+    const { data, isLoading } = useAnalytics("triage", departmentId);
+
     if (!loggedInUser) return null;
-    const barChartSeries = [{
-        name: 'Patients',
-        data: volumeData.map(d => d.patients)
-    }];
-    const donutChartSeries = categoryData.map(d => d.value);
+
+    const { kpis } = data;
 
     return (
         <div className="flex flex-1 flex-col">
-            {/* HEADER */}
-            <AdminHeader 
-                user={loggedInUser} 
-                title="Triage Statistics" 
-            />
+            <AdminHeader user={loggedInUser} title="Triage Statistics" />
 
-            <main className="flex-1 p-6 lg:p-10 space-y-8">
-                {/* TOP KPI STATS ROW */}
+            <main className="flex-1 p-6 lg:p-10 space-y-8 overflow-y-auto">
+                {/* Filter Bar */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Select value={departmentId} onValueChange={setDepartmentId}>
+                            <SelectTrigger className="w-52 h-9">
+                                <SelectValue placeholder="All Departments" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">General Statistics</SelectItem>
+                                {departments.map(d => (
+                                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className={cn("size-2 rounded-full", isLoading ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                            {isLoading ? "Syncing..." : "Live"}
+                        </p>
+                    </div>
+                </div>
+
+                {/* KPI Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatsCard
                         label="Total Triaged Today"
-                        value={kpis.totalTriagedToday.toString()}
+                        value={kpis.totalToday.toString()}
                         icon={<Users size={24} />}
                         color="bg-primary text-primary-foreground"
                     />
@@ -92,54 +70,35 @@ export default function TriageNurseStats({
                         color="bg-amber-500/10 text-amber-600"
                     />
                     <StatsCard
-                        label="Avg Triage Time"
-                        value={`${kpis.avgTriageTimeMins}m`}
-                        icon={<TrendingUp size={24} />}
+                        label="Avg Processing"
+                        value={`${kpis.avgProcessingMinutes}m`}
+                        icon={<TrendUp size={24} />}
                         color="bg-blue-500/10 text-blue-600"
                     />
                     <StatsCard
-                        label="Emergent Cases"
-                        value={kpis.emergentCases.toString()}
-                        icon={<AlertTriangle size={24} />}
+                        label="No Shows"
+                        value={kpis.noShowCount.toString()}
+                        icon={<Warning size={24} />}
                         color="bg-red-500/10 text-red-600"
                     />
                 </div>
 
+                {/* Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Patient Volume Bar Chart */}
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base font-semibold">Patient Volume Today</CardTitle>
-                            <CardDescription>Hourly breakdown of arriving patients</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="h-[300px] w-full pt-4">
-                                <Chart
-                                    options={getBarChartOptions(volumeData)}
-                                    series={barChartSeries}
-                                    type="bar"
-                                    height={300}
-                                    width="100%"
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <HourlyVolumeChart data={data.hourlyVolume} />
+                    <ClassificationPieChart data={data.classificationBreakdown} />
+                </div>
 
-                    {/* Triage Categories Donut Chart */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <StatusDistributionChart data={data.statusDistribution} />
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base font-semibold">Triage Categories</CardTitle>
-                            <CardDescription>Distribution of patient urgency</CardDescription>
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                Recent Activity
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent className="flex justify-center items-center">
-                            <div className="h-[300px] w-full max-w-[400px] pt-4">
-                                <Chart
-                                    options={getDonutChartOptions(categoryData)}
-                                    series={donutChartSeries}
-                                    type="donut"
-                                    height={300}
-                                />
-                            </div>
+                        <CardContent className="p-0 max-h-72 overflow-y-auto custom-scrollbar">
+                            <HistoryTable items={data.recentHistory} />
                         </CardContent>
                     </Card>
                 </div>
@@ -147,4 +106,3 @@ export default function TriageNurseStats({
         </div>
     );
 }
-

@@ -16,6 +16,8 @@ import { useEffect } from "react";
 import { transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
 import { calculateAge } from "@/lib/utils";
+import { useAnalytics } from "@/features/shared/hooks/use-analytics";
+import { HistoryTable } from "@/features/shared/components/history-table";
 
 
 export default function UserCallerDashboard({
@@ -43,6 +45,9 @@ export default function UserCallerDashboard({
 
     // Live Queue Hook locked directly to the user's role department
     const { activeQueue } = useClinicQueue(department, initialQueue);
+
+    // History data for the History tab
+    const { data: analyticsData } = useAnalytics("clinic");
 
     // Filter queue to make absolutely sure we only count tickets for THIS department
     const departmentQueue = activeQueue.filter((v: VisitWithPatient) => 
@@ -196,6 +201,17 @@ export default function UserCallerDashboard({
                             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-destructive" />
                         )}
                     </button>
+                    <button
+                        onClick={() => setActiveTab("history")}
+                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${
+                            activeTab === "history" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        History
+                        {activeTab === "history" && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                        )}
+                    </button>
                 </div>
 
                 {/* List Body */}
@@ -285,7 +301,7 @@ export default function UserCallerDashboard({
                                 })}
                             </div>
                         )
-                    ) : (
+                    ) : activeTab === "noshow" ? (
                         noShowList.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-12 text-center h-full">
                                 <UserMinus size={48} className="mb-4 text-muted/30" weight="duotone" />
@@ -319,7 +335,11 @@ export default function UserCallerDashboard({
                                 ))}
                             </div>
                         )
-                    )}
+                    ) : activeTab === "history" ? (
+                        <div className="flex flex-col">
+                            <HistoryTable items={analyticsData.recentHistory} />
+                        </div>
+                    ) : null}
                 </div>
             </div>
 

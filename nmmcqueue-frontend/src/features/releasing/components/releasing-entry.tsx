@@ -21,6 +21,9 @@ import { useReleasingQueue } from "../hooks";
 import { ReleasingAssignPanel } from "./releasing-assign-panel";
 import { ReleasingQueueTable, QueueCategory } from "./releasing-queue-table";
 import { SessionUser } from "@/types/auth";
+import { useAnalytics } from "@/features/shared/hooks/use-analytics";
+import { HistoryTable } from "@/features/shared/components/history-table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // ─── Main Entry ───────────────────────────────────────────────
 interface ReleasingEntryProps {
@@ -40,6 +43,9 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const [resetDialogOpen, setResetDialogOpen] = useState(false);
     const [overrideOpen, setOverrideOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+
+    // History/analytics data for Reports tab
+    const { data: analyticsData } = useAnalytics("window");
 
     // Determine window type from user's station
     const stationNo = user?.workstation?.stationNo ?? 1;
@@ -291,11 +297,39 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="reports" className="mt-4 sm:mt-6 focus-visible:outline-none h-full">
-                        <div className="bg-card rounded-xl border border-border border-dashed p-8 sm:p-16 text-center flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px]">
-                            <ChartBar size={48} weight="duotone" className="text-muted/30 mb-6" />
-                            <h3 className="text-base sm:text-lg font-bold text-foreground">Registration Reports</h3>
-                            <p className="text-muted-foreground text-xs sm:text-sm max-w-sm mt-2 font-medium">Detailed analytics will be available in the next update.</p>
+                    <TabsContent value="reports" className="mt-4 sm:mt-6 focus-visible:outline-none">
+                        <div className="space-y-6 pb-8">
+                            {/* KPIs summary */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <Card className="p-4">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Today</p>
+                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.totalToday}</p>
+                                </Card>
+                                <Card className="p-4">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Waiting</p>
+                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.currentlyWaiting}</p>
+                                </Card>
+                                <Card className="p-4">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Completed</p>
+                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.completedToday}</p>
+                                </Card>
+                                <Card className="p-4">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Shows</p>
+                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.noShowCount}</p>
+                                </Card>
+                            </div>
+
+                            {/* Recent History */}
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                        Recent Activity
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0 max-h-96 overflow-y-auto custom-scrollbar">
+                                    <HistoryTable items={analyticsData.recentHistory} />
+                                </CardContent>
+                            </Card>
                         </div>
                     </TabsContent>
                 </Tabs>

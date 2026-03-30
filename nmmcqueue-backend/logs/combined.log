@@ -149,3 +149,19 @@
 {"level":"info","message":"Ticket printed successfully to: XP-58 (copy 1)","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:04:24"}
 {"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:05:45"}
 {"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:05:45"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:09:02"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:09:02"}
+{"classification":"REGULAR","level":"info","message":"Patient queued via Kiosk: Karl Valmore","patientId":"cmncyxly3000044scgre3ba28","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:11:13","visitId":"cmncyxlzn000144scmoz8efsg"}
+{"level":"info","message":"Triage claimed patient: Karl Valmore","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:11:39","userId":"DPzUhBdUskSPVpyAsjYwIJfWkFViXpOn","visitId":"cmncyxlzn000144scmoz8efsg","workstationId":"cmn8evehd0000mwsck9sbfc48"}
+{"isManualEntry":false,"level":"info","message":"Triage completed for Visit ID: cmncyxlzn000144scmoz8efsg","patientId":"cmncyxly3000044scgre3ba28","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:12:03","userId":"DPzUhBdUskSPVpyAsjYwIJfWkFViXpOn","visitId":"cmncyxlzn000144scmoz8efsg"}
+{"level":"info","message":"Ticket printed successfully to: XP-58 (copy 1)","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:12:03"}
+{"classification":"PRIORITY","isPriorityWindow":true,"level":"info","message":"Window claimed patient: Karl Valmore","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:12:39","userId":"Asm2V7JhNdZQkz0FTkRBk4LCgeUVRqaw","visitId":"cmncyxlzn000144scmoz8efsg","windowNumber":1}
+{"level":"info","message":"Ticket printed successfully to: XP-58 (copy 1)","service":"nmmc-queue-backend","timestamp":"2026-03-30 17:13:10"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-30 20:33:44"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-03-30 20:33:44"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-30 20:58:02"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-03-30 20:58:02"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-03-30 21:02:05"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-03-30 21:02:05"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"nmmc-queue-backend","timestamp":"2026-03-30 21:10:34"}
+{"level":"info","message":"Failsafe timer stopped","service":"nmmc-queue-backend","timestamp":"2026-03-30 21:10:34"}

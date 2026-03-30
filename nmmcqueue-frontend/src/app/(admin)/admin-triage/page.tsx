@@ -1,4 +1,5 @@
-import TriageNurseForm from "@/features/admin/components/triage-nurse";
+import TriageNurseStats from "@/features/admin/components/triage-nurse";
+import { getDepartments } from "@/features/admin/department-actions";
 import { auth } from "@/lib/database/auth";
 import { headers } from "next/headers";
 import { SessionUser } from "@/types/auth";
@@ -7,5 +8,13 @@ export default async function TriageNurse() {
     const session = await auth.api.getSession({
         headers: await headers()
     });
-    return <TriageNurseForm loggedInUser={session?.user as unknown as SessionUser} />;
+    const deptRes = await getDepartments();
+    const departments = deptRes.success ? deptRes.data : [];
+
+    return (
+        <TriageNurseStats
+            loggedInUser={session?.user as unknown as SessionUser}
+            departments={departments}
+        />
+    );
 }

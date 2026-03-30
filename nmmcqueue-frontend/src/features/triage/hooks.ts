@@ -4,7 +4,7 @@ import { useState } from "react";
 import { VisitWithPatient } from "./types";
 import { useLiveQueue } from "@/hooks/use-live-queue";
 
-export type TabType = "ACTIVE" | "NO_SHOW";
+export type TabType = "ACTIVE" | "NO_SHOW" | "HISTORY";
 
 export function useTriageQueue(initialQueue: VisitWithPatient[]) {
     // SET UP SSE FOR REAL-TIME QUEUE UPDATES

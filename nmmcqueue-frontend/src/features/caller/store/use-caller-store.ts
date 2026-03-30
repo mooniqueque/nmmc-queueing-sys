@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Department } from "@/types/models";
 
-export type CallerTab = "pending" | "noshow" | "referrals";
+export type CallerTab = "pending" | "noshow" | "referrals" | "history";
 
 interface CallerState {
   activeTab: CallerTab;

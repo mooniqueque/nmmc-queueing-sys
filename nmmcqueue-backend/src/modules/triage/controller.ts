@@ -13,6 +13,7 @@ class TriageController {
         if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
         const result = await triageService.submitTriageForm(req.body.values, req.body.visitId, userId);
         
+        let printError: string | null = null;
         if (result?.ticketNumber) {
             const prefix1 = result.classification === 'PRIORITY' ? 'PRIO' : 'REG';
             const formattedTicket = `${prefix1}-${result.ticketNumber.toString().padStart(2, '0')}`;
@@ -30,11 +31,12 @@ class TriageController {
                 });
             } catch (err: any) {
                 console.error("Printer util failed:", err);
-                return res.status(500).json({ success: false, error: `Hardware Print Error: ${err.message}` });
+                // Store error but don't block submission
+                printError = err.message || 'Unknown printer error occurred';
             }
         }
 
-        res.status(200).json({ success: true, data: result });
+        res.status(200).json({ success: true, data: result, printError });
     });
 
     markNoShow = asyncHandler(async (req: Request, res: Response) => {

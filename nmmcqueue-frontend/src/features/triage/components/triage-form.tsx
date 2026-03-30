@@ -14,6 +14,7 @@ import { CaretDoubleRight, Printer, WarningCircle, Tag, CaretDown, Check } from 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getQueueOptions, getDepartments } from "@/features/shared/api";
 import { PriorityCategory, Department } from "@/types/models";
 
@@ -33,6 +34,7 @@ export function TriageForm() {
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
+    const [printErrorDialog, setPrintErrorDialog] = useState<{ open: boolean; error: string }>({ open: false, error: "" });
 
     useEffect(() => {
         getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
@@ -99,9 +101,14 @@ export function TriageForm() {
             if (res?.error) {
                 setSubmitError(res.error as string);
             } else {
-                setSubmitSuccess(true);
-
-                // Auto-print triage ticket handled by backend
+                // Check for printer error in response
+                if (res?.printError) {
+                    setPrintErrorDialog({ open: true, error: res.printError });
+                    // Still mark as success since triage submission succeeded
+                    setSubmitSuccess(true);
+                } else {
+                    setSubmitSuccess(true);
+                }
 
                 setTimeout(() => {
                     resetTriage();
@@ -330,6 +337,36 @@ export function TriageForm() {
                     </FormProvider>
                 )}
             </div>
+
+            {/* Printer Error Dialog */}
+            <Dialog open={printErrorDialog.open} onOpenChange={(open) => setPrintErrorDialog({ ...printErrorDialog, open })}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-slate-900">Printer Unavailable</DialogTitle>
+                        <DialogDescription className="text-slate-600 mt-2">
+                            The ticket printer is not available or offline. The patient has been successfully triaged and can proceed to the window.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 my-4">
+                        <p className="text-xs font-mono text-red-700">{printErrorDialog.error}</p>
+                    </div>
+                    <DialogFooter className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setPrintErrorDialog({ open: false, error: "" })}
+                            className="flex-1"
+                        >
+                            Dismiss
+                        </Button>
+                        <Button
+                            onClick={() => setPrintErrorDialog({ open: false, error: "" })}
+                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+                        >
+                            Continue
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

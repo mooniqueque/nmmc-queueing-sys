@@ -6,9 +6,9 @@ import { VisitWithPatient } from "@/features/triage/types";
 import { notify } from "@/lib/notify";
 import { calculateAge } from "@/lib/utils";
 import { Department, PriorityCategory } from "@/types/models";
-import { Printer, User, WarningCircle, X } from "@phosphor-icons/react";
+import { Printer, User, WarningCircle, X, Play } from "@phosphor-icons/react";
 import { useMemo, useState, useTransition } from "react";
-import { assignTicket, noShowTicket } from "../actions";
+import { assignTicket, noShowTicket, callTicket } from "../actions";
 
 interface ReleasingAssignPanelProps {
     selectedPatient: VisitWithPatient;
@@ -47,11 +47,35 @@ export function ReleasingAssignPanel({
         setPrevPatientId(selectedPatient.id);
         setSelectedDepartmentId(selectedPatient.departmentId || "");
         setNotes("");
+        
+        console.log('[ReleaseAssignPanel] Patient changed:', {
+            patientId: selectedPatient.id,
+            patientName: `${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName}`,
+            status: selectedPatient.status,
+            departmentId: selectedPatient.departmentId,
+            department: selectedPatient.department?.name,
+            classification: selectedPatient.classification
+        });
     }
 
     const queueOptions = useMemo(() => {
         if (!activeDepartment) return [];
-        return queueOptionsByDepartment[activeDepartment.name.toUpperCase()] || [];
+        // Normalize the department key the same way the backend does
+        const normalizedKey = activeDepartment.name.trim().toUpperCase();
+        const opts = queueOptionsByDepartment[normalizedKey] || [];
+        
+        // Debug log
+        if (process.env.NODE_ENV === 'development') {
+            console.log('[ReleaseAssignPanel] Queue options lookup:', {
+                departmentName: activeDepartment.name,
+                normalizedKey,
+                optionsCount: opts.length,
+                availableKeys: Object.keys(queueOptionsByDepartment),
+                allOptions: queueOptionsByDepartment
+            });
+        }
+        
+        return opts;
     }, [activeDepartment, queueOptionsByDepartment]);
 
     // Intelligent Recommendation based on Triage
@@ -80,7 +104,23 @@ export function ReleasingAssignPanel({
         return queueOptions.find((opt) => !opt.isPriority) ?? recommendedOption ?? queueOptions[0];
     }, [selectedDepartmentId, queueOptions, selectedPatient.classification, recommendedOption]);
 
-    // handleCall removed — patient is already claimed via /call-next
+    const handleCall = () => {
+        if (selectedPatient.status === 'IN_WINDOW') {
+            notify.info("Patient already called", { description: "This patient is already in the window queue." });
+            return;
+        }
+
+        startTransition(async () => {
+            const res = await callTicket(selectedPatient.id);
+            if (res?.success) {
+                notify.success("Patient called to window", { description: "Ready for verification." });
+                // onAssignComplete will trigger parent to refresh
+                onAssignComplete();
+            } else {
+                notify.error(res?.error || "Failed to call patient");
+            }
+        });
+    };
 
     const handleNoShow = () => {
         startTransition(async () => {
@@ -95,25 +135,79 @@ export function ReleasingAssignPanel({
     };
 
     const handleAssign = () => {
-        if (!selectedDepartmentId) return;
+        console.log('[handleAssign] Starting assign:', {
+            status: selectedPatient.status,
+            selectedDepartmentId,
+            autoQueueOption: autoQueueOption?.id,
+            isInWindow,
+        });
+
+        // Validate patient is in correct status
+        if (selectedPatient.status !== 'IN_WINDOW') {
+            notify.error("Patient not ready", { description: "Please call the patient to window first." });
+            console.warn('[handleAssign] Patient not in window:', selectedPatient.status);
+            return;
+        }
+
+        if (!selectedDepartmentId) {
+            notify.error("Department not selected", { description: "Choose a clinic department first." });
+            console.warn('[handleAssign] No department selected');
+            return;
+        }
+
         if (!autoQueueOption) {
-            notify.error("No queue option configured for this department");
+            notify.error("No queue option configured", {
+                description: `The ${activeDepartment?.name || 'selected'} department has no queue categories. Please go to Admin > Departments to add queue options.`
+            });
+            console.warn('[handleAssign] No auto queue option available', {
+                departmentName: activeDepartment?.name,
+                queueOptions,
+                queueOptionsByDepartment
+            });
             return;
         }
 
         startTransition(async () => {
-            const res = await assignTicket(selectedPatient.id, selectedDepartmentId, autoQueueOption.id);
-            if (res?.success && res?.data) {
-                // Auto-print clinic ticket is handled by backend
-                notify.success("Ticket printed and assigned successfully");
-            } else {
-                notify.error(res?.error || "Failed to assign ticket");
+            try {
+                console.log('[handleAssign] Calling assignTicket API:', {
+                    visitId: selectedPatient.id,
+                    departmentId: selectedDepartmentId,
+                    priorityClass: autoQueueOption.id
+                });
+
+                const res = await assignTicket(selectedPatient.id, selectedDepartmentId, autoQueueOption.id);
+                
+                console.log('[handleAssign] API Response:', res);
+
+                if (res?.success && res?.data) {
+                    // Patient successfully assigned to clinic queue
+                    notify.success(
+                        "Ticket assigned to clinic",
+                        {
+                            description: `Patient ${res.data.patientFullName} → ${activeDepartment?.name || 'clinic'} (Ticket #${res.data.ticketNumber})`
+                        }
+                    );
+                    console.log('[handleAssign] Success, closing panel');
+                } else {
+                    notify.error(res?.error || "Ticket assignment failed", {
+                        description: "Please try again or contact support."
+                    });
+                    console.error('[handleAssign] API returned error:', res);
+                }
+            } catch (error) {
+                console.error('[handleAssign] Exception caught:', error);
+                notify.error("Error assigning ticket", {
+                    description: error instanceof Error ? error.message : "Unknown error occurred"
+                });
+            } finally {
+                onAssignComplete();
             }
-            onAssignComplete();
         });
     };
 
     const isNoShow = selectedPatient.status === 'NO_SHOW';
+    const isInWindow = selectedPatient.status === 'IN_WINDOW';
+    const isReadyForAssignment = isInWindow && selectedDepartmentId && autoQueueOption;
 
     return (
         <div className="bg-card rounded-xl border border-border h-full flex flex-col pt-3 sm:pt-4 overflow-hidden shadow-sm">
@@ -195,7 +289,23 @@ export function ReleasingAssignPanel({
                     </div>
                 </div>
 
-                {/* Quick Actions — No-Show only (Call is handled by call-next) */}
+                {/* Status Badge */}
+                {!isInWindow && (
+                    <div className="mb-6 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-center justify-between text-orange-600 font-bold text-xs">
+                        <span>⚠ Patient not yet called to window</span>
+                        <Button
+                            size="sm"
+                            onClick={handleCall}
+                            disabled={isPending}
+                            className="h-7 px-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-[9px] uppercase tracking-wider rounded-md gap-1"
+                        >
+                            <Play size={12} weight="fill" />
+                            <span className="hidden sm:inline">Call Now</span>
+                        </Button>
+                    </div>
+                )}
+
+                {/* Quick Actions — No-Show / Call Status */}
                 <div className="mb-6 sm:mb-8">
                     <Button
                         variant="outline"
@@ -272,9 +382,18 @@ export function ReleasingAssignPanel({
 
                 <div className="flex gap-2 w-auto justify-end">
                     <Button
-                        disabled={!selectedDepartmentId || !autoQueueOption || isPending}
+                        disabled={!isReadyForAssignment || isPending}
                         onClick={handleAssign}
-                        className="h-9 sm:h-11 bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] sm:text-xs px-4 sm:px-6 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-md shadow-primary/10 gap-2"
+                        title={
+                            !isInWindow
+                                ? "Patient must be called to window first"
+                                : !selectedDepartmentId
+                                ? "Select a department"
+                                : !autoQueueOption
+                                ? "No queue options configured for this department"
+                                : "Print and assign to clinic queue"
+                        }
+                        className="h-9 sm:h-11 bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] sm:text-xs px-4 sm:px-6 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-md shadow-primary/10 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isPending ? "Routing..." : (
                             <>

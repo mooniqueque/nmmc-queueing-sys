@@ -258,7 +258,7 @@ export function TriageQueueSidebar({
                                     className="w-full text-left grid grid-cols-[40px_1fr_80px] sm:grid-cols-[60px_1fr_120px] gap-3 sm:gap-6 items-center px-3 sm:px-6 py-3 sm:py-4 border-b border-border bg-card"
                                 >
                                     <div className="text-xs sm:text-sm font-bold text-muted-foreground">
-                                        {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : ''}
+                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : ''}
                                     </div>
                                     <div className="min-w-0 pr-2">
                                         <div className="font-bold text-[11px] sm:text-xs truncate text-muted-foreground line-through">
@@ -321,7 +321,7 @@ function PatientRow({
             {/* Ticket */}
             <div className="flex flex-col gap-0.5 text-primary/70">
                 <div className="text-xs sm:text-sm font-bold tracking-tight">
-                    {visit.ticketNumber ? `#${visit.ticketNumber.toString().padStart(3, '0')}` : null}
+                    {visit.ticketNumber ? `#${visit.ticketNumber}` : null}
                 </div>
                 <div className="flex flex-wrap gap-0.5">
                     {visit.categories && visit.categories.length > 0 &&

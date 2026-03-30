@@ -1,8 +1,8 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { getDepartmentsVideos } from "@/features/monitoring/actions";
-import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
+import { Card } from "@/components/ui/card";
+
+import { useWindowMonitor, WindowStatus } from "@/features/monitoring/hooks/use-window-monitor";
 import { CallOverlay } from "@/features/monitoring/components/call-overlay";
 import { useCurrentTime } from "@/hooks/use-current-time";
 import { API_URL } from "@/lib/api";
@@ -19,25 +19,25 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     const { windows, upcoming, loading } = useWindowMonitor(slug);
     const [departmentName, setDepartmentName] = useState("LOADING...");
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
-    const [callData, setCallData] = useState<{ ticket: string; windowName: string } | null>(null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const prevWindowsRef = useRef<any[]>([]);
+    const [callData, setCallData] = useState<{ ticket: string; windowName: string; calledAt: string | null } | null>(null);
+    const prevWindowsRef = useRef<WindowStatus[]>([]);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (windows.length > 0 && prevWindowsRef.current.length > 0) {
-            let newCall = null;
+            let newCall: WindowStatus | null = null;
             windows.forEach(win => {
                 const prev = prevWindowsRef.current.find(p => p.stationNo === win.stationNo);
-                if (prev && win.ticketNumber && prev.ticketNumber !== win.ticketNumber) {
+                if (prev && win.ticketNumber && (prev.ticketNumber !== win.ticketNumber || prev.calledAt !== win.calledAt)) {
                     newCall = win;
                 }
             });
 
             if (newCall) {
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
                 setTimeout(() => {
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    setCallData({ ticket: newCall!.ticketNumber!, windowName: newCall!.windowName });
-                    setTimeout(() => setCallData(null), 7000); // 7s modal popup
+                    setCallData({ ticket: newCall!.ticketNumber!, windowName: newCall!.windowName, calledAt: newCall!.calledAt });
+                    timeoutRef.current = setTimeout(() => setCallData(null), 7000); // 7s modal popup
                 }, 0);
             }
         }
@@ -45,15 +45,17 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     }, [windows]);
 
     useEffect(() => {
-        getDepartmentsVideos().then(res => {
-            if (res.success) {
-                const dept = res.data.find((d: any) => d.slug === slug || d.id === slug);
-                if (dept) {
-                    setDepartmentName(dept.name.toUpperCase());
-                    setVideoUrl(dept.videoUrl || null);
+        fetch(`${API_URL}/monitor/departments-videos`)
+            .then(res => res.json())
+            .then(json => {
+                if (json.success && json.data) {
+                    const dept = json.data.find((d: { slug: string; id: string; name: string; videoUrl: string }) => d.slug === slug || d.id === slug);
+                    if (dept) {
+                        setDepartmentName(dept.name.toUpperCase());
+                        setVideoUrl(dept.videoUrl || null);
+                    }
                 }
-            }
-        });
+            });
     }, [slug]);
 
     const formatTime = (date: Date) => {

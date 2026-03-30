@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useTransition, useState, useEffect } from "react";
-import { markNoShow, removeQueue, restoreNoShow, callNextTriage } from "../actions";
+import { markNoShow, removeQueue, restoreNoShow, callNextTriage, callSpecificTriage } from "../actions";
 import { useTriageQueue } from "../hooks";
 import { VisitWithPatient } from "../types";
 import { useTriageStore } from "../store/use-triage-store";
@@ -49,6 +49,19 @@ export function TriageQueueSidebar({
                 notify.info("Queue is empty", { description: "No patients waiting for triage." });
             } else {
                 notify.error(res?.message || res?.error || "Failed to call next patient");
+            }
+        });
+    };
+
+    const handleCallSpecific = (visitId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        startTransition(async () => {
+            const res = await callSpecificTriage(visitId);
+            if (res?.success && res.data) {
+                setSelectedPatient(res.data);
+                notify.success("Patient specifically claimed");
+            } else {
+                notify.error(res?.message || res?.error || "Failed to call patient directly");
             }
         });
     };
@@ -268,11 +281,18 @@ export function TriageQueueSidebar({
                                             No-Show: {new Date(visit.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                     </div>
-                                    <div className="flex justify-end">
+                                    <div className="flex justify-end gap-2">
                                         <button
-                                            disabled={isPending}
+                                            disabled={isPending || !!hasActivePatient}
+                                            onClick={(e) => handleCallSpecific(visit.id, e)}
+                                            className="h-7 sm:h-8 px-2.5 sm:px-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
+                                        >
+                                            <Play size={10} weight="fill" className="hidden sm:inline-block" /> Call
+                                        </button>
+                                        <button
+                                            disabled={isPending || !!hasActivePatient}
                                             onClick={(e) => handleRestore(visit.id, e)}
-                                            className="h-7 sm:h-8 px-2.5 sm:px-4 bg-foreground text-background hover:bg-foreground/90 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm"
+                                            className="h-7 sm:h-8 px-2.5 sm:px-4 bg-foreground text-background hover:bg-foreground/90 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm disabled:opacity-50"
                                         >
                                             Restore
                                         </button>

@@ -44,6 +44,8 @@ export const setupSSEConnection = (req: Request, res: Response) => {
 
 import { db } from '../config/database.js';
 
+const departmentSlugCache = new Map<string, string>();
+
 export const emitQueueUpdate = async (departmentId?: string) => {
     // Always emit a global update so everyone knows *something* happened
     eventBus.emit(GLOBAL_TOPIC);
@@ -54,13 +56,22 @@ export const emitQueueUpdate = async (departmentId?: string) => {
 
         // Try to find the slug and emit to it as well
         try {
-            const department = await db.department.findUnique({
-                where: { id: departmentId },
-                select: { slug: true }
-            });
+            let slug = departmentSlugCache.get(departmentId);
+            
+            if (!slug) {
+                const department = await db.department.findUnique({
+                    where: { id: departmentId },
+                    select: { slug: true }
+                });
+                
+                if (department?.slug) {
+                    slug = department.slug;
+                    departmentSlugCache.set(departmentId, slug);
+                }
+            }
 
-            if (department?.slug) {
-                eventBus.emit(`queue-updated:${department.slug}`);
+            if (slug) {
+                eventBus.emit(`queue-updated:${slug}`);
             }
         } catch (error) {
             console.error("Failed to fetch department slug for SSE broadcast:", error);

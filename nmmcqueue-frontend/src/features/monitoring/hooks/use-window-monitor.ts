@@ -3,11 +3,12 @@ import { API_URL } from "@/lib/api";
 
 const BACKEND_URL = API_URL;
 
-interface WindowStatus {
+export interface WindowStatus {
     stationNo: number;
     windowName: string;
     ticketNumber: string | null;
     priorityClass: string | null;
+    calledAt: string | null;
 }
 
 export function useWindowMonitor(slugOrId?: string) {

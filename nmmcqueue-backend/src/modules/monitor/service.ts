@@ -32,6 +32,7 @@ class MonitorService {
                 select: {
                     ticketNumber: true,
                     classification: true,
+                    calledAt: true,
                     categories: {
                         include: {
                             category: true
@@ -45,6 +46,7 @@ class MonitorService {
                 stationNo: window.stationNo,
                 ticketNumber: currentVisit ? formatTicket(currentVisit.ticketNumber, currentVisit.classification) : null,
                 classification: currentVisit?.classification,
+                calledAt: currentVisit?.calledAt || null,
                 categories: currentVisit?.categories.map(vc => vc.category)
             };
         }));
@@ -96,6 +98,7 @@ class MonitorService {
             select: {
                 ticketNumber: true,
                 classification: true,
+                calledAt: true,
                 categories: {
                     include: {
                         category: true
@@ -131,6 +134,7 @@ class MonitorService {
                 stationNo: 1,
                 ticketNumber: formatTicket(visit.ticketNumber, visit.classification),
                 classification: visit.classification,
+                calledAt: visit.calledAt || null,
                 categories: visit.categories.map(vc => vc.category)
             }));
             return { active, upcoming };
@@ -152,7 +156,7 @@ class MonitorService {
                     createdAt: { gte: today, lt: tomorrow }
                 },
                 orderBy: { calledAt: 'desc' },
-                select: { ticketNumber: true, classification: true, categories: { include: { category: true } } }
+                select: { ticketNumber: true, classification: true, calledAt: true, categories: { include: { category: true } } }
             });
 
             return {
@@ -160,6 +164,7 @@ class MonitorService {
                 stationNo: station.stationNo,
                 ticketNumber: currentVisit ? formatTicket(currentVisit.ticketNumber, currentVisit.classification) : null,
                 classification: currentVisit?.classification,
+                calledAt: currentVisit?.calledAt || null,
                 categories: currentVisit?.categories.map(vc => vc.category)
             };
         }));

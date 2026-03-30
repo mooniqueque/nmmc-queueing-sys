@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, SpeakerSlash } from "@phosphor-icons/react";
 
 interface CallOverlayProps {
-    callData: { ticket: string; windowName: string } | null;
+    callData: { ticket: string; windowName: string; calledAt: string | null } | null;
 }
 
 export function CallOverlay({ callData }: CallOverlayProps) {
@@ -39,9 +39,12 @@ export function CallOverlay({ callData }: CallOverlayProps) {
         window.addEventListener('click', handleInteraction, { once: true });
         window.addEventListener('touchstart', handleInteraction, { once: true });
         
-        // Eagerly load voices
+        // Eagerly load voices and attach listener for async loading (Chrome bug fix)
         if ('speechSynthesis' in window) {
             window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
         }
         
         return () => {

@@ -46,10 +46,17 @@ export async function printTicket(data: any): Promise<void> {
     try {
         printer.alignCenter();
         printer.println("Northern Mindanao Medical Center");
-        printer.println("Capitol Rd, Cagayan De Oro City, 9000 Misamis Oriental");
         printer.println(data.station || 'Station');
         printer.drawLine();
-        printer.println(data.label || 'Queue Number');
+        
+        if (data.labelBold) {
+            printer.bold(true);
+            printer.println(data.label || 'Queue Number');
+            printer.bold(false);
+        } else {
+            printer.println(data.label || 'Queue Number');
+        }
+        
         printer.newLine();
 
         // Huge bold typography for the ticket number

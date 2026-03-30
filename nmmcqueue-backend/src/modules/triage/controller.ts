@@ -26,7 +26,7 @@ class TriageController {
                     ticketNumber: formattedTicket,
                     date: new Date().toLocaleString(),
                     windowAssignment: windowAssignment,
-                    footer: "Please wait for your number to be called at the Window."
+                    footer: "This ticket is valid for today only."
                 });
             } catch (err: any) {
                 console.error("Printer util failed:", err);

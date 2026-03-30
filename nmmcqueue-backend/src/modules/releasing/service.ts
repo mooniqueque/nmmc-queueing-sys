@@ -258,6 +258,10 @@ class ReleasingService {
             where: { id: data.priorityClass }
         });
 
+        const department = await db.department.findUnique({
+            where: { id: data.departmentId }
+        });
+
         const classification = category?.isPriority ? 'PRIORITY' : 'REGULAR';
 
         const visit = await db.visit.findUnique({ where: { id: visitId }, include: { patient: true } });
@@ -288,7 +292,14 @@ class ReleasingService {
                 }
             });
 
-            return { ticketNumber: nextTicket, patientFullName: `${visit.patient.firstName} ${visit.patient.lastName}`.trim() };
+            return { 
+                ticketNumber: nextTicket, 
+                patientFullName: `${visit.patient.firstName} ${visit.patient.lastName}`.trim(),
+                priorityCode: category?.code || 'REG',
+                priorityName: category?.name || 'REGULAR',
+                classification: classification,
+                departmentCode: department?.code || 'DEPT'
+            };
         });
 
         // Emit targeted update to this specific department

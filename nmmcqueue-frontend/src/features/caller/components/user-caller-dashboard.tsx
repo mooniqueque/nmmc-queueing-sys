@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getDepartments } from "@/features/shared/api";
+import { HistoryTable } from "@/features/shared/components/history-table";
+import { useAnalytics } from "@/features/shared/hooks/use-analytics";
 import { VisitWithPatient } from "@/features/triage/types";
 import { notify } from "@/lib/notify";
 import { calculateAge } from "@/lib/utils";

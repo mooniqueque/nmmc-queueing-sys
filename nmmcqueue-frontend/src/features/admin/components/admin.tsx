@@ -159,9 +159,9 @@ export default function AdminDashboard({
     return (
         <div className="flex flex-1 flex-col">
             {/* Header Section */}
-            <AdminHeader 
-                user={loggedInUser} 
-                title="Admin Dashboard" 
+            <AdminHeader
+                user={loggedInUser}
+                title="Admin Dashboard"
             />
 
             <main className="flex-1 p-6 lg:p-10 space-y-8 max-w-7xl mx-auto w-full">
@@ -226,16 +226,16 @@ export default function AdminDashboard({
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[300px] font-semibold">Staff Info</TableHead>
-                                <TableHead className="font-semibold">Assignment</TableHead>
-                                <TableHead className="font-semibold">System Role</TableHead>
-                                <TableHead className="font-semibold">Status</TableHead>
+                                <TableHead className="w-[300px] font-semibold pl-6">Staff Info</TableHead>
+                                <TableHead className="font-semibold pl-6">Assignment</TableHead>
+                                <TableHead className="font-semibold pl-6">System Role</TableHead>
+                                <TableHead className="font-semibold pl-6">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {paginatedUsers.map((user) => (
                                 <TableRow key={user.id}>
-                                    <TableCell>
+                                    <TableCell className="pl-6">
                                         <div className="flex flex-col py-0.5">
                                             <span className="font-semibold text-foreground tracking-tight">{user.name}</span>
                                             <span className="text-xs text-muted-foreground">{user.email}</span>

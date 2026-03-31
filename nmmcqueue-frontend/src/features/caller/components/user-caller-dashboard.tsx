@@ -26,6 +26,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { CallerApiError, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
+import { HistoryTable } from "@/features/shared/components/history-table";
+import { useAnalytics } from "@/features/shared/hooks/use-analytics";
 
 
 export default function UserCallerDashboard({

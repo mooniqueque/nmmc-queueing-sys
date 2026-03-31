@@ -82,7 +82,7 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     return (
         <div className="w-full h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden">
             <CallOverlay callData={callData} />
-            {/* MINIMALIST HEADER */}
+            {/* HEADER WITH LOGOS */}
             <header className="bg-white px-8 py-5 flex justify-between items-center sticky top-0 z-10 border-b border-slate-200 w-full shrink-0 shadow-sm">
                 <div className="flex items-center gap-6">
                     <div className="flex gap-4">
@@ -107,10 +107,10 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
 
             <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden max-w-[1800px] mx-auto w-full">
                 {/* LEFT COLUMN: CALLING LIST IN A CLEAN SHADCN CARD */}
-                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-md border-2 border-slate-200 rounded-xl bg-white">
-                    <div className="flex justify-between px-12 py-8 border-b-2 border-slate-100 bg-slate-50/50">
-                        <span className="text-base font-black text-slate-400 uppercase tracking-[0.2em]">Lane Name</span>
-                        <span className="text-base font-black text-slate-400 uppercase tracking-[0.2em]">Now Serving</span>
+                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-xl border bg-card shadow-primary/5 rounded-4xl bg-white">
+                    <div className="flex justify-between px-8 py-5 bg-primary font-black text-white text-xl border-b-2 uppercase border-slate-100">
+                        <span>Lane Name</span>
+                        <span>Now Serving</span>
                     </div>
 
                     <div className="flex-1 flex flex-col overflow-hidden w-full">
@@ -172,14 +172,13 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
                     </Card>
 
                     {/* UPCOMING WAITLIST - COMPACT FOR PUBLIC VIEWING */}
-                    <Card className="p-4 bg-white shadow-md border-2 border-slate-100 rounded-xl flex flex-col justify-center shrink-0">
-                        <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-2">
+                    <Card className="p-4 bg-white shadow-md border shadow-xl shadow-primary/5 rounded-xl flex flex-col justify-center shrink-0">
+                        <div className="flex items-center justify-between mb-3 border-b pb-2">
                             <div>
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Waitlist</h3>
-                                <p className="text-xl font-bold text-slate-800 tracking-tight leading-none">Next in Line</p>
+                                <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Next in Line</h1>
                             </div>
-                            <div className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-bold uppercase tracking-widest ring-1 ring-emerald-200">
-                                {upcoming.length} Waiting
+                            <div className="px-4 py-1.5 bg-emerald-50 text-slate-700 rounded-full text-sm font-bold uppercase tracking-widest ring-1 ring-emerald-200">
+                                {upcoming.length} Next in Line
                             </div>
                         </div>
 

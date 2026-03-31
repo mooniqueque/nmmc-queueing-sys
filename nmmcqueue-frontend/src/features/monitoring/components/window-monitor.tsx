@@ -97,10 +97,10 @@ export default function WindowMonitor() {
 
             <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden max-w-[1800px] mx-auto w-full">
                 {/* LEFT COLUMN: CALLING LIST IN A CLEAN SHADCN CARD */}
-                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-md border-2 border-slate-200 rounded-xl bg-white">
-                    <div className="flex justify-between px-12 py-8 border-b-2 border-slate-100 bg-slate-50/50">
-                        <span className="text-base font-black text-slate-400 uppercase tracking-[0.2em]">Service Window</span>
-                        <span className="text-base font-black text-slate-400 uppercase tracking-[0.2em]">Now Serving</span>
+                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-xl shadow-primary/5 border rounded-3xl bg-card">
+                    <div className="flex justify-between px-8 py-5 bg-primary text-primary-foreground font-black uppercase tracking-widest text-xl">
+                        <span>Service Window</span>
+                        <span>Now Serving</span>
                     </div>
 
                     <div className="flex-1 overflow-y-auto w-full">
@@ -109,19 +109,16 @@ export default function WindowMonitor() {
                         ) : windows.length === 0 ? (
                             <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">No active windows</div>
                         ) : windows.map((window, index) => (
-                            <div key={index} className="flex flex-row items-center justify-between px-12 py-10 border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                            <div key={index} className="flex flex-row items-center justify-between px-4 py-3 border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-black text-slate-400 uppercase tracking-widest mb-2">
-                                        Window {window.stationNo}
-                                    </span>
-                                    <span className="text-3xl font-bold text-slate-800 tracking-tight">
+                                    <span className="text-2xl px-5 font-bold text-slate-800 tracking-tight">
                                         {window.windowName}
                                     </span>
                                 </div>
                                 <div className="text-right flex flex-col items-end">
                                     {window.ticketNumber ? (
                                         <>
-                                            <span className="text-8xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
+                                            <span className="text-3xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
                                                 {window.ticketNumber}
                                             </span>
                                             {window.priorityClass && false && (
@@ -169,7 +166,7 @@ export default function WindowMonitor() {
                     <Card className="p-4 bg-white shadow-md border-2 border-slate-100 rounded-xl flex flex-col justify-center shrink-0">
                         <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-2">
                             <div>
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Waitlist</h3>
+
                                 <p className="text-xl font-bold text-slate-800 tracking-tight leading-none">Next in Line</p>
                             </div>
                             <div className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-bold uppercase tracking-widest ring-1 ring-emerald-200">

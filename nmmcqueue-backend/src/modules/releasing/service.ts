@@ -51,7 +51,7 @@ class ReleasingService {
             include: { workstation: true }
         });
         if (!user?.workstationId || !user.workstation) {
-            throw new AppError('You must be assigned to a workstation to call patients.', 400);
+            throw new AppError('You must be assigned to a workstation to call patients.', 400, 'CALLER_ASSIGNMENT_REQUIRED');
         }
 
         const stationNo = user.workstation.stationNo;
@@ -131,7 +131,7 @@ class ReleasingService {
             });
 
             if (claimed.count === 0) {
-                throw new AppError('Patient was already claimed by another user. Try again.', 409);
+                throw new AppError('Patient was already claimed by another user. Try again.', 409, 'CLAIM_CONFLICT');
             }
 
             await tx.visitStatusHistory.create({
@@ -220,7 +220,7 @@ class ReleasingService {
         });
 
         if (claimed.count === 0) {
-            throw new AppError('Patient is no longer available or was already claimed.', 409);
+            throw new AppError('Patient is no longer available or was already claimed.', 409, 'CLAIM_CONFLICT');
         }
 
         await db.visitStatusHistory.create({

@@ -9,8 +9,9 @@ class CallerController {
     });
 
     getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
         const departmentName = req.query.departmentName as string;
-        const data = await callerService.getPendingQueue(departmentName);
+        const data = await callerService.getPendingQueue(departmentName, userId);
         res.status(200).json({ success: true, data });
     });
 
@@ -54,28 +55,32 @@ class CallerController {
     });
 
     callPatient = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
         const visitId = req.params.visitId;
-        const data = await callerService.callPatient(visitId);
+        const data = await callerService.callPatient(visitId, userId);
         res.status(200).json({ success: true, data });
     });
 
     servePatient = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
         const visitId = req.params.visitId;
-        const data = await callerService.servePatient(visitId);
+        const data = await callerService.servePatient(visitId, userId);
         res.status(200).json({ success: true, data });
     });
 
     noShowPatient = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
         const visitId = req.params.visitId;
-        const data = await callerService.noShowPatient(visitId);
+        const data = await callerService.noShowPatient(visitId, userId);
         res.status(200).json({ success: true, data });
     });
 
     transferPatient = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
         const visitId = req.params.visitId;
         const { targetDepartmentId } = req.body;
         if (!targetDepartmentId) throw new AppError('targetDepartmentId is required', 400);
-        const data = await callerService.transferPatient(visitId, targetDepartmentId);
+        const data = await callerService.transferPatient(visitId, targetDepartmentId, userId);
         res.status(200).json({ success: true, data });
     });
 
@@ -86,8 +91,16 @@ class CallerController {
     });
 
     restorePatient = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
         const visitId = req.params.visitId;
-        const data = await callerService.restorePatient(visitId);
+        const data = await callerService.restorePatient(visitId, userId);
+        res.status(200).json({ success: true, data });
+    });
+
+    forceRemoveVisit = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        const visitId = req.params.visitId;
+        const data = await callerService.forceRemoveVisit(visitId, userId);
         res.status(200).json({ success: true, data });
     });
 }

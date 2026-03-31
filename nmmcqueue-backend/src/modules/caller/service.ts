@@ -1,10 +1,71 @@
 import { db } from '../../config/database.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
+import { AppError } from '../../middleware/error-handler.js';
 
 const normalizeOption = (v: string) => v.trim().toUpperCase();
 const normalizeDepartmentKey = (v: string) => v.trim().toUpperCase();
 
 class CallerService {
+    private async getCallerScope(userId?: string) {
+        if (!userId) {
+            throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+        }
+
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                departmentId: true,
+                department: true,
+                workstationId: true,
+                workstation: {
+                    select: {
+                        id: true,
+                        departmentId: true,
+                    }
+                }
+            }
+        });
+
+        if (!user) {
+            throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+        }
+
+        let departmentId = user.departmentId ?? user.workstation?.departmentId ?? null;
+
+        if (!departmentId && user.department) {
+            const dept = await db.department.findFirst({
+                where: { name: user.department.trim().toUpperCase() },
+                select: { id: true }
+            });
+            departmentId = dept?.id ?? null;
+        }
+
+        if (!departmentId) {
+            throw new AppError(
+                'Caller account has no assigned department.',
+                400,
+                'CALLER_ASSIGNMENT_REQUIRED'
+            );
+        }
+
+        return {
+            userId: user.id,
+            departmentId,
+            workstationId: user.workstationId ?? undefined,
+        };
+    }
+
+    private assertVisitScope(visitDepartmentId: string | null | undefined, callerDepartmentId: string) {
+        if (!visitDepartmentId || visitDepartmentId !== callerDepartmentId) {
+            throw new AppError(
+                'You are not allowed to handle patients outside your assigned department.',
+                403,
+                'CLAIM_FORBIDDEN_SCOPE'
+            );
+        }
+    }
+
     async getDepartments() { return await db.department.findMany({ orderBy: { name: 'asc' } }); }
     async createDepartment(name: string, code: string) { 
         const trimmedName = name.trim().toUpperCase();
@@ -25,7 +86,8 @@ class CallerService {
         });
         return dept ? dept.priorityCategories : [];
     }
-    async getPendingQueue(departmentName?: string) {
+    async getPendingQueue(departmentName?: string, userId?: string) {
+        const scope = await this.getCallerScope(userId);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
@@ -33,16 +95,25 @@ class CallerService {
 
         const whereClause: any = {
             createdAt: { gte: today, lt: tomorrow },
-            status: { in: ['WAITING_CLINIC', 'IN_PROGRESS', 'NO_SHOW'] },
+            departmentId: scope.departmentId,
+            OR: [
+                { status: 'WAITING_CLINIC' },
+                { status: 'NO_SHOW' },
+                { status: 'IN_PROGRESS', calledByUserId: scope.userId },
+            ],
         };
 
         if (departmentName) {
             const dept = await db.department.findUnique({ where: { name: departmentName.trim().toUpperCase() } });
-            if (dept) {
-                whereClause.departmentId = dept.id;
-            } else {
-                // If department not found, do not return all queues, return none
-                whereClause.departmentId = 'NON_EXISTENT';
+            if (!dept) {
+                throw new AppError('Department not found', 404, 'DEPARTMENT_NOT_FOUND');
+            }
+            if (dept.id !== scope.departmentId) {
+                throw new AppError(
+                    'You are not allowed to view queues outside your assigned department.',
+                    403,
+                    'CLAIM_FORBIDDEN_SCOPE'
+                );
             }
         }
 
@@ -94,37 +165,87 @@ class CallerService {
     }
 
     async callPatient(visitId: string, userId?: string, windowNumber?: number) {
-        const visit = await db.visit.findUnique({ where: { id: visitId } });
-        if (!visit) throw new Error('Visit not found');
-        let workstationId: string | undefined;
-        if (userId) {
-            const user = await db.user.findUnique({ where: { id: userId }, select: { workstationId: true } });
-            workstationId = user?.workstationId || undefined;
+        const scope = await this.getCallerScope(userId);
+
+        const claimedVisit = await db.$transaction(async (tx) => {
+            const existing = await tx.visit.findUnique({
+                where: { id: visitId },
+                select: {
+                    id: true,
+                    status: true,
+                    departmentId: true,
+                    calledByUserId: true,
+                }
+            });
+
+            if (!existing) {
+                throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
+            }
+
+            this.assertVisitScope(existing.departmentId, scope.departmentId);
+
+            if (existing.status === 'IN_PROGRESS' && existing.calledByUserId === scope.userId) {
+                return tx.visit.findUnique({ where: { id: visitId } });
+            }
+
+            if (existing.status !== 'WAITING_CLINIC') {
+                if (existing.status === 'IN_PROGRESS' && existing.calledByUserId && existing.calledByUserId !== scope.userId) {
+                    throw new AppError('Patient already claimed by another caller.', 409, 'CLAIM_CONFLICT');
+                }
+                throw new AppError('Patient is not in a claimable waiting state.', 400, 'CLAIM_INVALID_STATE');
+            }
+
+            const claimed = await tx.visit.updateMany({
+                where: {
+                    id: visitId,
+                    status: 'WAITING_CLINIC',
+                },
+                data: {
+                    status: 'IN_PROGRESS',
+                    calledAt: new Date(),
+                    calledByUserId: scope.userId,
+                    calledAtStationId: scope.workstationId,
+                    windowNumber: windowNumber,
+                }
+            });
+
+            if (claimed.count === 0) {
+                throw new AppError('Patient was already claimed by another user. Try again.', 409, 'CLAIM_CONFLICT');
+            }
+
+            await tx.visitStatusHistory.create({
+                data: { visitId, status: 'IN_PROGRESS', changedBy: scope.userId }
+            });
+
+            return tx.visit.findUnique({ where: { id: visitId } });
+        });
+
+        if (claimedVisit?.departmentId) await emitQueueUpdate(claimedVisit.departmentId);
+        return claimedVisit;
+    }
+
+    async servePatient(visitId: string, userId?: string) {
+        const scope = await this.getCallerScope(userId);
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            select: { id: true, status: true, departmentId: true, calledByUserId: true }
+        });
+
+        if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
+        this.assertVisitScope(visit.departmentId, scope.departmentId);
+
+        if (visit.status !== 'IN_PROGRESS') {
+            throw new AppError('Patient is not currently in progress.', 400, 'CLAIM_INVALID_STATE');
+        }
+        if (visit.calledByUserId !== scope.userId) {
+            throw new AppError('Only the caller who claimed this patient can complete it.', 409, 'CLAIM_CONFLICT');
         }
 
         const updated = await db.visit.update({
             where: { id: visitId },
-            data: { 
-                status: 'IN_PROGRESS',
-                calledAt: new Date(),
-                calledByUserId: userId,
-                calledAtStationId: workstationId,
-                windowNumber: windowNumber,
-                statusHistory: { create: { status: 'IN_PROGRESS', changedBy: userId } }
-            }
-        });
-        if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
-        return updated;
-    }
-
-    async servePatient(visitId: string, userId?: string) {
-        const visit = await db.visit.findUnique({ where: { id: visitId } });
-        if (!visit) throw new Error('Visit not found');
-        const updated = await db.visit.update({
-            where: { id: visitId },
-            data: { 
+            data: {
                 status: 'COMPLETED',
-                statusHistory: { create: { status: 'COMPLETED', changedBy: userId } }
+                statusHistory: { create: { status: 'COMPLETED', changedBy: scope.userId } }
             }
         });
         if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
@@ -132,13 +253,26 @@ class CallerService {
     }
 
     async noShowPatient(visitId: string, userId?: string) {
-        const visit = await db.visit.findUnique({ where: { id: visitId } });
-        if (!visit) throw new Error('Visit not found');
+        const scope = await this.getCallerScope(userId);
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            select: { id: true, status: true, departmentId: true, calledByUserId: true }
+        });
+        if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
+        this.assertVisitScope(visit.departmentId, scope.departmentId);
+
+        if (visit.status === 'IN_PROGRESS' && visit.calledByUserId !== scope.userId) {
+            throw new AppError('Only the caller who claimed this patient can mark no-show.', 409, 'CLAIM_CONFLICT');
+        }
+        if (!['WAITING_CLINIC', 'IN_PROGRESS', 'NO_SHOW'].includes(visit.status)) {
+            throw new AppError('Patient cannot be marked no-show in current status.', 400, 'CLAIM_INVALID_STATE');
+        }
+
         const updated = await db.visit.update({
             where: { id: visitId },
             data: { 
                 status: 'NO_SHOW',
-                statusHistory: { create: { status: 'NO_SHOW', changedBy: userId } }
+                statusHistory: { create: { status: 'NO_SHOW', changedBy: scope.userId } }
             }
         });
         if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
@@ -146,9 +280,24 @@ class CallerService {
     }
 
     async transferPatient(visitId: string, targetDepartmentId: string, userId?: string) {
-        const visit = await db.visit.findUnique({ where: { id: visitId } });
-        if (!visit) throw new Error('Visit not found');
-        if (visit.departmentId === targetDepartmentId) throw new Error('Patient is already in this department');
+        const scope = await this.getCallerScope(userId);
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            select: { id: true, status: true, departmentId: true, calledByUserId: true }
+        });
+        if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
+        this.assertVisitScope(visit.departmentId, scope.departmentId);
+
+        if (visit.departmentId === targetDepartmentId) {
+            throw new AppError('Patient is already in this department', 400, 'CLAIM_INVALID_STATE');
+        }
+
+        if (visit.status === 'IN_PROGRESS' && visit.calledByUserId !== scope.userId) {
+            throw new AppError('Only the caller who claimed this patient can transfer it.', 409, 'CLAIM_CONFLICT');
+        }
+        if (!['WAITING_CLINIC', 'IN_PROGRESS'].includes(visit.status)) {
+            throw new AppError('Patient cannot be transferred in current status.', 400, 'CLAIM_INVALID_STATE');
+        }
         
         const updated = await db.visit.update({
             where: { id: visitId },
@@ -157,7 +306,9 @@ class CallerService {
                 departmentId: targetDepartmentId,
                 isReferred: true,
                 referredFromId: visit.departmentId,
-                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
+                calledByUserId: null,
+                calledAtStationId: null,
+                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: scope.userId } }
             }
         });
         
@@ -180,17 +331,72 @@ class CallerService {
         return { success: true, message: 'Notification sent successfully' };
     }
     async restorePatient(visitId: string, userId?: string) {
-        const visit = await db.visit.findUnique({ where: { id: visitId } });
-        if (!visit) throw new Error('Visit not found');
+        const scope = await this.getCallerScope(userId);
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            select: { id: true, status: true, departmentId: true }
+        });
+        if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
+        this.assertVisitScope(visit.departmentId, scope.departmentId);
+
+        if (visit.status !== 'NO_SHOW') {
+            throw new AppError('Only no-show patients can be restored.', 400, 'CLAIM_INVALID_STATE');
+        }
+
         const updated = await db.visit.update({
             where: { id: visitId },
             data: { 
                 status: 'WAITING_CLINIC',
-                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
+                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: scope.userId } }
             }
         });
         if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
         return updated;
+    }
+
+    async forceRemoveVisit(visitId: string, userId?: string) {
+        if (!userId) {
+            throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+        }
+
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            select: {
+                id: true,
+                patientId: true,
+                departmentId: true,
+                status: true,
+                ticketNumber: true,
+            }
+        });
+
+        if (!visit) {
+            throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
+        }
+
+        const result = await db.$transaction(async (tx) => {
+            await tx.visit.delete({ where: { id: visitId } });
+
+            const remainingVisits = await tx.visit.count({ where: { patientId: visit.patientId } });
+            let deletedOrphanPatient = false;
+
+            if (remainingVisits === 0) {
+                await tx.patient.delete({ where: { id: visit.patientId } });
+                deletedOrphanPatient = true;
+            }
+
+            return { deletedOrphanPatient };
+        });
+
+        await emitQueueUpdate(visit.departmentId || undefined);
+
+        return {
+            visitId: visit.id,
+            ticketNumber: visit.ticketNumber,
+            previousStatus: visit.status,
+            departmentId: visit.departmentId,
+            ...result,
+        };
     }
 }
 

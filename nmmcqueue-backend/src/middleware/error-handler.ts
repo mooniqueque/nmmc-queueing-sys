@@ -4,10 +4,12 @@ import logger from '../lib/logger.js';
 export class AppError extends Error {
     public readonly statusCode: number;
     public readonly isOperational: boolean;
+    public readonly code?: string;
 
-    constructor(message: string, statusCode: number = 500, isOperational: boolean = true) {
+    constructor(message: string, statusCode: number = 500, code?: string, isOperational: boolean = true) {
         super(message);
         this.statusCode = statusCode;
+        this.code = code;
         this.isOperational = isOperational;
         Error.captureStackTrace(this, this.constructor);
     }
@@ -39,6 +41,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
         success: false,
         status,
         message: err.message || 'An unexpected error occurred',
+        code: err.code || undefined,
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
         errors: err.errors || undefined
     });

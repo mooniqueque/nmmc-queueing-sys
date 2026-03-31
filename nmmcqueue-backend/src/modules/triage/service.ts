@@ -307,7 +307,7 @@ class TriageService {
             where: { id: userId },
             include: { workstation: true }
         });
-        if (!user?.workstationId) throw new AppError('You must be assigned to a workstation to call patients.', 400);
+        if (!user?.workstationId) throw new AppError('You must be assigned to a workstation to call patients.', 400, 'CALLER_ASSIGNMENT_REQUIRED');
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -342,7 +342,7 @@ class TriageService {
             });
 
             if (claimed.count === 0) {
-                throw new AppError('Patient was already claimed by another user. Try again.', 409);
+                throw new AppError('Patient was already claimed by another user. Try again.', 409, 'CLAIM_CONFLICT');
             }
 
             // Fetch the updated visit with patient data
@@ -376,7 +376,7 @@ class TriageService {
             where: { id: userId },
             include: { workstation: true }
         });
-        if (!user?.workstationId) throw new AppError('You must be assigned to a workstation to call patients.', 400);
+        if (!user?.workstationId) throw new AppError('You must be assigned to a workstation to call patients.', 400, 'CALLER_ASSIGNMENT_REQUIRED');
 
         return db.$transaction(async (tx) => {
             const visitToCall = await tx.visit.findUnique({
@@ -402,7 +402,7 @@ class TriageService {
             });
 
             if (claimed.count === 0) {
-                throw new AppError('Patient was already claimed by another user.', 409);
+                throw new AppError('Patient was already claimed by another user.', 409, 'CLAIM_CONFLICT');
             }
 
             const updatedVisit = await tx.visit.findUnique({

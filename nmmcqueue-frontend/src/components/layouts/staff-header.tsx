@@ -61,9 +61,9 @@ export default function StaffHeader({ title }: { title: string }) {
                     </div>
 
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Avatar className="h-9 w-9 border border-emerald-100 cursor-pointer hover:ring-2 hover:ring-emerald-500/10 transition-all">
-                                <AvatarFallback className="font-bold text-xs bg-emerald-50 text-emerald-700">
+                        <DropdownMenuTrigger asChild suppressHydrationWarning>
+                            <Avatar className="h-9 w-9 border border-emerald-100 cursor-pointer hover:ring-2 hover:ring-emerald-500/10 transition-all" suppressHydrationWarning>
+                                <AvatarFallback className="font-bold text-xs bg-emerald-50 text-emerald-700" suppressHydrationWarning>
                                     {loggedInUser?.name?.substring(0, 2).toUpperCase() || "ST"}
                                 </AvatarFallback>
                             </Avatar>

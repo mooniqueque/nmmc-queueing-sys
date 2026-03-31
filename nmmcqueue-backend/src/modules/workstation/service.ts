@@ -1,5 +1,7 @@
 import { db } from '../../config/database.js';
 import { WorkstationType } from '@prisma/client';
+import { emitQueueUpdate } from '../../lib/sse.js';
+import { AppError } from '../../middleware/error-handler.js';
 
 class WorkstationService {
     async getAll() {
@@ -78,7 +80,75 @@ class WorkstationService {
     }
 
     async delete(id: string) {
-        return await db.workStation.delete({ where: { id } });
+        const station = await db.workStation.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                stationNo: true,
+                type: true,
+                departmentId: true,
+            }
+        });
+
+        if (!station) {
+            throw new AppError('Station not found', 404, 'STATION_NOT_FOUND');
+        }
+
+        const result = await db.$transaction(async (tx) => {
+            const linkedVisits = await tx.visit.findMany({
+                where: {
+                    OR: [
+                        { calledAtStationId: id },
+                        { triageStationId: id },
+                        { originStationId: id },
+                        // Fallback for legacy rows that only persisted station number.
+                        { windowNumber: station.stationNo },
+                    ]
+                },
+                select: {
+                    id: true,
+                    patientId: true,
+                }
+            });
+
+            const linkedVisitIds = linkedVisits.map((visit) => visit.id);
+            const patientIds = Array.from(new Set(linkedVisits.map((visit) => visit.patientId)));
+
+            if (linkedVisitIds.length > 0) {
+                await tx.visit.deleteMany({
+                    where: { id: { in: linkedVisitIds } }
+                });
+            }
+
+            let deletedPatients = 0;
+            for (const patientId of patientIds) {
+                const remainingVisits = await tx.visit.count({ where: { patientId } });
+                if (remainingVisits === 0) {
+                    await tx.patient.delete({ where: { id: patientId } });
+                    deletedPatients += 1;
+                }
+            }
+
+            await tx.user.updateMany({
+                where: { workstationId: id },
+                data: { workstationId: null }
+            });
+
+            await tx.workStation.delete({ where: { id } });
+
+            return {
+                deletedVisits: linkedVisitIds.length,
+                deletedPatients,
+            };
+        });
+
+        await emitQueueUpdate(station.departmentId || undefined);
+
+        return {
+            stationId: station.id,
+            stationNo: station.stationNo,
+            ...result,
+        };
     }
 }
 

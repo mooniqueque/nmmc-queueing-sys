@@ -33,3 +33,11 @@
 {"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-30 16:37:57"}
 {"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-30 16:39:47"}
 {"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-30 16:39:58"}
+{"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-31 08:49:35"}
+{"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-31 08:50:14"}
+{"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-31 08:50:48"}
+{"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-31 08:51:07"}
+{"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-31 09:42:36"}
+{"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-31 09:42:56"}
+{"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-31 10:35:19"}
+{"level":"error","message":"Print Failed on XP-58 (copy 1): win32print Error: (1801, 'OpenPrinter', 'The printer name is invalid.')","service":"nmmc-queue-backend","timestamp":"2026-03-31 10:36:34"}

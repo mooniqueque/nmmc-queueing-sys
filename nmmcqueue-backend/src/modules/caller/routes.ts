@@ -21,3 +21,6 @@ callerRouter.post('/visit/:visitId/no-show', requireRole(['CLINIC_CALLER', 'TRIA
 callerRouter.post('/visit/:visitId/transfer', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.transferPatient);
 callerRouter.post('/visit/:visitId/restore', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.restorePatient);
 callerRouter.post('/visit/:visitId/notify', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.notifyPatient);
+
+// Admin override route (for clearing ghost/stuck currently-serving patients)
+callerRouter.delete('/visit/:visitId/force-remove', requireRole(['ADMIN']), callerController.forceRemoveVisit);

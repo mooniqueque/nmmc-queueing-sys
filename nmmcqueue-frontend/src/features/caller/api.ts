@@ -8,6 +8,32 @@
  */
 import { API_URL } from "@/lib/api";
 
+export class CallerApiError extends Error {
+    code?: string;
+    status: number;
+
+    constructor(message: string, status: number, code?: string) {
+        super(message);
+        this.name = "CallerApiError";
+        this.status = status;
+        this.code = code;
+    }
+}
+
+async function parseApiResponse<T = any>(res: Response): Promise<T> {
+    const payload = await res.json().catch(() => ({} as any));
+
+    if (!res.ok || payload?.success === false) {
+        throw new CallerApiError(
+            payload?.message || payload?.error || "Request failed",
+            res.status,
+            payload?.code
+        );
+    }
+
+    return payload as T;
+}
+
 // ─── Admin Management (Mutations) ─────────────────────────────
 export async function createDepartment(
     name: string,
@@ -75,7 +101,7 @@ export async function callPatient(visitId: string, options?: RequestInit) {
         credentials: "include",
         ...options,
     });
-    return res.json();
+    return parseApiResponse(res);
 }
 
 export async function servePatient(visitId: string, options?: RequestInit) {
@@ -84,7 +110,7 @@ export async function servePatient(visitId: string, options?: RequestInit) {
         credentials: "include",
         ...options,
     });
-    return res.json();
+    return parseApiResponse(res);
 }
 
 export async function noShowPatient(visitId: string, options?: RequestInit) {
@@ -93,7 +119,7 @@ export async function noShowPatient(visitId: string, options?: RequestInit) {
         credentials: "include",
         ...options,
     });
-    return res.json();
+    return parseApiResponse(res);
 }
 
 export async function transferPatient(
@@ -108,7 +134,7 @@ export async function transferPatient(
         headers: { "Content-Type": "application/json", ...options?.headers },
         body: JSON.stringify({ targetDepartmentId }),
     });
-    return res.json();
+    return parseApiResponse(res);
 }
 
 export async function restorePatient(visitId: string, options?: RequestInit) {
@@ -117,7 +143,7 @@ export async function restorePatient(visitId: string, options?: RequestInit) {
         credentials: "include",
         ...options,
     });
-    return res.json();
+    return parseApiResponse(res);
 }
 
 export async function notifyPatient(visitId: string, options?: RequestInit) {

@@ -22,7 +22,12 @@ export function useWindowMonitor(slugOrId?: string) {
                 ? `${BACKEND_URL}/monitor/department/${slugOrId}`
                 : `${BACKEND_URL}/monitor/windows`;
 
-            const res = await fetch(endpoint);
+            // Add a cache-busting query param to prevent stale browser/proxy responses.
+            const url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}ts=${Date.now()}`;
+            const res = await fetch(url, {
+                cache: "no-store",
+                credentials: "include",
+            });
             const json = await res.json();
             if (json.success) {
                 // Determine if backend returned new object format or old array format
@@ -44,6 +49,9 @@ export function useWindowMonitor(slugOrId?: string) {
         fetchStatus();
         const topic = slugOrId || 'WINDOW';
         const eventSource = new EventSource(`${BACKEND_URL}/monitor/stream?topic=${topic}`, { withCredentials: true });
+        const intervalId = setInterval(() => {
+            fetchStatus();
+        }, 5000);
 
         eventSource.onmessage = (event) => {
             try {
@@ -58,6 +66,7 @@ export function useWindowMonitor(slugOrId?: string) {
 
         return () => {
             eventSource.close();
+            clearInterval(intervalId);
         };
     }, [fetchStatus, slugOrId]);
 

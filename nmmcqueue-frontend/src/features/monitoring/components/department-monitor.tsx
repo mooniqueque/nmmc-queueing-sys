@@ -17,6 +17,9 @@ interface DepartmentMonitorProps {
 export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     const currentTime = useCurrentTime();
     const { windows, upcoming, loading } = useWindowMonitor(slug);
+    const stationCount = Math.max(windows.length, 1);
+    const isDense = stationCount >= 4;
+    const isVeryDense = stationCount >= 6;
     const [departmentName, setDepartmentName] = useState("LOADING...");
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [callData, setCallData] = useState<{ ticket: string; windowName: string; calledAt: string | null } | null>(null);
@@ -110,28 +113,30 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
                         <span className="text-base font-black text-slate-400 uppercase tracking-[0.2em]">Now Serving</span>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto w-full">
+                    <div className="flex-1 flex flex-col overflow-hidden w-full">
                         {loading ? (
                             <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">Loading Monitor...</div>
                         ) : windows.length === 0 ? (
                             <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">No active stations</div>
                         ) : windows.map((window, index) => (
-                            <div key={index} className="flex flex-row items-center justify-between px-12 py-10 border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                            <div key={index} className={`flex-1 min-h-0 flex flex-row items-center justify-between px-7 ${isVeryDense ? "py-2.5" : isDense ? "py-3" : "py-6"} border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors`}>
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-black text-slate-400 uppercase tracking-widest mb-2">
+                                    <span className={`font-black text-slate-400 uppercase tracking-widest ${isVeryDense ? "text-[10px] mb-1" : "text-xs mb-1.5"}`}>
                                         Station {window.stationNo}
                                     </span>
-                                    <span className="text-4xl font-extrabold text-slate-800 tracking-tight">
+                                    <span className={`${isVeryDense ? "text-2xl" : isDense ? "text-3xl" : "text-4xl"} font-extrabold text-slate-800 tracking-tight leading-none`}>
                                         {window.windowName}
                                     </span>
                                 </div>
                                 <div className="text-right">
                                     {window.ticketNumber ? (
-                                        <span className="text-8xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none">
-                                            {window.ticketNumber}
-                                        </span>
+                                        <div className={`${isVeryDense ? "w-44 h-18" : isDense ? "w-52 h-22" : "w-60 h-24"} flex items-center justify-center rounded-lg bg-emerald-50/40 border border-emerald-100`}>
+                                            <span className={`${isVeryDense ? "text-3xl" : isDense ? "text-4xl" : "text-5xl"} font-black text-emerald-600 tracking-tight tabular-nums drop-shadow-sm leading-none whitespace-nowrap`}>
+                                                {window.ticketNumber}
+                                            </span>
+                                        </div>
                                     ) : (
-                                        <span className="text-3xl font-bold text-slate-300 uppercase tracking-widest italic py-4">Waiting...</span>
+                                        <span className={`${isVeryDense ? "text-xl" : "text-2xl"} font-bold text-slate-300 uppercase tracking-widest italic py-2`}>Waiting...</span>
                                     )}
                                 </div>
                             </div>

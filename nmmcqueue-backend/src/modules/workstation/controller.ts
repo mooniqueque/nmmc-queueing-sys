@@ -31,8 +31,8 @@ class WorkstationController {
     });
 
     delete = asyncHandler(async (req: Request, res: Response) => {
-        await workstationService.delete(req.params.id);
-        res.status(200).json({ success: true });
+        const result = await workstationService.delete(req.params.id);
+        res.status(200).json({ success: true, data: result });
     });
 }
 

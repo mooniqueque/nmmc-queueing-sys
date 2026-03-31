@@ -117,7 +117,14 @@ export function ReleasingAssignPanel({
                 // onAssignComplete will trigger parent to refresh
                 onAssignComplete();
             } else {
-                notify.error(res?.error || "Failed to call patient");
+                if (res?.code === "CLAIM_CONFLICT") {
+                    notify.error("Patient already claimed by another window.", {
+                        description: "Queue refreshed to show latest ownership.",
+                    });
+                } else {
+                    notify.error(res?.message || res?.error || "Failed to call patient");
+                }
+                onAssignComplete();
             }
         });
     };
@@ -129,7 +136,14 @@ export function ReleasingAssignPanel({
                 notify.success("Patient marked as no-show");
                 onAssignComplete();
             } else {
-                notify.error(res.error || "Failed to update status");
+                if (res?.code === "CLAIM_CONFLICT") {
+                    notify.error("Unable to mark no-show.", {
+                        description: "Patient ownership changed. Queue refreshed.",
+                    });
+                    onAssignComplete();
+                } else {
+                    notify.error(res?.message || res?.error || "Failed to update status");
+                }
             }
         });
     };

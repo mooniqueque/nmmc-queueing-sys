@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
 import { VisitWithPatient } from "@/features/triage/types";
 import { notify } from "@/lib/notify";
-import { callPatient, servePatient, noShowPatient, restorePatient } from "../api";
+import { callPatient, servePatient, noShowPatient, restorePatient, transferPatient, CallerApiError } from "../api";
 import { 
     Clock, Users, SpeakerHigh, UserMinus, CheckCircle, Hash, Phone, Heartbeat, Thermometer, Info, ArrowUpRight, ArrowSquareOut
 } from "@phosphor-icons/react";
@@ -13,9 +13,9 @@ import { getDepartments } from "@/features/shared/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect } from "react";
-import { transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
 import { calculateAge } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 
 export default function UserCallerDashboard({
@@ -25,6 +25,7 @@ export default function UserCallerDashboard({
     department: string;
     initialQueue?: VisitWithPatient[];
 }) {
+    const router = useRouter();
     const isAvailable = true;
     const { 
         activeTab, setActiveTab, 
@@ -56,6 +57,30 @@ export default function UserCallerDashboard({
     const noShowList = departmentQueue.filter(v => v.status === "NO_SHOW");
     const nextVisit = waitingList.length > 0 ? waitingList[0] : (referralList.length > 0 ? referralList[0] : null);
 
+    const handleCallerApiError = (error: unknown, fallbackMessage: string) => {
+        if (error instanceof CallerApiError) {
+            if (error.code === "CLAIM_CONFLICT") {
+                notify.error("Patient already claimed by another caller.", {
+                    description: "Queue refreshed to show latest ownership.",
+                });
+                router.refresh();
+                return;
+            }
+
+            if (error.code === "CLAIM_FORBIDDEN_SCOPE") {
+                notify.error("Not allowed for this station/department.", {
+                    description: "Your account assignment does not match this patient.",
+                });
+                return;
+            }
+
+            notify.error(error.message || fallbackMessage);
+            return;
+        }
+
+        notify.error(fallbackMessage);
+    };
+
     // Action Handlers
     const handleCallNext = async () => {
         if (!nextVisit) return notify.info("No more patients in the waiting list.");
@@ -65,8 +90,8 @@ export default function UserCallerDashboard({
         try {
             await callPatient(nextVisit.id);
             notify.success(`Calling patient P-${nextVisit.ticketNumber?.toString() ?? 'N/A'}`);
-        } catch {
-            notify.error("Failed to call patient.");
+        } catch (error) {
+            handleCallerApiError(error, "Failed to call patient.");
         } finally {
             setIsProcessing(false);
         }
@@ -78,8 +103,8 @@ export default function UserCallerDashboard({
         try {
             await servePatient(inProgressVisit.id);
             notify.success("Patient consultation completed.");
-        } catch {
-            notify.error("Failed to mark patient as served.");
+        } catch (error) {
+            handleCallerApiError(error, "Failed to mark patient as served.");
         } finally {
             setIsProcessing(false);
         }
@@ -92,8 +117,8 @@ export default function UserCallerDashboard({
         try {
             await noShowPatient(targetVisit.id);
             notify.error(`Patient P-${targetVisit.ticketNumber?.toString() ?? 'N/A'} marked as NO SHOW`);
-        } catch {
-            notify.error("Failed to process No Show.");
+        } catch (error) {
+            handleCallerApiError(error, "Failed to process No Show.");
         } finally {
             setIsProcessing(false);
         }
@@ -106,15 +131,11 @@ export default function UserCallerDashboard({
 
         setIsProcessing(true);
         try {
-            const res = await transferPatient(targetVisit.id, targetDeptId);
-            if (res.success) {
-                notify.success("Patient referred successfully.");
-                resetReferral();
-            } else {
-                notify.error(res.error || "Failed to refer patient.");
-            }
-        } catch {
-            notify.error("An error occurred during referral.");
+            await transferPatient(targetVisit.id, targetDeptId);
+            notify.success("Patient referred successfully.");
+            resetReferral();
+        } catch (error) {
+            handleCallerApiError(error, "An error occurred during referral.");
         } finally {
             setIsProcessing(false);
         }
@@ -125,8 +146,8 @@ export default function UserCallerDashboard({
         try {
             await restorePatient(visitId);
             notify.success("Patient restored to active queue.");
-        } catch {
-            notify.error("Failed to restore patient.");
+        } catch (error) {
+            handleCallerApiError(error, "Failed to restore patient.");
         } finally {
             setIsProcessing(false);
         }

@@ -9,6 +9,7 @@ import { Department, PriorityCategory } from "@/types/models";
 import { Printer, User, WarningCircle, X, Play } from "@phosphor-icons/react";
 import { useMemo, useState, useTransition } from "react";
 import { assignTicket, noShowTicket, callTicket } from "../actions";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface ReleasingAssignPanelProps {
     selectedPatient: VisitWithPatient;
@@ -264,10 +265,12 @@ export function ReleasingAssignPanel({
                         </div>
                         <div className="min-w-0 pr-4">
                             <h2 className="text-base sm:text-xl font-bold text-foreground leading-tight truncate">
-                                {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}
+                                {selectedPatient.patient.firstName} {selectedPatient.patient.middleName ? `${selectedPatient.patient.middleName} ` : ''}{selectedPatient.patient.lastName}
                             </h2>
                             <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-[11px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
-                                <span>Ticket: <strong className="text-primary">{selectedPatient.ticketNumber ? `#${selectedPatient.ticketNumber}` : 'NO TICKET'}</strong></span>
+                                <span className="flex items-center gap-1">
+                                    Ticket: <strong className="text-primary">{selectedPatient.ticketNumber ? `#${selectedPatient.ticketNumber}` : 'NO TICKET'}</strong>
+                                </span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
                                 <span>{selectedPatient.patient.gender}</span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
@@ -290,15 +293,47 @@ export function ReleasingAssignPanel({
                     </div>
                 </div>
 
-                {/* Triage Handoff Details */}
+                {/* Personal Information & Demographics */}
                 <div className="bg-card border border-border rounded-xl p-3 sm:p-5 lg:p-6 mb-5 sm:mb-7 shadow-sm">
-                    <h4 className="text-xs sm:text-sm font-extrabold text-muted-foreground uppercase tracking-wider mb-3 sm:mb-4">Triage Endorsement</h4>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-muted-foreground uppercase tracking-wider mb-4 border-b border-border pb-2">Personal Information</h4>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Date of Birth</span>
+                            <p className="text-xs font-extrabold text-foreground">
+                                {selectedPatient.patient.dateOfBirth ? new Date(selectedPatient.patient.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '---'}
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Civil Status</span>
+                            <p className="text-xs font-extrabold text-foreground uppercase">{selectedPatient.patient.civilStatus || '---'}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Religion</span>
+                            <p className="text-xs font-extrabold text-foreground uppercase">{selectedPatient.patient.religion || '---'}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Contact Number</span>
+                            <p className="text-xs font-extrabold text-primary">{selectedPatient.patient.contactNo || 'NONE'}</p>
+                        </div>
+                        <div className="col-span-full space-y-1 pt-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Home Address</span>
+                            <p className="text-xs font-bold text-foreground leading-relaxed italic opacity-90">
+                                {selectedPatient.patient.address || 'No address provided'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Triage Handoff Details */}
+                <div className="bg-primary/[0.03] border border-primary/10 rounded-xl p-3 sm:p-5 lg:p-6 mb-5 sm:mb-7 shadow-sm">
+                    <h4 className="text-xs sm:text-sm font-extrabold text-primary/80 uppercase tracking-wider mb-3 sm:mb-4">Triage Endorsement</h4>
                     <div className="space-y-2.5 sm:space-y-3.5">
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-3 sm:gap-4 pb-2 border-b border-border/60">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-3 sm:gap-4 pb-2 border-b border-primary/10">
                             <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">Disposition</span>
                             <span className="text-xs sm:text-sm font-extrabold text-foreground text-right">{selectedPatient.disposition || "Not set"}</span>
                         </div>
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-3 sm:gap-4 pb-2 border-b border-border/60">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-3 sm:gap-4 pb-2 border-b border-primary/10">
                             <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">Classification</span>
                             <span className="text-xs sm:text-sm font-extrabold text-foreground text-right">{selectedPatient.classification}</span>
                         </div>
@@ -309,21 +344,6 @@ export function ReleasingAssignPanel({
                     </div>
                 </div>
 
-                {/* Status Badge */}
-                {!isInWindow && (
-                    <div className="mb-6 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-center justify-between text-orange-600 font-bold text-xs">
-                        <span>⚠ Patient not yet called to window</span>
-                        <Button
-                            size="sm"
-                            onClick={handleCall}
-                            disabled={isPending}
-                            className="h-7 px-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-[9px] uppercase tracking-wider rounded-md gap-1"
-                        >
-                            <Play size={12} weight="fill" />
-                            <span className="hidden sm:inline">Call Now</span>
-                        </Button>
-                    </div>
-                )}
 
                 {/* Quick Actions — No-Show / Call Status */}
                 <div className="mb-6 sm:mb-8">
@@ -365,16 +385,14 @@ export function ReleasingAssignPanel({
                     {!selectedPatient.departmentId && (
                         <div>
                             <Label className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 sm:mb-2 block">Clinic / Department</Label>
-                            <select
-                                className="w-full bg-background border border-border text-foreground text-xs sm:text-sm font-bold rounded-lg h-9 sm:h-10 px-3 sm:px-4 appearance-none outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                            <SearchableSelect
+                                options={departments.map(d => ({ label: d.name, value: d.id }))}
                                 value={selectedDepartmentId}
-                                onChange={(e) => setSelectedDepartmentId(e.target.value)}
-                            >
-                                <option value="" disabled>Select Department...</option>
-                                {departments.map((dept) => (
-                                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                ))}
-                            </select>
+                                onSelect={setSelectedDepartmentId}
+                                placeholder="Select Department..."
+                                searchPlaceholder="Search department..."
+                                className="h-10 text-xs sm:text-sm font-bold rounded-xl"
+                            />
                         </div>
                     )}
                 </div>

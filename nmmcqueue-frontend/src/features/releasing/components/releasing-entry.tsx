@@ -16,7 +16,7 @@ import { Department, PriorityCategory } from "@/types/models";
 import { ArrowsCounterClockwise, ChartBar, Queue, CheckCircle, Play, CaretDown, User } from "@phosphor-icons/react";
 import { useState, useTransition, useEffect } from "react";
 import { notify } from "@/lib/notify";
-import { resetDailyQueue, callNextWindow } from "../actions";
+import { resetDailyQueue, callNextWindow, callTicket } from "../actions";
 import { useReleasingQueue } from "../hooks";
 import { ReleasingAssignPanel } from "./releasing-assign-panel";
 import { ReleasingQueueTable, QueueCategory } from "./releasing-queue-table";
@@ -43,6 +43,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const [resetDialogOpen, setResetDialogOpen] = useState(false);
     const [overrideOpen, setOverrideOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [cooldown, setCooldown] = useState(0);
 
     // History/analytics data for Reports tab
     const { data: analyticsData } = useAnalytics("window");
@@ -51,6 +52,14 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const stationNo = user?.workstation?.stationNo ?? 1;
     const isPriorityWindow = stationNo >= 1 && stationNo <= 2;
 
+    // Call Again Cooldown Timer
+    useEffect(() => {
+        if (cooldown > 0) {
+            const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [cooldown]);
+
     // Auto-select the claimed patient on mount
     useEffect(() => {
         if (currentVisit) {
@@ -58,22 +67,66 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         }
     }, [currentVisit]);
 
-    const hasActivePatient = !!currentVisit || !!selectedPatient;
+    const hasActivePatient = !!currentVisit;
 
-    // ─── Call Next (Claim-Based) ─────────────────────────
+    // Determine if a patient is manually selected and ready to be called
+    const isManuallyCallState = !!(selectedPatient && (selectedPatient.status === 'WAITING_WINDOW' || selectedPatient.status === 'NO_SHOW'));
+
+    // ─── Call Next / Call Selected ───────────────────────
     const handleCallNext = (overrideClassification?: 'PRIORITY' | 'REGULAR') => {
         setOverrideOpen(false);
+
+        // If a patient is manually selected (Waiting or No-Show) and no one is currently being served, call THEM
+        if (isManuallyCallState && !currentVisit && selectedPatient) {
+            startTransition(async () => {
+                const res = await callTicket(selectedPatient.id);
+                if (res?.success) {
+                    notify.success("Patient called to window", {
+                        description: `${selectedPatient.patient.lastName}, ${selectedPatient.patient.firstName} — Window ${stationNo}`
+                    });
+                } else {
+                    notify.error(res?.message || res?.error || "Failed to call selected patient");
+                }
+            });
+            return;
+        }
+
+        // Tab-Aware Calling: If no manual selection, focus on the active tab's category
+        let finalOverride = overrideClassification;
+        if (!finalOverride) {
+            if (activeTab === "PRIORITY") finalOverride = "PRIORITY";
+            else if (activeTab === "REGULAR") finalOverride = "REGULAR";
+        }
+
         startTransition(async () => {
-            const res = await callNextWindow(overrideClassification);
+            const res = await callNextWindow(finalOverride);
             if (res?.success && res.data) {
                 setSelectedPatient(res.data);
                 notify.success("Patient claimed", {
                     description: `${res.data.patient.lastName}, ${res.data.patient.firstName} — Window ${stationNo}`
                 });
             } else if (res?.success && !res.data) {
-                notify.info("Queue is empty", { description: "No patients waiting for window." });
+                notify.info("Queue is empty", { 
+                    description: `No ${finalOverride ? finalOverride.toLowerCase() : 'patients'} waiting for window.` 
+                });
             } else {
                 notify.error(res?.error || "Failed to call next patient");
+            }
+        });
+    };
+
+    const handleCallAgain = () => {
+        if (!currentVisit || cooldown > 0) return;
+        
+        startTransition(async () => {
+            const res = await callTicket(currentVisit.id);
+            if (res?.success) {
+                setCooldown(10); // 10 second cooldown
+                notify.success("Patient called again", {
+                    description: `Ringing bell for ${currentVisit.patient.lastName}, Window ${stationNo}`
+                });
+            } else {
+                notify.error(res?.message || res?.error || "Failed to re-call patient");
             }
         });
     };
@@ -170,7 +223,9 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                         className="flex-1 sm:flex-none h-9 sm:h-10 px-3 sm:px-5 font-bold text-xs sm:text-sm rounded-lg rounded-r-none bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all gap-2 disabled:opacity-50"
                                     >
                                         <Play size={14} weight="fill" />
-                                        <span className="hidden sm:inline">Call Next</span>
+                                        <span className="hidden sm:inline">
+                                            {isManuallyCallState && !currentVisit ? 'Call Selected' : 'Call Next'}
+                                        </span>
                                         <span className="sm:hidden">Call</span>
                                     </Button>
                                     <Button
@@ -235,36 +290,62 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                     {/* ─── Current Patient Banner ─── */}
                     {currentVisit && (
                         <div
-                            className="mt-3 sm:mt-4 border-2 border-primary/30 bg-primary/5 rounded-xl px-3 sm:px-5 py-3 flex items-center gap-3 cursor-pointer hover:bg-primary/10 transition-colors"
+                            className="mt-3 sm:mt-4 border-2 border-primary/30 bg-primary/5 rounded-xl px-3 sm:px-5 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-primary/10 transition-colors"
                             onClick={() => setSelectedPatient(currentVisit)}
                         >
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                                <User size={18} weight="bold" className="text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">Currently Serving • Window {stationNo}</span>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                    <User size={18} weight="bold" className="text-primary" />
                                 </div>
-                                <div className="text-xs sm:text-sm font-bold text-foreground truncate">
-                                    {currentVisit.ticketNumber && (
-                                        <span className="text-primary mr-2">
-                                            {currentVisit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}-{currentVisit.ticketNumber.toString().padStart(2, '0')}
-                                        </span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">Currently Serving • Window {stationNo}</span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                    </div>
+                                    <div className="text-xs sm:text-sm font-bold text-foreground truncate">
+                                        {currentVisit.ticketNumber && (
+                                            <span className="text-primary mr-2">
+                                                {currentVisit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}-{currentVisit.ticketNumber.toString().padStart(2, '0')}
+                                            </span>
+                                        )}
+                                        {currentVisit.patient.lastName}, {currentVisit.patient.firstName}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCallAgain();
+                                    }}
+                                    disabled={isPending || cooldown > 0}
+                                    className="h-8 px-3 bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-widest rounded-lg gap-2 shadow-sm disabled:bg-muted disabled:text-muted-foreground transition-all"
+                                >
+                                    {cooldown > 0 ? (
+                                        <>
+                                            <ArrowsCounterClockwise size={12} weight="bold" className="animate-spin" />
+                                            Reload ({cooldown}s)
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Play size={12} weight="fill" />
+                                            Call Again
+                                        </>
                                     )}
-                                    {currentVisit.patient.lastName}, {currentVisit.patient.firstName}
-                                </div>
+                                </Button>
+                                <span className={`hidden sm:inline text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-widest ${currentVisit.classification === 'PRIORITY' ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                                    {currentVisit.classification}
+                                </span>
                             </div>
-                            <span className={`hidden sm:inline text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-widest ${currentVisit.classification === 'PRIORITY' ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                                {currentVisit.classification}
-                            </span>
                         </div>
                     )}
 
                     <TabsContent value="queue" className="mt-4 sm:mt-6 focus-visible:outline-none">
                         <div className="flex flex-col lg:flex-row h-full w-full gap-3 sm:gap-4 lg:gap-6 pb-4 sm:pb-8">
                             {/* Left Box: Queue Table */}
-                            <div className={`flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${selectedPatient ? "lg:w-[60%] xl:w-[65%]" : "w-full"}`}>
+                            <div className={`flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${selectedPatient ? "lg:w-[55%] xl:w-[55%]" : "w-full"}`}>
                                 <ReleasingQueueTable
                                     items={tabFiltered}
                                     counts={counts}
@@ -283,7 +364,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
                             {/* Right Box: Assignment Panel */}
                             {selectedPatient && (
-                                <div className="flex flex-col w-full lg:w-[40%] xl:w-[35%] animate-in slide-in-from-right-8 fade-in duration-500">
+                                <div className="flex flex-col w-full lg:w-[45%] xl:w-[45%] animate-in slide-in-from-right-8 fade-in duration-500">
                                     <ReleasingAssignPanel
                                         selectedPatient={selectedPatient}
                                         departments={departments}

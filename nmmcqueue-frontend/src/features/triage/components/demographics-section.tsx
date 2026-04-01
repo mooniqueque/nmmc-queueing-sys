@@ -8,6 +8,7 @@ import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { TriageFormValues } from "../schemas";
 import { CalendarBlank, UserCircle, MapPin, IdentificationBadge } from "@phosphor-icons/react";
 import { calculateAge } from "@/lib/utils";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useTriageStore } from "../store/use-triage-store";
 import { PatientLinkDialog } from "./patient-link-dialog";
 
@@ -216,11 +217,33 @@ export function DemographicsSection() {
                 </div>
                 <div className="space-y-2 relative">
                     <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Religion *</Label>
-                    <Input
-                        className="h-10 rounded-lg border-border bg-background px-4 text-xs font-bold transition-all focus:ring-primary/20 focus:border-primary/50"
-                        disabled={disabled}
-                        placeholder="Roman Catholic"
-                        {...register("religion")}
+                    <Controller
+                        control={control}
+                        name="religion"
+                        render={({ field }) => (
+                            <SearchableSelect
+                                options={[
+                                    "Roman Catholic",
+                                    "Islam",
+                                    "Protestantism",
+                                    "Iglesia ni Cristo (INC)",
+                                    "Philippine Independent Church (Aglipayan)",
+                                    "Seventh-day Adventist Church",
+                                    "Members Church of God International (Ang Dating Daan)",
+                                    "Jesus Miracle Crusade",
+                                    "Church of Jesus Christ of Latter-day Saints (Mormons)",
+                                    "Jehovah's Witnesses",
+                                    "Others"
+                                ].map(rel => ({ label: rel, value: rel }))}
+                                value={field.value as string}
+                                onSelect={field.onChange}
+                                placeholder="Select Religion"
+                                searchPlaceholder="Search religion..."
+                                emptyMessage="No religion found."
+                                className="h-10 text-xs font-bold"
+                                disabled={disabled}
+                            />
+                        )}
                     />
                     {errors.religion && <span className="absolute -bottom-5 left-1 text-destructive text-[9px] font-bold uppercase tracking-widest">{errors.religion.message}</span>}
                 </div>

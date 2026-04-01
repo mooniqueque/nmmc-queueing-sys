@@ -1,13 +1,13 @@
 export const dynamic = 'force-dynamic';
 
-import { PageSkeleton } from "@/components/ui/page-skeleton";
+import { LoadingSpinner } from "@/components/ui/page-skeleton";
 import { Suspense } from "react";
-import DepartmentsData from "@/features/admin/components/departments-data";
+import ManageDepartmentsData from "@/features/admin/components/departments-data";
 
-export default function DepartmentsPage() {
+export default function AdminDepartmentsPage() {
     return (
-        <Suspense fallback={<PageSkeleton header="Manage Departments" lines={4} />}>
-            <DepartmentsData />
+        <Suspense fallback={<LoadingSpinner />}>
+            <ManageDepartmentsData />
         </Suspense>
     );
 }

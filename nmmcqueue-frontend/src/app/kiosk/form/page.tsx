@@ -1,5 +1,6 @@
 import { KioskForm } from "@/features/kiosk/components/kiosk-form";
 import ParticlesBackground from "@/components/ui/particles-background";
+import { LoadingSpinner } from "@/components/ui/page-skeleton";
 import { Suspense } from "react";
 
 export default function KioskFormPage() {
@@ -8,7 +9,7 @@ export default function KioskFormPage() {
             <ParticlesBackground />
 
             {/* WRAP WITH SUSPENSE TO READ URL SEARCH PARAMETERS*/}
-            <Suspense fallback={<div className="z-10">Loading form...</div>}>
+            <Suspense fallback={<LoadingSpinner fullPage={false} label="Preparing form..." />}>
                 <KioskForm />
             </Suspense>
         </div>

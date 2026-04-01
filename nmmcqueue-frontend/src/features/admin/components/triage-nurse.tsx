@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { StatsCard } from './stats-card';
 import { AdminHeader } from "@/components/layouts/admin-header";
 import { SessionUser } from "@/types/auth";
@@ -35,17 +35,17 @@ export default function TriageNurseStats({
                 {/* Filter Bar */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Select value={departmentId} onValueChange={setDepartmentId}>
-                            <SelectTrigger className="w-52 h-9">
-                                <SelectValue placeholder="All Departments" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ALL">General Statistics</SelectItem>
-                                {departments.map(d => (
-                                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={[
+                                { label: "General Statistics", value: "ALL" },
+                                ...departments.map(d => ({ label: d.name, value: d.id }))
+                            ]}
+                            value={departmentId}
+                            onSelect={setDepartmentId}
+                            placeholder="All Departments"
+                            searchPlaceholder="Search department..."
+                            className="w-52 h-9"
+                        />
                     </div>
                     <div className="flex items-center gap-2">
                         <div className={cn("size-2 rounded-full", isLoading ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />

@@ -29,6 +29,7 @@ export interface AnalyticsData {
     hourlyVolume: { hour: string; patients: number }[];
     classificationBreakdown: { name: string; count: number }[];
     departmentBreakdown: { department: string; patients: number }[];
+    staffBreakdown: { name: string; count: number }[];
     statusDistribution: { status: string; count: number }[];
     recentHistory: HistoryItem[];
     generatedAt: string;
@@ -39,6 +40,7 @@ const EMPTY_DATA: AnalyticsData = {
     hourlyVolume: [],
     classificationBreakdown: [],
     departmentBreakdown: [],
+    staffBreakdown: [],
     statusDistribution: [],
     recentHistory: [],
     generatedAt: new Date().toISOString(),

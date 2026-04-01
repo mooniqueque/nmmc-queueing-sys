@@ -4,6 +4,14 @@ import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import { getDepartments } from "@/features/shared/api";
 import { VisitWithPatient } from "@/features/triage/types";
 import { notify } from "@/lib/notify";
@@ -20,7 +28,8 @@ import {
     SpeakerHigh,
     Thermometer,
     UserMinus,
-    Users
+    Users,
+    CaretDown
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -68,9 +77,18 @@ export default function UserCallerDashboard({
     // Simplistic handling of what is "Now Serving" vs "Waitlist"
     const inProgressVisit = departmentQueue.find(v => v.status === "IN_PROGRESS");
     const waitingList = departmentQueue.filter(v => v.status === "WAITING_CLINIC" && !v.isReferred);
+    
+    // Separate by classification
+    const regularWaitingList = waitingList.filter(v => v.classification === "REGULAR");
+    const priorityWaitingList = waitingList.filter(v => v.classification === "PRIORITY");
+
     const referralList = departmentQueue.filter(v => v.status === "WAITING_CLINIC" && v.isReferred);
     const noShowList = departmentQueue.filter(v => v.status === "NO_SHOW");
-    const nextVisit = waitingList.length > 0 ? waitingList[0] : (referralList.length > 0 ? referralList[0] : null);
+
+    // Dynamic next visit based on selected tab or defaults (Priority first)
+    const nextVisit = waitingList.length > 0 ? (
+        priorityWaitingList.length > 0 ? priorityWaitingList[0] : regularWaitingList[0]
+    ) : (referralList.length > 0 ? referralList[0] : null);
 
     const handleCallerApiError = (error: unknown, fallbackMessage: string) => {
         if (error instanceof CallerApiError) {
@@ -97,14 +115,26 @@ export default function UserCallerDashboard({
     };
 
     // Action Handlers
-    const handleCallNext = async () => {
-        if (!nextVisit) return notify.info("No more patients in the waiting list.");
+    const handleCallNext = async (type?: "REGULAR" | "PRIORITY") => {
+        let targetVisit = nextVisit;
+
+        // If specific type requested, override targetVisit
+        if (type === "PRIORITY") {
+            if (priorityWaitingList.length === 0) return notify.info("No priority patients waiting.");
+            targetVisit = priorityWaitingList[0];
+        } else if (type === "REGULAR") {
+            if (regularWaitingList.length === 0) return notify.info("No regular patients waiting.");
+            targetVisit = regularWaitingList[0];
+        }
+
+        if (!targetVisit) return notify.info("No more patients in the waiting list.");
         if (inProgressVisit) return notify.error("Please Mark Served or No Show the current patient first.");
 
         setIsProcessing(true);
         try {
-            await callPatient(nextVisit.id);
-            notify.success(`Calling patient P-${nextVisit.ticketNumber?.toString() ?? 'N/A'}`);
+            await callPatient(targetVisit.id);
+            const label = targetVisit.classification === "PRIORITY" ? "(Priority)" : "";
+            notify.success(`Calling patient P-${targetVisit.ticketNumber?.toString() ?? 'N/A'} ${label}`);
         } catch (error) {
             handleCallerApiError(error, "Failed to call patient.");
         } finally {
@@ -180,7 +210,11 @@ export default function UserCallerDashboard({
                         <h2 className="text-lg font-bold tracking-tight text-foreground">{department}</h2>
                         <div className="flex items-center gap-3 mt-1">
                             <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary" /> {waitingList.length} Active
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary" /> {waitingList.length} Waiting
+                            </span>
+                            <span className="w-1 h-1 rounded-full bg-border" />
+                            <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {priorityWaitingList.length} Priority
                             </span>
                             <span className="w-1 h-1 rounded-full bg-border" />
                             <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
@@ -200,13 +234,23 @@ export default function UserCallerDashboard({
                 {/* Tabs */}
                 <div className="flex border-b border-border bg-background">
                     <button
-                        onClick={() => setActiveTab("pending")}
-                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "pending" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        onClick={() => setActiveTab("regular")}
+                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "regular" ? "text-primary" : "text-muted-foreground hover:text-foreground"
                             }`}
                     >
-                        Active ({waitingList.length})
-                        {activeTab === "pending" && (
+                        Regular ({regularWaitingList.length})
+                        {activeTab === "regular" && (
                             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("priority")}
+                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "priority" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                            }`}
+                    >
+                        Priority ({priorityWaitingList.length})
+                        {activeTab === "priority" && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
                         )}
                     </button>
                     <button
@@ -243,17 +287,17 @@ export default function UserCallerDashboard({
 
                 {/* List Body */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
-                    {activeTab === "pending" ? (
-                        waitingList.length === 0 ? (
+                    {activeTab === "regular" ? (
+                        regularWaitingList.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-12 text-center h-full">
                                 <CheckCircle size={48} className="mb-4 text-primary/20" weight="duotone" />
-                                <p className="text-lg font-bold text-foreground">Queue is Clear</p>
-                                <p className="text-sm font-medium text-muted-foreground mt-1">No patients waiting for this clinic.</p>
+                                <p className="text-lg font-bold text-foreground">Regular Queue Clear</p>
+                                <p className="text-sm font-medium text-muted-foreground mt-1">No regular patients waiting for this clinic.</p>
                             </div>
                         ) : (
                             <div className="flex flex-col">
-                                {waitingList.map((visit, index) => {
-                                    const isNext = index === 0 && !inProgressVisit;
+                                {regularWaitingList.map((visit, index) => {
+                                    const isNext = index === 0 && !inProgressVisit && priorityWaitingList.length === 0;
                                     const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
                                     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
 
@@ -267,7 +311,7 @@ export default function UserCallerDashboard({
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`text-base font-bold ${isNext ? "text-primary" : "text-muted-foreground"}`}>
-                                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : 'NO TICKET'}
+                                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : '---'}
                                                     </span>
                                                     {isNext && (
                                                         <span className="bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-primary/20">
@@ -283,6 +327,55 @@ export default function UserCallerDashboard({
                                             <div className="flex justify-between items-end">
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-sm text-foreground transition-colors group-hover:text-primary">
+                                                        {visit.patient.lastName}, <span className="text-muted-foreground font-medium">{visit.patient.firstName}</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )
+                    ) : activeTab === "priority" ? (
+                        priorityWaitingList.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+                                <Users size={48} className="mb-4 text-amber-500/20" weight="duotone" />
+                                <p className="text-lg font-bold text-foreground">Priority Queue Clear</p>
+                                <p className="text-sm font-medium text-muted-foreground mt-1">No priority patients (Senior/PWD/Pregnant) waiting.</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col">
+                                {priorityWaitingList.map((visit, index) => {
+                                    const isNext = index === 0 && !inProgressVisit;
+                                    const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
+                                    const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
+
+                                    return (
+                                        <div
+                                            key={visit.id}
+                                            className={`p-5 border-b border-border relative transition-all group ${isNext ? "bg-amber-50/50" : "bg-transparent hover:bg-muted/10"
+                                                }`}
+                                        >
+                                            {isNext && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />}
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-base font-bold ${isNext ? "text-amber-600" : "text-muted-foreground"}`}>
+                                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : '---'}
+                                                    </span>
+                                                    {isNext && (
+                                                        <span className="bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-amber-200">
+                                                            Priority
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] font-bold border border-border">
+                                                    <Clock size={12} weight="bold" /> {waitStr}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between items-end">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-sm text-foreground transition-colors group-hover:text-amber-600">
                                                         {visit.patient.lastName}, <span className="text-muted-foreground font-medium">{visit.patient.firstName}</span>
                                                     </span>
                                                 </div>
@@ -529,13 +622,46 @@ export default function UserCallerDashboard({
                                             <CheckCircle size={18} weight="fill" className="mr-2" /> Mark Served
                                         </Button>
                                     ) : (
-                                        <Button
-                                            onClick={handleCallNext}
-                                            disabled={isProcessing || !nextVisit}
-                                            className="w-full md:w-auto h-12 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:-translate-y-0.5 active:scale-[0.98] animate-in fade-in zoom-in duration-300"
-                                        >
-                                            <SpeakerHigh size={18} weight="fill" className="mr-2" /> Call Patient
-                                        </Button>
+                                        <div className="flex items-center">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        disabled={isProcessing || !nextVisit}
+                                                        className="w-full md:w-auto h-12 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:-translate-y-0.5 active:scale-[0.98] animate-in fade-in zoom-in duration-300"
+                                                    >
+                                                        <SpeakerHigh size={18} weight="fill" className="mr-2" /> 
+                                                        Call Patient
+                                                        <CaretDown size={14} weight="bold" className="ml-3 opacity-50" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-56 rounded-xl border-border shadow-xl p-2">
+                                                    <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                        Queue Selection
+                                                    </div>
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleCallNext()}
+                                                        className="h-11 rounded-lg font-bold text-sm focus:bg-primary/5 focus:text-primary transition-colors gap-3 px-4"
+                                                    >
+                                                        <SpeakerHigh size={16} weight="fill" /> Call Auto (Priority First)
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleCallNext("PRIORITY")}
+                                                        disabled={priorityWaitingList.length === 0}
+                                                        className="h-11 rounded-lg font-bold text-sm focus:bg-amber-50 focus:text-amber-600 transition-colors gap-3 px-4"
+                                                    >
+                                                        <div className="w-2 h-2 rounded-full bg-amber-500" /> Call Priority ({priorityWaitingList.length})
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleCallNext("REGULAR")}
+                                                        disabled={regularWaitingList.length === 0}
+                                                        className="h-11 rounded-lg font-bold text-sm focus:bg-primary/5 focus:text-primary transition-colors gap-3 px-4"
+                                                    >
+                                                        <div className="w-2 h-2 rounded-full bg-primary" /> Call Regular ({regularWaitingList.length})
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     )}
                                 </div>
 
@@ -557,21 +683,17 @@ export default function UserCallerDashboard({
 
                     <div className="py-8">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 block">Target Department</label>
-                        <Select onValueChange={setTargetDeptId} value={targetDeptId}>
-                            <SelectTrigger className="h-12 rounded-xl border-border bg-muted/30 font-bold focus:ring-primary/20">
-                                <SelectValue placeholder="Choose department..." />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-border shadow-xl">
-                                {allDepartments
-                                    .filter(d => d.name.toUpperCase() !== department.toUpperCase())
-                                    .map(dept => (
-                                        <SelectItem key={dept.id} value={dept.id} className="font-bold text-foreground p-3 rounded-lg focus:bg-primary/5 focus:text-primary group">
-                                            {dept.name}
-                                        </SelectItem>
-                                    ))
-                                }
-                            </SelectContent>
-                        </Select>
+                        <SearchableSelect 
+                            options={allDepartments
+                                .filter(d => d.name.toUpperCase() !== department.toUpperCase())
+                                .map(dept => ({ label: dept.name, value: dept.id }))
+                            }
+                            value={targetDeptId}
+                            onSelect={setTargetDeptId}
+                            placeholder="Choose department..."
+                            searchPlaceholder="Search department..."
+                            className="h-12 text-sm font-bold rounded-xl"
+                        />
                     </div>
 
                     <DialogFooter className="flex gap-3 sm:justify-end">

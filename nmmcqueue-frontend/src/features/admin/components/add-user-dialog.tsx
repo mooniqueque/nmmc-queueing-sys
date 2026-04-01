@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
     Dialog,
     DialogContent,
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
     Select,
     SelectContent,
@@ -21,10 +19,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { notify } from "@/lib/notify";
-import { cn } from "@/lib/utils";
 import { Department, WorkStation, WorkstationType } from "@/types/models";
-import { CaretUpDown, Check, UserPlus } from '@phosphor-icons/react';
+import { UserPlus } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { adminCreateUser } from '../user-actions';
@@ -38,7 +36,6 @@ import { getWorkstations } from '../workstation-actions';
 export function AddUserDialog({ departments = [] }: { departments?: Department[] }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
-    const [openDept, setOpenDept] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -187,54 +184,15 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="dept" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dept</Label>
                                 <div className="col-span-3">
-                                    <Popover open={openDept} onOpenChange={setOpenDept}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openDept}
-                                                className="w-full justify-between font-normal"
-                                            >
-                                                <span className="truncate">
-                                                    {formData.department
-                                                        ? departments.find((dept) => dept.name === formData.department)?.name
-                                                        : "Search department..."}
-                                                </span>
-                                                <CaretUpDown weight="bold" className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-(--radix-popover-trigger-width) p-0 z-50" align="start">
-                                            <Command>
-                                                <CommandInput placeholder="Search department..." className="h-9" />
-                                                <CommandList>
-                                                    <CommandEmpty>No department found.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {departments.map((dept) => (
-                                                            <CommandItem
-                                                                key={dept.id}
-                                                                value={dept.name}
-                                                                onSelect={(currentValue) => {
-                                                                    const actualValue = departments.find(
-                                                                        (d) => d.name.toLowerCase() === currentValue.toLowerCase()
-                                                                    )?.name || currentValue;
-                                                                    setFormData({ ...formData, department: actualValue === formData.department ? "" : actualValue });
-                                                                    setOpenDept(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        formData.department === dept.name ? "opacity-100" : "opacity-0"
-                                                                    )}
-                                                                />
-                                                                {dept.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
+                                    <SearchableSelect
+                                        options={departments.map((dept) => ({ label: dept.name, value: dept.name }))}
+                                        value={formData.department}
+                                        onSelect={(val: string) => setFormData({ ...formData, department: val })}
+                                        placeholder="Search department..."
+                                        searchPlaceholder="Search department..."
+                                        emptyMessage="No department found."
+                                        className="font-normal"
+                                    />
                                 </div>
                             </div>
                         )}

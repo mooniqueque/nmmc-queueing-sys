@@ -69,6 +69,9 @@ export async function getAnalytics(query: AnalyticsQuery) {
             patient: { select: { firstName: true, lastName: true } },
             department: { select: { name: true, code: true } },
             categories: { include: { category: { select: { name: true, code: true, isPriority: true } } } },
+            windowClaimedBy: { select: { name: true } },
+            triagedByUser: { select: { name: true } },
+            calledByUser: { select: { name: true } },
         },
         orderBy: { createdAt: 'desc' },
     });
@@ -127,6 +130,20 @@ export async function getAnalytics(query: AnalyticsQuery) {
         .map(([department, patients]) => ({ department, patients }))
         .sort((a, b) => b.patients - a.patients);
 
+    // ─── Staff Breakdown ──────────────
+    const staffMap = new Map<string, number>();
+    for (const v of (visits as any)) {
+        let staffName = 'UNASSIGNED';
+        if (scope === 'window') staffName = v.windowClaimedBy?.name || 'UNASSIGNED';
+        else if (scope === 'triage') staffName = v.triagedByUser?.name || 'UNASSIGNED';
+        else if (scope === 'clinic') staffName = v.calledByUser?.name || 'UNASSIGNED';
+
+        staffMap.set(staffName, (staffMap.get(staffName) ?? 0) + 1);
+    }
+    const staffBreakdown = Array.from(staffMap.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
     // ─── Status Distribution ──────────────
     const statusMap = new Map<string, number>();
     for (const v of visits) {
@@ -159,6 +176,7 @@ export async function getAnalytics(query: AnalyticsQuery) {
         hourlyVolume,
         classificationBreakdown,
         departmentBreakdown,
+        staffBreakdown,
         statusDistribution,
         recentHistory,
         generatedAt: new Date().toISOString(),

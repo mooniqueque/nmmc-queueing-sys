@@ -10,9 +10,8 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { submitTriageForm, markNoShow } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
-import { CaretDoubleRight, Printer, WarningCircle, Tag, CaretDown, Check, XCircle } from "@phosphor-icons/react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CaretDoubleRight, Printer, WarningCircle, Tag, XCircle } from "@phosphor-icons/react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getQueueOptions, getDepartments } from "@/features/shared/api";
@@ -238,45 +237,16 @@ export function TriageForm() {
                                             name="departmentId"
                                             render={({ field }) => (
                                                 <div className="relative">
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <button
-                                                            type="button"
-                                                            role="combobox"
-                                                            className={`flex items-center justify-between w-full h-11 px-3 rounded-xl bg-white text-sm font-bold transition-all border ${methods.formState.errors.departmentId ? 'border-destructive ring-1 ring-destructive/20 text-destructive' : 'border-slate-300 text-slate-800'}`}
-                                                        >
-                                                            {field.value
-                                                                ? departments.find((dept) => dept.id === field.value)?.name || "Select Department"
-                                                                : <span className="font-normal text-slate-500 opacity-80">Select Department</span>}
-                                                            <CaretDown className="h-4 w-4 opacity-50" />
-                                                        </button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[300px] p-0 rounded-xl border-slate-300 shadow-2xl bg-white" align="start">
-                                                        <Command>
-                                                            <CommandInput placeholder="Search department..." className="h-11 font-medium" />
-                                                            <CommandList className="max-h-[200px] overflow-y-auto overflow-x-hidden custom-scrollbar">
-                                                                <CommandEmpty className="py-4 text-center text-sm font-medium text-slate-500">No department found.</CommandEmpty>
-                                                                <CommandGroup>
-                                                                    {departments.map((dept) => (
-                                                                        <CommandItem
-                                                                            key={dept.id}
-                                                                            value={dept.name}
-                                                                            onSelect={() => {
-                                                                                field.onChange(dept.id);
-                                                                                // The Shadcn Command trigger doesn't auto close by default on raw select sometimes without ref or popover state hook, but typically it will just update
-                                                                            }}
-                                                                            className="font-bold py-2 cursor-pointer data-[selected=true]:bg-slate-100 text-slate-800"
-                                                                        >
-                                                                            <Check className={`mr-2 h-4 w-4 ${field.value === dept.id ? "opacity-100" : "opacity-0"}`} />
-                                                                            {dept.name}
-                                                                        </CommandItem>
-                                                                    ))}
-                                                                </CommandGroup>
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
-                                                {methods.formState.errors.departmentId && <span className="text-destructive text-[10px] font-bold uppercase tracking-widest mt-1 absolute block">{methods.formState.errors.departmentId.message}</span>}
+                                                    <SearchableSelect
+                                                        options={departments.map(dept => ({ label: dept.name, value: dept.id }))}
+                                                        value={field.value}
+                                                        onSelect={field.onChange}
+                                                        placeholder="Select Department"
+                                                        searchPlaceholder="Search department..."
+                                                        emptyMessage="No department found."
+                                                        className={methods.formState.errors.departmentId ? 'border-destructive ring-1 ring-destructive/20 text-destructive' : 'text-slate-800'}
+                                                    />
+                                                    {methods.formState.errors.departmentId && <span className="text-destructive text-[10px] font-bold uppercase tracking-widest mt-1 absolute block">{methods.formState.errors.departmentId.message}</span>}
                                                 </div>
                                             )}
                                         />

@@ -1,12 +1,12 @@
 import { getQueueOptionsByDepartment } from '@/features/admin/queue-option-actions';
 import { getDepartments } from '@/features/admin/department-actions';
-import { Department } from "@/types/models";
+import { Department } from "@/shared/types/models";
 import { connection } from "next/server";
 import { getPendingQueue, getMyCurrentWindowVisit } from '../actions';
 import { ReleasingEntry } from './releasing-entry';
 import { getServerHeaders } from "@/lib/api/server";
 import { API_URL } from "@/lib/api";
-import { SessionUser } from "@/types/auth";
+import { SessionUser } from "@/shared/types/auth";
 
 export default async function ReleasingData() {
     await connection();

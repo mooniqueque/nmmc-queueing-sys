@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAnalytics } from "@/features/shared/hooks/use-analytics";
-import { SessionUser } from "@/types/auth";
+import { SessionUser } from "@/shared/types/auth";
 import { 
     FileText, 
     Printer, 

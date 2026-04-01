@@ -12,15 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VisitWithPatient } from "@/features/triage/types";
-import { Department, PriorityCategory } from "@/types/models";
+import { Department, PriorityCategory } from "@/shared/types/models";
 import { ArrowsCounterClockwise, ChartBar, Queue, CheckCircle, Play, CaretDown, User } from "@phosphor-icons/react";
 import { useState, useTransition, useEffect } from "react";
-import { notify } from "@/lib/notify";
+import { notify } from "@/shared/lib/notify";
 import { resetDailyQueue, callNextWindow, callTicket } from "../actions";
 import { useReleasingQueue } from "../hooks";
 import { ReleasingAssignPanel } from "./releasing-assign-panel";
 import { ReleasingQueueTable, QueueCategory } from "./releasing-queue-table";
-import { SessionUser } from "@/types/auth";
+import { SessionUser } from "@/shared/types/auth";
 import { useAnalytics } from "@/features/shared/hooks/use-analytics";
 import { HistoryTable } from "@/features/shared/components/history-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

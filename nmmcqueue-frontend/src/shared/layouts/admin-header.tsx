@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { authClient } from "@/lib/database/auth-client";
-import { SessionUser } from "@/types/auth";
+import { SessionUser } from "@/shared/types/auth";
 import { Gear, SignOut } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
 

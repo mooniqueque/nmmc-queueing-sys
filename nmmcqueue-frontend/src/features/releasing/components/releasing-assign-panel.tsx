@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { VisitWithPatient } from "@/features/triage/types";
-import { notify } from "@/lib/notify";
-import { calculateAge } from "@/lib/utils";
-import { Department, PriorityCategory } from "@/types/models";
+import { notify } from "@/shared/lib/notify";
+import { calculateAge } from "@/shared/lib/utils";
+import { Department, PriorityCategory } from "@/shared/types/models";
 import { Printer, User, WarningCircle, X, Play } from "@phosphor-icons/react";
 import { useMemo, useState, useTransition } from "react";
 import { assignTicket, noShowTicket, callTicket } from "../actions";

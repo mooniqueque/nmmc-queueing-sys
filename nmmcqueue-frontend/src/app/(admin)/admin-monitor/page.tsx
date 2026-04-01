@@ -1,7 +1,7 @@
-import QueueMonitor from "@/features/admin/components/monitor";
+import QueueMonitor from "@/features/admin/components/clinic-queue-monitor-page";
 import { auth } from "@/lib/database/auth";
+import { SessionUser } from "@/shared/types/auth";
 import { headers } from "next/headers";
-import { SessionUser } from "@/types/auth";
 
 export default async function MonitorPage({
     searchParams,

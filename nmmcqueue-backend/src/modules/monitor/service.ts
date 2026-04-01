@@ -13,34 +13,43 @@ class MonitorService {
             orderBy: { stationNo: 'asc' }
         });
 
+        const activeVisits = await db.visit.findMany({
+            where: {
+                status: 'IN_WINDOW',
+                sequenceKey: { startsWith: 'WINDOW' },
+                createdAt: { gte: today, lt: tomorrow },
+                windowNumber: { not: null },
+            },
+            orderBy: [{ calledAt: 'desc' }],
+            select: {
+                windowNumber: true,
+                ticketNumber: true,
+                classification: true,
+                calledAt: true,
+                categories: {
+                    include: {
+                        category: true,
+                    },
+                },
+            },
+        });
+
+        const latestVisitByWindow = new Map<number, (typeof activeVisits)[number]>();
+        for (const visit of activeVisits) {
+            if (visit.windowNumber == null) continue;
+            if (!latestVisitByWindow.has(visit.windowNumber)) {
+                latestVisitByWindow.set(visit.windowNumber, visit);
+            }
+        }
+
         const formatTicket = (ticketNo: number | null | undefined, classification: string | null | undefined) => {
             if (!ticketNo) return null;
             const prefix = classification === 'PRIORITY' ? 'PRIO' : 'REG';
             return `${prefix}-${String(ticketNo)}`;
         };
 
-        // For each window, find the currently serving ticket (IN_WINDOW)
-        const status = await Promise.all(windows.map(async (window) => {
-            const currentVisit = await db.visit.findFirst({
-                where: {
-                    windowNumber: window.stationNo,
-                    status: 'IN_WINDOW',
-                    sequenceKey: { startsWith: 'WINDOW' },
-                    createdAt: { gte: today, lt: tomorrow }
-                },
-                orderBy: { calledAt: 'desc' },
-                select: {
-                    ticketNumber: true,
-                    classification: true,
-                    calledAt: true,
-                    categories: {
-                        include: {
-                            category: true
-                        }
-                    }
-                }
-            });
-
+        const status = windows.map((window) => {
+            const currentVisit = latestVisitByWindow.get(window.stationNo);
             return {
                 windowName: window.name,
                 stationNo: window.stationNo,
@@ -49,7 +58,7 @@ class MonitorService {
                 calledAt: currentVisit?.calledAt || null,
                 categories: currentVisit?.categories.map(vc => vc.category)
             };
-        }));
+        });
 
         const waitlistVisits = await db.visit.findMany({
             where: {

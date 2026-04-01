@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { notify } from "@/lib/notify";
-import { Department } from "@/types/models";
+import { notify } from "@/shared/lib/notify";
+import { Department } from "@/shared/types/models";
 import { Trash } from "@phosphor-icons/react";
 import { useState } from "react";
 import { createQueueOption, deleteQueueOption } from "../../queue-option-actions";
 
 
-import { PriorityCategory } from "@/types/models";
+import { PriorityCategory } from "@/shared/types/models";
 
 type QueueOptionsByDepartment = Record<string, PriorityCategory[]>;
 

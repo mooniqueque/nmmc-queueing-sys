@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { WorkStation, Department, WorkstationType } from "@/types/models";
+import { WorkStation, Department, WorkstationType } from "@/shared/types/models";
 import { createWorkstation } from "@/features/admin/workstation-actions";
 
 type WorkstationFormProps = {

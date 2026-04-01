@@ -20,7 +20,7 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog";
 import { AlertCircle, RotateCcw } from "lucide-react";
-import { notify } from "@/lib/notify";
+import { notify } from "@/shared/lib/notify";
 import { resetDailySequences } from "../../settings-actions";
 
 export default function ResetServices() {

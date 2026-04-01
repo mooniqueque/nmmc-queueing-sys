@@ -1,6 +1,6 @@
 "use client";
 
-import { WorkStation, Department } from "@/types/models";
+import { WorkStation, Department } from "@/shared/types/models";
 import { WorkstationForm } from "../workstation/WorkstationForm";
 import { WorkstationList } from "../workstation/WorkstationList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

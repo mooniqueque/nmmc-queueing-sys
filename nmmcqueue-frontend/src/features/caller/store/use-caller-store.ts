@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Department } from "@/types/models";
+import { Department } from "@/shared/types/models";
 
 export type CallerTab = "regular" | "priority" | "noshow" | "referrals" | "history";
 

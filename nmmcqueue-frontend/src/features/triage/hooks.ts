@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { VisitWithPatient } from "./types";
-import { useLiveQueue } from "@/hooks/use-live-queue";
+import { useLiveQueue } from "@/shared/hooks/use-live-queue";
 
 export type TabType = "ACTIVE" | "NO_SHOW" | "HISTORY";
 

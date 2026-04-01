@@ -20,8 +20,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { notify } from "@/lib/notify";
-import { Department, WorkStation, WorkstationType } from "@/types/models";
+import { notify } from "@/shared/lib/notify";
+import { Department, WorkStation, WorkstationType } from "@/shared/types/models";
 import { UserPlus } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

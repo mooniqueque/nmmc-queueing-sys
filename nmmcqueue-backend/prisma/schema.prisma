@@ -244,6 +244,10 @@ model Visit {
   @@index([createdAt])
   @@index([classification])
   @@index([status, classification, createdAt])
+  @@index([windowNumber, status, createdAt, calledAt])
+  @@index([windowClaimedById, status, createdAt])
+  @@index([triageClaimedById, status, createdAt])
+  @@index([departmentId, status, queueDate])
   @@unique([queueDate, sequenceKey, ticketNumber])
   @@map("visit")
 }

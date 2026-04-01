@@ -6,11 +6,16 @@ eventBus.setMaxListeners(500);
 
 // Global topic for everyone (e.g., Triage, general TV monitors)
 const GLOBAL_TOPIC = 'queue-updated:global';
+const HEARTBEAT_INTERVAL_MS = 25000;
 
 export const setupSSEConnection = (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof res.flushHeaders === 'function') {
+        res.flushHeaders();
+    }
     res.write('data: {"type": "connected"}\n\n');
 
     const topicParam = req.query.topic;
@@ -34,12 +39,29 @@ export const setupSSEConnection = (req: Request, res: Response) => {
         eventBus.on(GLOBAL_TOPIC, onQueueUpdate);
     }
 
-    req.on('close', () => {
+    const heartbeatId = setInterval(() => {
+        if (res.writableEnded) return;
+        // SSE comment line keeps proxies/load balancers from closing idle connections.
+        res.write(': heartbeat\n\n');
+    }, HEARTBEAT_INTERVAL_MS);
+
+    let cleanedUp = false;
+    const cleanup = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
+        clearInterval(heartbeatId);
         eventBus.off(topic, onQueueUpdate);
         if (topic !== GLOBAL_TOPIC) {
             eventBus.off(GLOBAL_TOPIC, onQueueUpdate);
         }
+    };
+
+    req.on('close', () => {
+        cleanup();
     });
+    req.on('aborted', cleanup);
+    res.on('close', cleanup);
+    res.on('error', cleanup);
 };
 
 import { db } from '../config/database.js';

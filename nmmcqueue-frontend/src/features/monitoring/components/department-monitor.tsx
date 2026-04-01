@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 
 import { useWindowMonitor, WindowStatus } from "@/features/monitoring/hooks/use-window-monitor";
 import { CallOverlay } from "@/features/monitoring/components/call-overlay";
-import { useCurrentTime } from "@/hooks/use-current-time";
+import { useCurrentTime } from "@/shared/hooks/use-current-time";
 import { API_URL } from "@/lib/api";
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import { API_URL } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
 
 const BACKEND_URL = API_URL;
 
@@ -49,9 +49,6 @@ export function useWindowMonitor(slugOrId?: string) {
         fetchStatus();
         const topic = slugOrId || 'WINDOW';
         const eventSource = new EventSource(`${BACKEND_URL}/monitor/stream?topic=${topic}`, { withCredentials: true });
-        const intervalId = setInterval(() => {
-            fetchStatus();
-        }, 5000);
 
         eventSource.onmessage = (event) => {
             try {
@@ -66,7 +63,6 @@ export function useWindowMonitor(slugOrId?: string) {
 
         return () => {
             eventSource.close();
-            clearInterval(intervalId);
         };
     }, [fetchStatus, slugOrId]);
 

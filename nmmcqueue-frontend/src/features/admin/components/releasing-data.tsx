@@ -1,12 +1,12 @@
-import { getQueueOptionsByDepartment } from '@/features/admin/queue-option-actions';
 import { getDepartments } from '@/features/admin/department-actions';
+import { getQueueOptionsByDepartment } from '@/features/admin/queue-option-actions';
 import { getReleasingQueue } from '@/features/admin/releasing-actions';
 import { auth } from "@/lib/database/auth";
-import { SessionUser } from "@/types/auth";
-import { Department, Visit } from "@/types/models";
+import { SessionUser } from "@/shared/types/auth";
+import { Department, Visit } from "@/shared/types/models";
 import { headers } from "next/headers";
 import { connection } from "next/server";
-import ReleasingDashboard from './releasing';
+import ReleasingDashboard from './releasing-analytics-dashboard';
 
 export default async function ReleasingData() {
     await connection();

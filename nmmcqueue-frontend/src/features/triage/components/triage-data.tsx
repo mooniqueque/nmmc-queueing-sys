@@ -3,7 +3,7 @@ import { getPendingQueue, getMyCurrentTriageVisit } from "../actions";
 import { TriageEntry } from "./triage-entry";
 import { getServerHeaders } from "@/lib/api/server";
 import { API_URL } from "@/lib/api";
-import { SessionUser } from "@/types/auth";
+import { SessionUser } from "@/shared/types/auth";
 import { VisitWithPatient } from "../types";
 
 export default async function TriageData() {

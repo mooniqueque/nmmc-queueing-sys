@@ -193,11 +193,12 @@ export function CallOverlay({ callData }: CallOverlayProps) {
                         transition={{ duration: 0.3 }}
                         className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-6"
                     >
-                        <motion.div
-                            initial={{ scale: 0.8, y: 50, opacity: 0 }}
-                            animate={{ scale: 1, y: 0, opacity: 1 }}
-                            exit={{ scale: 0.9, y: 20, opacity: 0 }}
-                            transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.1 }}
+                    <motion.div
+                        key={callData.calledAt || callData.ticket}
+                        initial={{ scale: 0.8, y: 50, opacity: 0 }}
+                        animate={{ scale: 1, y: 0, opacity: 1 }}
+                        exit={{ scale: 0.9, y: 20, opacity: 0 }}
+                        transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.1 }}
                             className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden border-8 border-emerald-500 flex flex-col items-center text-center relative"
                         >
                             <div className="w-full bg-emerald-600 py-6 flex items-center justify-center gap-4">

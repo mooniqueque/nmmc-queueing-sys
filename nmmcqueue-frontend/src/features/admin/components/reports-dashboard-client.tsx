@@ -3,39 +3,39 @@
 import { useEffect, useMemo, useState } from "react";
 import { MdAccessTime, MdApartment, MdLocalHospital, MdTimer } from "react-icons/md";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  XAxis,
-  YAxis,
+    Area,
+    AreaChart,
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Line,
+    LineChart,
+    Pie,
+    PieChart,
+    XAxis,
+    YAxis,
 } from "recharts";
 
-import { AdminHeader } from "@/components/layouts/admin-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+    type ChartConfig,
 } from "@/components/ui/chart";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import type { SessionUser } from "@/types/auth";
-import type { Department } from "@/types/models";
+import { AdminHeader } from "@/shared/layouts";
+import { cn } from "@/shared/lib/utils";
+import type { SessionUser } from "@/shared/types/auth";
+import type { Department } from "@/shared/types/models";
 import { StatsCard } from "./stats-card";
 
 import type { ReportFilters } from "@/features/reports/report-analytics";

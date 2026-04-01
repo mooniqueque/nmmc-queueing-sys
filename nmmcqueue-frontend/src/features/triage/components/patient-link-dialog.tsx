@@ -5,8 +5,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { mergePatient, searchPatients } from "@/features/triage/actions";
-import { notify } from "@/lib/notify";
-import { calculateAge } from "@/lib/utils";
+import { notify } from "@/shared/lib/notify";
+import { calculateAge } from "@/shared/lib/utils";
 import { Link as LinkIcon, MagnifyingGlass, UserPlus } from "@phosphor-icons/react";
 import { useState, useTransition } from "react";
 

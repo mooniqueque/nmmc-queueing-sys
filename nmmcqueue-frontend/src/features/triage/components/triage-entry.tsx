@@ -5,7 +5,7 @@ import { TriageForm } from "./triage-form";
 import { TriageQueueSidebar } from "./triage-queue-sidebar";
 import { useTriageStore } from "../store/use-triage-store";
 import { useEffect } from "react";
-import { SessionUser } from "@/types/auth";
+import { SessionUser } from "@/shared/types/auth";
 
 interface TriageEntryProps {
     initialQueue: VisitWithPatient[];

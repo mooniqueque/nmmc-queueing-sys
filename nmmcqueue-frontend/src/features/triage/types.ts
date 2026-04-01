@@ -1,4 +1,4 @@
-import { Department, Patient, Visit, WorkStation } from "@/types/models";
+import { Department, Patient, Visit, WorkStation } from "@/shared/types/models";
 
 export type VisitWithPatient = Visit & {
     patient: Patient;

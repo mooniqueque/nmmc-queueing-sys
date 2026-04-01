@@ -1,10 +1,10 @@
 "use client";
 
-import { WorkStation } from "@/types/models";
+import { WorkStation } from "@/shared/types/models";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteWorkstation, updateWorkstation } from "@/features/admin/workstation-actions";
-import { notify } from "@/lib/notify";
+import { notify } from "@/shared/lib/notify";
 import { Trash, PencilSimple, Check, X } from "@phosphor-icons/react";
 import { useState } from "react";
 

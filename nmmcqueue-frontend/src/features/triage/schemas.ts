@@ -1,5 +1,39 @@
 import { z } from "zod";
 
+const optionalBoundedNumber = (
+    min: number,
+    max: number,
+    label: string
+) => z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z.coerce
+        .number()
+        .min(min, `${label} must be at least ${min}`)
+        .max(max, `${label} must be at most ${max}`)
+        .optional()
+);
+
+const optionalBloodPressure = z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z
+        .string()
+        .trim()
+        .regex(/^\d{2,3}\/\d{2,3}$/, "Blood pressure must be in format SYSTOLIC/DIASTOLIC")
+        .refine((value) => {
+            const [systolic, diastolic] = value.split("/").map(Number);
+            return (
+                Number.isFinite(systolic) &&
+                Number.isFinite(diastolic) &&
+                systolic >= 70 &&
+                systolic <= 250 &&
+                diastolic >= 40 &&
+                diastolic <= 150 &&
+                systolic > diastolic
+            );
+        }, "Blood pressure values are out of expected range")
+        .optional()
+);
+
 export const triageFormSchema = z.object({
     // Patient Demographics (Required for Walk-ins, ignored if from Kiosk)
     isManualEntry: z.boolean().default(false),
@@ -15,11 +49,11 @@ export const triageFormSchema = z.object({
     hasAppointment: z.boolean().default(false),
 
     // Vitals
-    bloodPressure: z.string().optional(),
-    heartRate: z.union([z.coerce.number(), z.string()]).optional().transform(val => val === "" ? undefined : Number(val)),
-    respiratoryRate: z.union([z.coerce.number(), z.string()]).optional().transform(val => val === "" ? undefined : Number(val)),
-    temperature: z.union([z.coerce.number(), z.string()]).optional().transform(val => val === "" ? undefined : Number(val)),
-    oxygenSat: z.union([z.coerce.number(), z.string()]).optional().transform(val => val === "" ? undefined : Number(val)),
+    bloodPressure: optionalBloodPressure,
+    heartRate: optionalBoundedNumber(20, 260, "Heart rate"),
+    respiratoryRate: optionalBoundedNumber(5, 80, "Respiratory rate"),
+    temperature: optionalBoundedNumber(30, 45, "Temperature"),
+    oxygenSat: optionalBoundedNumber(50, 100, "Oxygen saturation"),
 
     // Symptoms
     hasFever: z.boolean().default(false),

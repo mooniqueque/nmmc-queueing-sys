@@ -1,7 +1,3 @@
-import Link from "next/link";
-import { headers } from "next/headers";
-import { connection } from "next/server";
-import { AdminHeader } from "@/components/layouts/admin-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDepartments } from "@/features/admin/department-actions";
@@ -9,8 +5,12 @@ import { getQueueOptionsByDepartment } from "@/features/admin/queue-option-actio
 import { getReleasingQueue } from "@/features/admin/releasing-actions";
 import { VisitWithPatient } from "@/features/triage/types";
 import { auth } from "@/lib/database/auth";
-import { SessionUser } from "@/types/auth";
-import { Department, PriorityCategory } from "@/types/models";
+import { AdminHeader } from "@/shared/layouts";
+import { SessionUser } from "@/shared/types/auth";
+import { Department, PriorityCategory } from "@/shared/types/models";
+import { headers } from "next/headers";
+import Link from "next/link";
+import { connection } from "next/server";
 
 function normalizeDepartmentKey(value: string): string {
     return value.trim().toUpperCase();

@@ -2,16 +2,16 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { StatsCard } from './stats-card';
-import { AdminHeader } from "@/components/layouts/admin-header";
-import { SessionUser } from "@/types/auth";
-import { Department } from "@/types/models";
-import { useAnalytics } from "@/features/shared/hooks/use-analytics";
-import { HourlyVolumeChart, ClassificationPieChart, StatusDistributionChart } from "@/features/shared/components/analytics-charts";
+import { ClassificationPieChart, HourlyVolumeChart, StatusDistributionChart } from "@/features/shared/components/analytics-charts";
 import { HistoryTable } from "@/features/shared/components/history-table";
-import { Users, Clock, TrendUp, Warning } from "@phosphor-icons/react";
+import { useAnalytics } from "@/features/shared/hooks/use-analytics";
+import { AdminHeader } from "@/shared/layouts";
+import { cn } from "@/shared/lib/utils";
+import { SessionUser } from "@/shared/types/auth";
+import { Department } from "@/shared/types/models";
+import { Clock, TrendUp, Users, Warning } from "@phosphor-icons/react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { StatsCard } from './stats-card';
 
 export default function TriageNurseStats({
     loggedInUser,

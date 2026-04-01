@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { TriageFormValues } from "../schemas";
 import { CalendarBlank, UserCircle, MapPin, IdentificationBadge } from "@phosphor-icons/react";
-import { calculateAge } from "@/lib/utils";
+import { calculateAge } from "@/shared/lib/utils";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useTriageStore } from "../store/use-triage-store";
 import { PatientLinkDialog } from "./patient-link-dialog";

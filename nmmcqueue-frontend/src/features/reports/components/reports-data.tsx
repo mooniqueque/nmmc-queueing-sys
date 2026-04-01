@@ -1,7 +1,7 @@
 import { getDepartments } from '@/features/admin/department-actions';
 import { auth } from "@/lib/database/auth";
-import { SessionUser } from "@/types/auth";
-import { Department } from "@/types/models";
+import { SessionUser } from "@/shared/types/auth";
+import { Department } from "@/shared/types/models";
 import { headers } from "next/headers";
 import { connection } from "next/server";
 import ReportsDashboardClient from "@/features/admin/components/reports-dashboard-client";

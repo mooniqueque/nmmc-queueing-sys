@@ -1,9 +1,9 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { useWindowMonitor, WindowStatus } from "@/features/monitoring/hooks/use-window-monitor";
 import { CallOverlay } from "@/features/monitoring/components/call-overlay";
-import { useCurrentTime } from "@/hooks/use-current-time";
+import { useWindowMonitor, WindowStatus } from "@/features/monitoring/hooks/use-window-monitor";
+import { useCurrentTime } from "@/shared/hooks/use-current-time";
 import { API_URL } from "@/lib/api";
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
@@ -44,7 +44,7 @@ export default function WindowMonitor() {
             .then(res => res.json())
             .then(json => {
                 if (json.success && json.data) {
-                    const dept = json.data.find((d: { name: string; videoUrl: string }) => d.name === 'CASHIER / REGISTRATION');
+                    const dept = json.data.find((d: { name: string; videoUrl: string }) => d.name === 'REGISTRATION');
                     if (dept) setVideoUrl(dept.videoUrl || null);
                 }
             })

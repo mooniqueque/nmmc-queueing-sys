@@ -8,9 +8,9 @@ import { VisitWithPatient } from "../types";
 import { useTriageStore } from "../store/use-triage-store";
 import { MagnifyingGlass, Clock, CheckCircle, User, Play, Plus, UserMinus, Trash } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
-import { notify } from "@/lib/notify";
-import { SessionUser } from "@/types/auth";
-import { calculateAge } from "@/lib/utils";
+import { notify } from "@/shared/lib/notify";
+import { SessionUser } from "@/shared/types/auth";
+import { calculateAge } from "@/shared/lib/utils";
 import { useAnalytics } from "@/features/shared/hooks/use-analytics";
 import { HistoryTable } from "@/features/shared/components/history-table";
 

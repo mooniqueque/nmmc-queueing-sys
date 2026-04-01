@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/shared/lib/utils'
 
 // Statistics card data type
 type StatisticsCardProps = {

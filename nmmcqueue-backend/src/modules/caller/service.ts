@@ -185,7 +185,10 @@ class CallerService {
             this.assertVisitScope(existing.departmentId, scope.departmentId);
 
             if (existing.status === 'IN_PROGRESS' && existing.calledByUserId === scope.userId) {
-                return tx.visit.findUnique({ where: { id: visitId } });
+                return tx.visit.update({ 
+                    where: { id: visitId },
+                    data: { calledAt: new Date() }
+                });
             }
 
             if (existing.status !== 'WAITING_CLINIC') {

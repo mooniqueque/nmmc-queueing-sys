@@ -154,9 +154,9 @@ export default function ReportsDashboardClient({
 
   return (
     <div className="flex flex-1 flex-col">
-      <AdminHeader 
-        user={loggedInUser} 
-        title="Reports Dashboard" 
+      <AdminHeader
+        user={loggedInUser}
+        title="Reports Dashboard"
       />
 
       <main className="flex-1 p-6 lg:p-10 space-y-8 overflow-y-auto">
@@ -245,11 +245,11 @@ export default function ReportsDashboardClient({
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-muted/30">
+            <div className="flex items-center justify-between border-t border-muted/3 mb-4">
               <p className="text-[10px] text-muted-foreground">
                 Last synchronized: {new Date(snapshot.generatedAt).toLocaleString()}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center pt-1 gap-2 mb-4">
                 <div className={cn("size-2 rounded-full", isSyncing ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
                 <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
                   {isSyncing ? "Syncing..." : "Live sync active"}

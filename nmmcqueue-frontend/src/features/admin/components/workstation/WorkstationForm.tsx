@@ -19,14 +19,14 @@ export function WorkstationForm({ workstations, departments }: WorkstationFormPr
     const [customName, setCustomName] = useState("");
     const [departmentId, setDepartmentId] = useState<string>("");
     const [count, setCount] = useState<number>(1);
-    
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     // Calculate existing count for the selected type
     const existingCount = workstations.filter(ws => ws.type === type).length;
-    const nextNumber = existingCount > 0 
-        ? Math.max(...workstations.filter(ws => ws.type === type).map(ws => ws.stationNo)) + 1 
+    const nextNumber = existingCount > 0
+        ? Math.max(...workstations.filter(ws => ws.type === type).map(ws => ws.stationNo)) + 1
         : 1;
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -61,9 +61,9 @@ export function WorkstationForm({ workstations, departments }: WorkstationFormPr
             </CardHeader>
             <CardContent className="space-y-6 pt-2">
                 <form onSubmit={handleCreate} className="space-y-6 max-w-md">
-                    
+
                     {/* Primary Selection */}
-                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-end">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-start">
                         <div className="space-y-2">
                             <Label htmlFor="type" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Workstation Type</Label>
                             <Select value={type} onValueChange={(val) => { setType(val as WorkstationType); setCustomName(""); setCount(1); }}>
@@ -79,14 +79,17 @@ export function WorkstationForm({ workstations, departments }: WorkstationFormPr
                         </div>
 
                         {/* Automatic Stats Display */}
-                        <div className="bg-muted/30 border border-border rounded-lg px-4 py-2 h-11 flex flex-col justify-center min-w-[140px]">
-                            <div className="flex justify-between items-center text-[10px] sm:text-xs">
-                                <span className="text-muted-foreground font-medium">Existing: </span>
-                                <span className="font-bold text-foreground">{existingCount}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] sm:text-xs mt-0.5">
-                                <span className="text-muted-foreground font-medium">Next: </span>
-                                <span className="font-bold text-emerald-600 dark:text-emerald-400">{typeLabel} {nextNumber}</span>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] uppercase font-bold tracking-widest opacity-0 select-none hidden sm:block">&nbsp;</Label>
+                            <div className="bg-muted/30 border border-border rounded-lg px-4 h-11 flex flex-col justify-center min-w-[140px]">
+                                <div className="flex justify-start gap-2 items-center text-[10px] sm:text-xs">
+                                    <span className="text-muted-foreground font-medium">Existing:</span>
+                                    <span className="font-bold text-foreground">{existingCount}</span>
+                                </div>
+                                <div className="flex justify-start gap-2 items-center text-[10px] sm:text-xs mt-0.5">
+                                    <span className="text-muted-foreground font-medium">Next:</span>
+                                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{typeLabel} {nextNumber}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -145,7 +148,7 @@ export function WorkstationForm({ workstations, departments }: WorkstationFormPr
                         </div>
                     )}
 
-                    <Button type="submit" className="w-full h-11 font-bold uppercase tracking-widest text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all" disabled={loading}>
+                    <Button type="submit" className="w-full h-11 font-bold uppercase tracking-widest text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all mb-6   " disabled={loading}>
                         {loading ? "Creating..." : count > 1 ? `+ Add ${count} ${typeLabel}s` : `+ Add ${typeLabel}`}
                     </Button>
                 </form>

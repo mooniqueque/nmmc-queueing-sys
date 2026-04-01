@@ -1,21 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { 
-    Card, 
-    CardContent, 
-    CardDescription, 
-    CardHeader, 
-    CardTitle 
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogDescription, 
-    DialogFooter, 
-    DialogHeader, 
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
@@ -30,7 +30,7 @@ export default function ResetServices() {
 
     const handleReset = async () => {
         if (verificationText !== "RESET") return;
-        
+
         setIsResetting(true);
         try {
             const res = await resetDailySequences();
@@ -77,7 +77,7 @@ export default function ResetServices() {
                         if (!val) setVerificationText("");
                     }}>
                         <DialogTrigger asChild>
-                            <Button variant="destructive">
+                            <Button variant="destructive" className="mb-8">
                                 Reset Daily Counter
                             </Button>
                         </DialogTrigger>
@@ -88,12 +88,12 @@ export default function ResetServices() {
                                     All ticket sequences will be reset to 0. This is typically done before opening each day.
                                 </DialogDescription>
                             </DialogHeader>
-                            
+
                             <div className="py-4 space-y-3">
                                 <p className="text-sm font-medium text-muted-foreground">
                                     Please type <span className="font-bold text-foreground underline decoration-destructive">RESET</span> to confirm.
                                 </p>
-                                <Input 
+                                <Input
                                     placeholder="RESET"
                                     value={verificationText}
                                     onChange={(e) => setVerificationText(e.target.value.toUpperCase())}

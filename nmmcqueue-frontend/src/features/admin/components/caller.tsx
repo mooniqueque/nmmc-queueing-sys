@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AdminHeader } from "@/components/layouts/admin-header";
 import { StatsCard } from './stats-card';
 import { SessionUser } from '@/types/auth';
+import { Department } from '@/types/models';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAnalytics } from "@/features/shared/hooks/use-analytics";
@@ -28,7 +29,7 @@ export default function CallerDashboard({
     departments = [],
 }: {
     loggedInUser: SessionUser;
-    departments: string[];
+    departments: Department[];
     queueOptionsByDepartment?: Record<string, string[]>;
     initialQueue?: unknown[];
 }) {
@@ -49,8 +50,8 @@ export default function CallerDashboard({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="ALL">General Statistics</SelectItem>
-                            {departments.map(name => (
-                                <SelectItem key={name} value={name}>{name}</SelectItem>
+                            {departments.map(department => (
+                                <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>

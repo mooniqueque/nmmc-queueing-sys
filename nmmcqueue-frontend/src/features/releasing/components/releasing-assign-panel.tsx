@@ -104,6 +104,9 @@ export function ReleasingAssignPanel({
         return queueOptions.find((opt) => !opt.isPriority) ?? recommendedOption ?? queueOptions[0];
     }, [selectedDepartmentId, queueOptions, selectedPatient.classification, recommendedOption]);
 
+    const fallbackQueueCategoryId = selectedPatient.categories?.[0]?.categoryId ?? null;
+    const effectivePriorityClassId = autoQueueOption?.id ?? fallbackQueueCategoryId;
+
     const handleCall = () => {
         if (selectedPatient.status === 'IN_WINDOW') {
             notify.info("Patient already called", { description: "This patient is already in the window queue." });
@@ -153,6 +156,8 @@ export function ReleasingAssignPanel({
             status: selectedPatient.status,
             selectedDepartmentId,
             autoQueueOption: autoQueueOption?.id,
+            fallbackQueueCategoryId,
+            effectivePriorityClassId,
             isInWindow,
         });
 
@@ -169,14 +174,15 @@ export function ReleasingAssignPanel({
             return;
         }
 
-        if (!autoQueueOption) {
+        if (!effectivePriorityClassId) {
             notify.error("No queue option configured", {
-                description: `The ${activeDepartment?.name || 'selected'} department has no queue categories. Please go to Admin > Departments to add queue options.`
+                description: `The ${activeDepartment?.name || 'selected'} department has no queue categories and this patient has no fallback triage category. Please configure queue options in Admin > Departments.`
             });
             console.warn('[handleAssign] No auto queue option available', {
                 departmentName: activeDepartment?.name,
                 queueOptions,
-                queueOptionsByDepartment
+                queueOptionsByDepartment,
+                fallbackQueueCategoryId,
             });
             return;
         }
@@ -186,10 +192,10 @@ export function ReleasingAssignPanel({
                 console.log('[handleAssign] Calling assignTicket API:', {
                     visitId: selectedPatient.id,
                     departmentId: selectedDepartmentId,
-                    priorityClass: autoQueueOption.id
+                    priorityClass: effectivePriorityClassId
                 });
 
-                const res = await assignTicket(selectedPatient.id, selectedDepartmentId, autoQueueOption.id);
+                const res = await assignTicket(selectedPatient.id, selectedDepartmentId, effectivePriorityClassId);
                 
                 console.log('[handleAssign] API Response:', res);
 
@@ -203,7 +209,7 @@ export function ReleasingAssignPanel({
                     );
                     console.log('[handleAssign] Success, closing panel');
                 } else {
-                    notify.error(res?.error || "Ticket assignment failed", {
+                    notify.error(res?.message || res?.error || "Ticket assignment failed", {
                         description: "Please try again or contact support."
                     });
                     console.error('[handleAssign] API returned error:', res);
@@ -221,7 +227,7 @@ export function ReleasingAssignPanel({
 
     const isNoShow = selectedPatient.status === 'NO_SHOW';
     const isInWindow = selectedPatient.status === 'IN_WINDOW';
-    const isReadyForAssignment = isInWindow && selectedDepartmentId && autoQueueOption;
+    const isReadyForAssignment = isInWindow && !!selectedDepartmentId;
 
     return (
         <div className="bg-card rounded-xl border border-border h-full flex flex-col pt-3 sm:pt-4 overflow-hidden shadow-sm">
@@ -403,8 +409,6 @@ export function ReleasingAssignPanel({
                                 ? "Patient must be called to window first"
                                 : !selectedDepartmentId
                                 ? "Select a department"
-                                : !autoQueueOption
-                                ? "No queue options configured for this department"
                                 : "Print and assign to clinic queue"
                         }
                         className="h-9 sm:h-11 bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] sm:text-xs px-4 sm:px-6 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-md shadow-primary/10 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"

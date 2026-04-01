@@ -12,16 +12,15 @@ export default async function CallerData() {
     await connection();
 
     let session = null;
-    let departmentNames: string[] = [];
+    let departments: Department[] = [];
     let queueOptionsByDepartment = {};
     let initialQueueData: VisitWithPatient[] = [];
 
     try {
         session = await auth.api.getSession({ headers: await headers() });
         const departmentResponse = await getDepartments();
-        departmentNames = departmentResponse.data
-            ? departmentResponse.data.map((department: Department) => department.name)
-            : [];
+        departments = departmentResponse.data ?? [];
+        const departmentNames = departments.map((department: Department) => department.name);
         queueOptionsByDepartment = await getQueueOptionsByDepartment(departmentNames);
 
         const { getClinicQueues } = await import('@/features/admin/clinic-queue-actions');
@@ -36,7 +35,7 @@ export default async function CallerData() {
     return (
         <CallerDashboard
             loggedInUser={session?.user as unknown as SessionUser}
-            departments={departmentNames}
+            departments={departments}
             queueOptionsByDepartment={queueOptionsByDepartment}
             initialQueue={initialQueueData}
         />

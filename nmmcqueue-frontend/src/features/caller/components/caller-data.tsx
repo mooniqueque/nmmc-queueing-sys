@@ -11,7 +11,8 @@ export default async function CallerData() {
 
     let session = null;
     let initialQueueData: VisitWithPatient[] = [];
-    let userDepartment = ""; // Fallback
+    let userDepartment = ""; // Fallback label only
+    let userDepartmentId = "";
 
     try {
         session = await auth.api.getSession({ headers: await headers() });
@@ -21,13 +22,14 @@ export default async function CallerData() {
         }
 
         userDepartment = session.user.department as string;
+        userDepartmentId = (session.user.departmentId as string) || "";
         if (!userDepartment) {
             redirect("/login");
         }
 
         const { getClinicQueues } = await import('@/features/admin/clinic-queue-actions');
-        // Fetch only for the specific user's department
-        const pendingRes = await getClinicQueues(userDepartment);
+        // Backend already scopes this queue by authenticated caller ownership.
+        const pendingRes = await getClinicQueues();
         if (pendingRes.success) {
             initialQueueData = pendingRes.data;
         }
@@ -40,6 +42,7 @@ export default async function CallerData() {
     return (
         <UserCallerDashboard
             department={userDepartment}
+            departmentId={userDepartmentId}
             initialQueue={initialQueueData}
         />
     );

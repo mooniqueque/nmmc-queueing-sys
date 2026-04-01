@@ -2,6 +2,7 @@ import { db } from '../../config/database.js';
 import logger from '../../lib/logger.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { buildClaimPatch, buildReleasePatch, claimErrorCodes } from '../shared/claim-engine.js';
 import { ticketService } from '../tickets/service.js';
 import { kioskFormSchema, triageFormSchema } from './schema.js';
 
@@ -110,7 +111,8 @@ class TriageService {
             isInfectious: validData.isInfectious, chiefComplaint: validData.chiefComplaint, medicalHistory: validData.medicalHistory,
             triageRemarks: validData.triageRemarks, disposition: validData.disposition, hasAppointment: validData.hasAppointment,
             departmentId: validData.departmentId,
-            triagedAt: new Date(), triagedByUserId: userId, triageStationId: user?.workstationId, status: 'WAITING_WINDOW',
+            triagedAt: new Date(), triagedByUserId: userId, triageStationId: user?.workstationId,
+            ...buildReleasePatch('WAITING_WINDOW'),
         };
 
         if (validData.isManualEntry) {
@@ -233,25 +235,30 @@ class TriageService {
         });
     }
 
-    async markNoShow(visitId: string, userId?: string) { 
+    async markNoShow(visitId: string, userId?: string) {
         await db.visit.update({ 
             where: { id: visitId }, 
             data: { 
-                status: 'NO_SHOW',
+                ...buildReleasePatch('NO_SHOW'),
                 statusHistory: { create: { status: 'NO_SHOW', changedBy: userId } }
             } 
         }); 
+        await emitQueueUpdate();
     }
-    async restoreNoShow(visitId: string, userId?: string) { 
+    async restoreNoShow(visitId: string, userId?: string) {
         await db.visit.update({ 
             where: { id: visitId }, 
             data: { 
-                status: 'WAITING_TRIAGE',
+                ...buildReleasePatch('WAITING_TRIAGE'),
                 statusHistory: { create: { status: 'WAITING_TRIAGE', changedBy: userId } }
             } 
         }); 
+        await emitQueueUpdate();
     }
-    async removeQueue(visitId: string) { await db.visit.delete({ where: { id: visitId } }); }
+    async removeQueue(visitId: string) {
+        await db.visit.delete({ where: { id: visitId } });
+        await emitQueueUpdate();
+    }
     async getPatientByHospitalId(hospitalId: string) {
         const patient = await db.patient.findUnique({ where: { hospitalId: hospitalId.trim() } });
         if (!patient) throw new Error('Hospital ID not found.');
@@ -307,14 +314,32 @@ class TriageService {
             where: { id: userId },
             include: { workstation: true }
         });
-        if (!user?.workstationId) throw new AppError('You must be assigned to a workstation to call patients.', 400, 'CALLER_ASSIGNMENT_REQUIRED');
+        if (!user?.workstationId) {
+            throw new AppError('You must be assigned to a workstation to call patients.', 400, claimErrorCodes.assignmentRequired);
+        }
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        return db.$transaction(async (tx) => {
+        const claimedVisit = await db.$transaction(async (tx) => {
+            const myExistingClaim = await tx.visit.findFirst({
+                where: {
+                    triageClaimedById: userId,
+                    status: 'IN_TRIAGE',
+                    createdAt: { gte: today, lt: tomorrow },
+                },
+                include: {
+                    patient: true,
+                    categories: { include: { category: true } },
+                },
+            });
+
+            if (myExistingClaim) {
+                return myExistingClaim;
+            }
+
             // Find the next patient in FIFO order
             const nextVisit = await tx.visit.findFirst({
                 where: {
@@ -333,16 +358,15 @@ class TriageService {
                     id: nextVisit.id,
                     status: 'WAITING_TRIAGE', // concurrency guard
                 },
-                data: {
-                    status: 'IN_TRIAGE',
-                    triageClaimedById: userId,
-                    triageStartedAt: new Date(),
-                    triageStationId: user.workstationId,
-                }
+                data: buildClaimPatch({
+                    workflow: 'TRIAGE',
+                    userId,
+                    workstationId: user.workstationId,
+                })
             });
 
             if (claimed.count === 0) {
-                throw new AppError('Patient was already claimed by another user. Try again.', 409, 'CLAIM_CONFLICT');
+                throw new AppError('Patient was already claimed by another user. Try again.', 409, claimErrorCodes.conflict);
             }
 
             // Fetch the updated visit with patient data
@@ -366,6 +390,12 @@ class TriageService {
 
             return updatedVisit;
         });
+
+        if (claimedVisit) {
+            await emitQueueUpdate();
+        }
+
+        return claimedVisit;
     }
 
     /**
@@ -376,9 +406,26 @@ class TriageService {
             where: { id: userId },
             include: { workstation: true }
         });
-        if (!user?.workstationId) throw new AppError('You must be assigned to a workstation to call patients.', 400, 'CALLER_ASSIGNMENT_REQUIRED');
+        if (!user?.workstationId) {
+            throw new AppError('You must be assigned to a workstation to call patients.', 400, claimErrorCodes.assignmentRequired);
+        }
 
-        return db.$transaction(async (tx) => {
+        const claimedVisit = await db.$transaction(async (tx) => {
+            const myExistingClaim = await tx.visit.findFirst({
+                where: {
+                    triageClaimedById: userId,
+                    status: 'IN_TRIAGE',
+                },
+                include: {
+                    patient: true,
+                    categories: { include: { category: true } },
+                },
+            });
+
+            if (myExistingClaim && myExistingClaim.id !== visitId) {
+                throw new AppError('You already have an active triage claim.', 409, claimErrorCodes.conflict);
+            }
+
             const visitToCall = await tx.visit.findUnique({
                 where: { id: visitId },
                 include: { patient: true }
@@ -393,16 +440,15 @@ class TriageService {
                     id: visitId,
                     status: visitToCall.status // concurrency guard
                 },
-                data: {
-                    status: 'IN_TRIAGE',
-                    triageClaimedById: userId,
-                    triageStartedAt: new Date(),
-                    triageStationId: user.workstationId,
-                }
+                data: buildClaimPatch({
+                    workflow: 'TRIAGE',
+                    userId,
+                    workstationId: user.workstationId,
+                })
             });
 
             if (claimed.count === 0) {
-                throw new AppError('Patient was already claimed by another user.', 409, 'CLAIM_CONFLICT');
+                throw new AppError('Patient was already claimed by another user.', 409, claimErrorCodes.conflict);
             }
 
             const updatedVisit = await tx.visit.findUnique({
@@ -425,6 +471,12 @@ class TriageService {
 
             return updatedVisit;
         });
+
+        if (claimedVisit) {
+            await emitQueueUpdate();
+        }
+
+        return claimedVisit;
     }
 
     /**

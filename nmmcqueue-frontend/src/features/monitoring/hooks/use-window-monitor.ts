@@ -16,48 +16,57 @@ export function useWindowMonitor(slugOrId?: string) {
     const [upcoming, setUpcoming] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchStatus = useCallback(async () => {
+    const fetchStatus = useCallback(async (signal?: AbortSignal) => {
         try {
             const endpoint = slugOrId
-                ? `${BACKEND_URL}/monitor/department/${slugOrId}`
+                ? `${BACKEND_URL}/monitor/department/${encodeURIComponent(slugOrId)}`
                 : `${BACKEND_URL}/monitor/windows`;
 
             // Add a cache-busting query param to prevent stale browser/proxy responses.
             const url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}ts=${Date.now()}`;
             const res = await fetch(url, {
                 cache: "no-store",
-                credentials: "include",
+                credentials: "omit",
+                signal,
             });
+
+            if (!res.ok) {
+                throw new Error(`Monitor endpoint returned ${res.status}`);
+            }
+
             const json = await res.json();
             if (json.success) {
                 // Determine if backend returned new object format or old array format
                 if (Array.isArray(json.data)) {
                     setWindows(json.data);
+                    setUpcoming([]);
                 } else if (json.data && json.data.active) {
                     setWindows(json.data.active);
                     setUpcoming(json.data.upcoming || []);
                 }
             }
         } catch (error) {
-            console.error("Monitor Fetch Error:", error);
+            if (error instanceof Error && error.name === "AbortError") return;
+            console.warn("Monitor fetch skipped:", error);
         } finally {
             setLoading(false);
         }
     }, [slugOrId]);
 
     useEffect(() => {
-        fetchStatus();
+        const controller = new AbortController();
+        fetchStatus(controller.signal);
         const topic = slugOrId || 'WINDOW';
-        const eventSource = new EventSource(`${BACKEND_URL}/monitor/stream?topic=${topic}`, { withCredentials: true });
+        const eventSource = new EventSource(`${BACKEND_URL}/monitor/stream?topic=${encodeURIComponent(topic)}`);
         const intervalId = setInterval(() => {
-            fetchStatus();
+            fetchStatus(controller.signal);
         }, 5000);
 
         eventSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === 'queue-updated') {
-                    fetchStatus();
+                    fetchStatus(controller.signal);
                 }
             } catch (error) {
                 console.error("SSE Parse Error:", error);
@@ -65,6 +74,7 @@ export function useWindowMonitor(slugOrId?: string) {
         };
 
         return () => {
+            controller.abort();
             eventSource.close();
             clearInterval(intervalId);
         };

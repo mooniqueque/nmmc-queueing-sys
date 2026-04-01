@@ -4,7 +4,9 @@ import { releasingService } from './service.js';
 
 class ReleasingController {
     getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
-        const queue = await releasingService.getPendingQueue();
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        const queue = await releasingService.getPendingQueue(userId);
         res.status(200).json({ success: true, data: queue });
     });
 

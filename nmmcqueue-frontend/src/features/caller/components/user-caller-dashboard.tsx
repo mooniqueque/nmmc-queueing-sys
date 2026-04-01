@@ -32,9 +32,11 @@ import { useCallerStore } from "../store/use-caller-store";
 
 export default function UserCallerDashboard({
     department,
+    departmentId,
     initialQueue = []
 }: {
     department: string;
+    departmentId?: string;
     initialQueue?: VisitWithPatient[];
 }) {
     const router = useRouter();
@@ -54,16 +56,23 @@ export default function UserCallerDashboard({
         });
     }, [setDepartments]);
 
-    // Live Queue Hook locked directly to the user's role department
-    const { activeQueue } = useClinicQueue(department, initialQueue);
+    // Live Queue Hook for realtime updates. Caller queue is already backend-scoped.
+    const inferredDepartmentId = departmentId || initialQueue.find(v => v.departmentId)?.departmentId;
+    const streamTopic =
+        inferredDepartmentId ||
+        allDepartments.find(d => d.name.toUpperCase() === department.toUpperCase())?.id ||
+        department;
+    const { activeQueue } = useClinicQueue(streamTopic, initialQueue);
+    const currentDepartmentId =
+        inferredDepartmentId ||
+        activeQueue.find(v => v.departmentId)?.departmentId ||
+        allDepartments.find(d => d.name.toUpperCase() === department.toUpperCase())?.id;
 
     // History data for the History tab
-    const { data: analyticsData } = useAnalytics("clinic");
+    const { data: analyticsData } = useAnalytics("clinic", currentDepartmentId);
 
-    // Filter queue to make absolutely sure we only count tickets for THIS department
-    const departmentQueue = activeQueue.filter((v: VisitWithPatient) =>
-        v.department?.name?.toUpperCase() === department.toUpperCase()
-    );
+    // Queue is already scoped in backend by authenticated caller ownership.
+    const departmentQueue = activeQueue;
 
     // Simplistic handling of what is "Now Serving" vs "Waitlist"
     const inProgressVisit = departmentQueue.find(v => v.status === "IN_PROGRESS");

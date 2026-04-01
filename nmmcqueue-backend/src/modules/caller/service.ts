@@ -34,8 +34,18 @@ class CallerService {
         let departmentId = user.departmentId ?? user.workstation?.departmentId ?? null;
 
         if (!departmentId && user.department) {
+            const departmentKey = user.department.trim();
+            const normalizedKey = departmentKey.toUpperCase();
+
             const dept = await db.department.findFirst({
-                where: { name: user.department.trim().toUpperCase() },
+                where: {
+                    OR: [
+                        { id: departmentKey },
+                        { slug: departmentKey.toLowerCase() },
+                        { code: normalizedKey },
+                        { name: { equals: departmentKey, mode: 'insensitive' } },
+                    ],
+                },
                 select: { id: true }
             });
             departmentId = dept?.id ?? null;

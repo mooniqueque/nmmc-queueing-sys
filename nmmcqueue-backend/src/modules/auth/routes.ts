@@ -17,3 +17,5 @@ userRouter.put('/:id/role', authController.updateUserRole);
 userRouter.put('/:id/status', authController.toggleUserStatus);
 userRouter.put('/:id/department', authController.updateUserDepartment);
 userRouter.put('/:id/workstation', authController.updateUserWorkstation);
+userRouter.get('/releasing-access/triage', authController.getTriageReleasingAccessUsers);
+userRouter.put('/:id/releasing-access', authController.updateUserReleasingAccess);

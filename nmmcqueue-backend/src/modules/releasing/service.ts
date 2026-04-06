@@ -4,6 +4,7 @@ import { emitQueueUpdate } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { buildClaimPatch, buildReleasePatch, claimErrorCodes } from '../shared/claim-engine.js';
 import { ticketService } from '../tickets/service.js';
+import { parseReleasingAccess } from '../auth/releasing-access.js';
 import { assignTicketSchema } from './schema.js';
 
 class ReleasingService {
@@ -308,6 +309,33 @@ class ReleasingService {
 
         const scope = await this.getWindowScope(userId);
         const data = await assignTicketSchema.parseAsync(payload);
+
+        const actingUser = await db.user.findUnique({
+            where: { id: userId },
+            select: {
+                role: true,
+                department: true,
+            },
+        });
+
+        if (!actingUser) {
+            throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+        }
+
+        if (actingUser.role === 'TRIAGE_NURSE') {
+            const releasingAccess = parseReleasingAccess(actingUser.department);
+            const allowedDepartment = releasingAccess.find(
+                (entry) => entry.departmentId === data.departmentId && entry.enabled
+            );
+
+            if (!allowedDepartment) {
+                throw new AppError(
+                    'You are not allowed to release to this department. Contact admin to update your Manage Releasing access.',
+                    403,
+                    'RELEASING_DEPARTMENT_FORBIDDEN'
+                );
+            }
+        }
 
         const department = await db.department.findUnique({
             where: { id: data.departmentId }

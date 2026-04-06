@@ -51,3 +51,17 @@ export interface AuthResponse {
     success: boolean;
     error?: string;
 }
+
+export interface ReleasingAccessEntry {
+    departmentId: string;
+    enabled: boolean;
+}
+
+export interface TriageReleasingAccessUser {
+    id: string;
+    name: string;
+    email: string;
+    employeeID: string;
+    role: string;
+    releasingAccess: ReleasingAccessEntry[];
+}

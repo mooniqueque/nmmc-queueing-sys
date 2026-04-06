@@ -4,6 +4,7 @@
  * Typed fetch wrappers for the /api/auth and /api/users backend modules.
  */
 import { API_URL } from "@/lib/api";
+import { ReleasingAccessEntry } from "@/types/auth";
 
 // ─── Session ──────────────────────────────────────────────────
 export async function revokeAllSessions(options?: RequestInit) {
@@ -73,6 +74,31 @@ export async function updateUserDepartment(
         ...options,
         headers: { "Content-Type": "application/json", ...options?.headers },
         body: JSON.stringify({ department }),
+    });
+    return res.json();
+}
+
+export async function getTriageReleasingAccessUsers(
+    query?: string,
+    options?: RequestInit
+) {
+    const qs = query ? `?query=${encodeURIComponent(query)}` : "";
+    const res = await fetch(`${API_URL}/users/releasing-access/triage${qs}`, options);
+    if (!res.ok) throw new Error("Unable to retrieve releasing users.");
+    const json = await res.json();
+    return json.data;
+}
+
+export async function updateUserReleasingAccess(
+    userId: string,
+    entries: ReleasingAccessEntry[],
+    options?: RequestInit
+) {
+    const res = await fetch(`${API_URL}/users/${userId}/releasing-access`, {
+        method: "PUT",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ entries }),
     });
     return res.json();
 }

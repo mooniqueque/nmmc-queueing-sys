@@ -3,6 +3,7 @@ import * as authApi from "@/features/auth/api";
 import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
 import { API_URL } from "@/lib/api";
+import { ReleasingAccessEntry } from "@/types/auth";
 
 export async function getAllUsers() {
     return authApi.getAllUsers({ headers: await getServerHeaders() });
@@ -51,5 +52,22 @@ export async function updateUserWorkstation(userId: string, workstationId: strin
     });
     const result = await response.json();
     if (result.success) revalidatePath("/admin-dashboard");
+    return result;
+}
+
+export async function getTriageReleasingAccessUsers(query?: string) {
+    return authApi.getTriageReleasingAccessUsers(query, {
+        headers: await getServerHeaders(),
+    });
+}
+
+export async function updateUserReleasingAccess(
+    userId: string,
+    entries: ReleasingAccessEntry[]
+) {
+    const result = await authApi.updateUserReleasingAccess(userId, entries, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/manage-releasing");
     return result;
 }

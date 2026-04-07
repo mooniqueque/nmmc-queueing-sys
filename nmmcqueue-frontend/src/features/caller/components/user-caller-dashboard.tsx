@@ -4,12 +4,6 @@ import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 import { getDepartments } from "@/features/shared/api";
 import { VisitWithPatient } from "@/features/triage/types";
 import { notify } from "@/shared/lib/notify";
@@ -25,12 +19,11 @@ import {
     SpeakerHigh,
     Thermometer,
     UserMinus,
-    Users,
-    CaretDown
+    Users
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CallerApiError, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
+import { CallerApiError, callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
 import { HistoryTable } from "@/features/shared/components/history-table";
 import { useAnalytics } from "@/features/shared/hooks/use-analytics";
@@ -83,9 +76,6 @@ export default function UserCallerDashboard({
 
     const noShowList = departmentQueue.filter(v => v.status === "NO_SHOW");
 
-    // Dynamic next visit based on selected tab or defaults (Priority first)
-    const nextVisit = priorityWaitingList.length > 0 ? priorityWaitingList[0] : regularWaitingList[0];
-
     const handleCallerApiError = (error: unknown, fallbackMessage: string) => {
         if (error instanceof CallerApiError) {
             if (error.code === "CLAIM_CONFLICT") {
@@ -118,38 +108,14 @@ export default function UserCallerDashboard({
     }, [callAgainCooldown]);
 
     // Action Handlers
-    const handleCallNext = async (type?: "REGULAR" | "PRIORITY") => {
-        let targetVisit: VisitWithPatient | null = null;
-
-        // Determine target based on explicit type OR active tab context
-        if (type === "PRIORITY") {
-            if (priorityWaitingList.length === 0) return notify.info("No priority patients waiting.");
-            targetVisit = priorityWaitingList[0];
-        } else if (type === "REGULAR") {
-            if (regularWaitingList.length === 0) return notify.info("No regular patients waiting.");
-            targetVisit = regularWaitingList[0];
-        } else {
-            // Default to active tab if no type provided
-            if (activeTab === "priority") {
-                if (priorityWaitingList.length === 0) return notify.info("No priority patients waiting.");
-                targetVisit = priorityWaitingList[0];
-            } else if (activeTab === "regular") {
-                if (regularWaitingList.length === 0) return notify.info("No regular patients waiting.");
-                targetVisit = regularWaitingList[0];
-            } else {
-                // Fallback: Priority first then regular if not on a queue tab
-                targetVisit = priorityWaitingList.length > 0 ? priorityWaitingList[0] : (regularWaitingList.length > 0 ? regularWaitingList[0] : null);
-            }
-        }
-
-        if (!targetVisit) return notify.info("No more patients in the waiting list.");
+    const handleCallNext = async () => {
+        if (waitingList.length === 0) return notify.info("No more patients in the waiting list.");
         if (inProgressVisit) return notify.error("Please Mark Served or No Show the current patient first.");
 
         setIsProcessing(true);
         try {
-            await callPatient(targetVisit.id);
-            const label = targetVisit.classification === "PRIORITY" || targetVisit.isReferred ? "(Priority/Referral)" : "";
-            notify.success(`Calling patient P-${targetVisit.ticketNumber?.toString() ?? 'N/A'} ${label}`);
+            const res = await callNextPatient();
+            notify.success(`Calling service ticket P-${res.data?.serviceTicket?.toString() ?? 'N/A'}`);
         } catch (error) {
             handleCallerApiError(error, "Failed to call patient.");
         } finally {
@@ -162,7 +128,7 @@ export default function UserCallerDashboard({
         setIsProcessing(true);
         try {
             await callPatient(inProgressVisit.id);
-            notify.success(`Calling patient P-${inProgressVisit.ticketNumber?.toString() ?? 'N/A'} again.`);
+            notify.success(`Calling service ticket P-${inProgressVisit.serviceTicket?.toString() ?? 'N/A'} again.`);
             setCallAgainCooldown(10);
         } catch (error) {
             handleCallerApiError(error, "Failed to call patient.");
@@ -185,12 +151,11 @@ export default function UserCallerDashboard({
     };
 
     const handleNoShow = async () => {
-        const targetVisit = inProgressVisit || nextVisit;
-        if (!targetVisit) return notify.error("No patient selected to mark as No Show.");
+        if (!inProgressVisit) return notify.error("No active patient to mark as No Show.");
         setIsProcessing(true);
         try {
-            await noShowPatient(targetVisit.id);
-            notify.error(`Patient P-${targetVisit.ticketNumber?.toString() ?? 'N/A'} marked as NO SHOW`);
+            await noShowPatient(inProgressVisit.id);
+            notify.error(`Service ticket P-${inProgressVisit.serviceTicket?.toString() ?? 'N/A'} marked as NO SHOW`);
         } catch (error) {
             handleCallerApiError(error, "Failed to process No Show.");
         } finally {
@@ -199,13 +164,12 @@ export default function UserCallerDashboard({
     };
 
     const handleReferral = async () => {
-        const targetVisit = inProgressVisit || nextVisit;
-        if (!targetVisit) return notify.error("No patient selected for referral.");
+        if (!inProgressVisit) return notify.error("No active patient selected for referral.");
         if (!targetDeptId) return notify.error("Please select a target department.");
 
         setIsProcessing(true);
         try {
-            await transferPatient(targetVisit.id, targetDeptId);
+            await transferPatient(inProgressVisit.id, targetDeptId);
             notify.success("Patient referred successfully.");
             resetReferral();
         } catch (error) {
@@ -330,7 +294,7 @@ export default function UserCallerDashboard({
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`text-base font-bold ${isNext ? "text-primary" : "text-muted-foreground"}`}>
-                                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : '---'}
+                                                        {visit.serviceTicket ? `#${visit.serviceTicket}` : '---'}
                                                     </span>
                                                     {isNext && (
                                                         <span className="bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-primary/20">
@@ -379,7 +343,7 @@ export default function UserCallerDashboard({
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`text-base font-bold ${isNext ? "text-amber-600" : "text-muted-foreground"}`}>
-                                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : '---'}
+                                                        {visit.serviceTicket ? `#${visit.serviceTicket}` : '---'}
                                                     </span>
                                                      {visit.isReferred ? (
                                                          <span className="bg-blue-100 text-blue-700 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
@@ -423,7 +387,7 @@ export default function UserCallerDashboard({
                                     >
                                         <div className="flex justify-between items-start mb-2">
                                             <span className="text-base font-bold text-destructive">
-                                                {visit.ticketNumber ? `#${visit.ticketNumber}` : 'NO TICKET'}
+                                                {visit.serviceTicket ? `#${visit.serviceTicket}` : 'NO TICKET'}
                                             </span>
                                             <Button
                                                 size="sm"
@@ -478,7 +442,7 @@ export default function UserCallerDashboard({
                             <div className="flex h-12 shadow-md shadow-emerald-500/20 group w-full md:w-auto">
                                 <Button
                                     onClick={() => handleCallNext()}
-                                    disabled={isProcessing || (activeTab === "regular" && regularWaitingList.length === 0) || (activeTab === "priority" && priorityWaitingList.length === 0) || (activeTab !== "regular" && activeTab !== "priority" && priorityWaitingList.length === 0 && regularWaitingList.length === 0)}
+                                    disabled={isProcessing || waitingList.length === 0}
                                     className="flex-1 md:flex-none h-full px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-widest text-[11px] rounded-l-xl rounded-r-none border-r border-emerald-500/30 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
                                 >
                                     {isProcessing ? (
@@ -490,38 +454,6 @@ export default function UserCallerDashboard({
                                         Call Next {activeTab === "regular" ? "Regular" : activeTab === "priority" ? "Priority" : ""}
                                     </span>
                                 </Button>
-                                
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            disabled={isProcessing}
-                                            className="h-full px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-r-xl rounded-l-none transition-all active:scale-[0.98]"
-                                        >
-                                            <CaretDown size={16} weight="bold" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-64 rounded-xl p-2 border-border shadow-xl">
-                                        <div className="px-3 py-2 border-b border-border mb-1">
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Manual Selection</p>
-                                        </div>
-                                        <DropdownMenuItem 
-                                            onClick={() => handleCallNext("PRIORITY")}
-                                            disabled={priorityWaitingList.length === 0}
-                                            className="h-11 rounded-lg font-bold text-[11px] uppercase tracking-wider focus:bg-amber-50 focus:text-amber-600 transition-colors gap-3 px-4 cursor-pointer"
-                                        >
-                                            <div className="w-2 h-2 rounded-full bg-amber-500" /> 
-                                            Call Priority Patient ({priorityWaitingList.length})
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem 
-                                            onClick={() => handleCallNext("REGULAR")}
-                                            disabled={regularWaitingList.length === 0}
-                                            className="h-11 rounded-lg font-bold text-[11px] uppercase tracking-wider focus:bg-emerald-50 focus:text-emerald-600 transition-colors gap-3 px-4 cursor-pointer"
-                                        >
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500" /> 
-                                            Call Regular Patient ({regularWaitingList.length})
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
                             </div>
                         ) : (
                            <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 italic font-medium text-xs">
@@ -553,9 +485,9 @@ export default function UserCallerDashboard({
                                             <div className="flex flex-col justify-center items-center w-40 h-40 shrink-0 bg-white rounded-3xl shadow-xl border border-emerald-100 relative overflow-hidden group">
                                                 <div className="absolute inset-0 bg-emerald-50/50 group-hover:bg-emerald-50 transition-colors" />
                                                 <div className="relative z-10 flex flex-col items-center">
-                                                    <span className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Ticket No.</span>
+                                                    <span className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Service Ticket</span>
                                                     <span className="text-5xl font-black text-emerald-900 tracking-tighter">
-                                                        {inProgressVisit.ticketNumber ? `#${inProgressVisit.ticketNumber}` : '---'}
+                                                        {inProgressVisit.serviceTicket ? `#${inProgressVisit.serviceTicket}` : '---'}
                                                     </span>
                                                 </div>
                                             </div>

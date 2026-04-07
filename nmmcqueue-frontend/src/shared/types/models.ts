@@ -6,6 +6,7 @@ export enum UserRole {
 }
 
 export enum VisitStatus {
+    KIOSK_SUBMITTED = "KIOSK_SUBMITTED",
     WAITING_TRIAGE = "WAITING_TRIAGE",
     IN_TRIAGE = "IN_TRIAGE",
     WAITING_WINDOW = "WAITING_WINDOW",
@@ -101,9 +102,11 @@ export interface Visit {
     status: VisitStatus;
     classification: VisitClassification;
     categories: VisitPriorityCategory[];
-    ticketNumber: number | null;
+    ticketNumber?: number | null;
+    triageTicket?: number | null;
+    serviceTicket?: number | null;
     sequenceKey?: string | null;
-    windowTicketNumber?: number | null;
+    queueBusinessDay?: string;
     kioskRegistrationType?: 'REGISTERED' | 'UNREGISTERED' | null;
     hasAppointment: boolean;
     isReferred: boolean;

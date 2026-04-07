@@ -2,11 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { useTransition, useState, useEffect } from "react";
-import { markNoShow, removeQueue, restoreNoShow, callNextTriage, callSpecificTriage } from "../actions";
+import { markNoShow, removeQueue, restoreNoShow, callNextTriage, callSpecificTriage, acknowledgeKioskSubmission } from "../actions";
 import { useTriageQueue } from "../hooks";
 import { VisitWithPatient } from "../types";
 import { useTriageStore } from "../store/use-triage-store";
-import { MagnifyingGlass, Clock, CheckCircle, User, Play, Plus, UserMinus, Trash } from "@phosphor-icons/react";
+import { MagnifyingGlass, Clock, CheckCircle, User, Play, Plus, Trash } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { notify } from "@/shared/lib/notify";
 import { SessionUser } from "@/shared/types/auth";
@@ -28,7 +28,7 @@ export function TriageQueueSidebar({
     const selectedPatientId = selectedPatient?.id;
     const onError = setSubmitError;
 
-    const { activeQueue, noShowQueue, activeTab, setActiveTab } = useTriageQueue(initialQueue);
+    const { submittedQueue, activeQueue, noShowQueue, activeTab, setActiveTab } = useTriageQueue(initialQueue);
     const [isPending, startTransition] = useTransition();
     const [searchQuery, setSearchQuery] = useState("");
     const [nowMs, setNowMs] = useState<number | null>(null);
@@ -79,6 +79,17 @@ export function TriageQueueSidebar({
         });
     }
 
+    const handleAcknowledge = (visitId: string) => {
+        startTransition(async () => {
+            const res = await acknowledgeKioskSubmission(visitId);
+            if (res?.success) {
+                notify.success("Kiosk submission acknowledged");
+            } else {
+                notify.error(res?.message || res?.error || "Failed to acknowledge kiosk submission");
+            }
+        });
+    };
+
     const handleRestore = (visitId: string, e: React.MouseEvent) => {
         e.stopPropagation();
         startTransition(async () => {
@@ -102,7 +113,7 @@ export function TriageQueueSidebar({
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
-            (v.ticketNumber?.toString().includes(q) ?? false) ||
+            (v.triageTicket?.toString().includes(q) ?? false) ||
             v.patient.firstName.toLowerCase().includes(q) ||
             v.patient.lastName.toLowerCase().includes(q)
         );
@@ -116,6 +127,39 @@ export function TriageQueueSidebar({
 
             {/* ─── Call Next + Header ─── */}
             <div className="bg-card shrink-0">
+                {submittedQueue.length > 0 && (
+                    <div className="border-b border-border px-3 sm:px-6 py-3 bg-amber-50/60">
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                            <div>
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-amber-700">Kiosk Submissions</h3>
+                                <p className="text-xs text-amber-700/80 font-medium">{submittedQueue.length} waiting for acknowledgment</p>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            {submittedQueue.slice(0, 4).map((visit) => (
+                                <div key={visit.id} className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-background px-3 py-2">
+                                    <div className="min-w-0">
+                                        <div className="text-xs font-bold text-foreground truncate">
+                                            {visit.patient.lastName}, {visit.patient.firstName}
+                                        </div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                                            {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        disabled={isPending}
+                                        onClick={() => handleAcknowledge(visit.id)}
+                                        className="h-8 text-[10px] font-bold uppercase tracking-widest"
+                                    >
+                                        Acknowledge
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
                 {/* Call Next Button Row */}
                 <div className="border-b border-border px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -163,9 +207,14 @@ export function TriageQueueSidebar({
                                 <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">Currently Serving</span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                             </div>
-                            <div className="text-xs sm:text-sm font-bold text-foreground truncate">
-                                {currentVisit.patient.lastName}, {currentVisit.patient.firstName}
+                        <div className="text-xs sm:text-sm font-bold text-foreground truncate">
+                            {currentVisit.patient.lastName}, {currentVisit.patient.firstName}
+                        </div>
+                        {currentVisit.triageTicket && (
+                            <div className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">
+                                Triage Ticket #{currentVisit.triageTicket}
                             </div>
+                        )}
                         </div>
                         <Button
                             variant="ghost"
@@ -266,7 +315,6 @@ export function TriageQueueSidebar({
                                     visit={visit}
                                     isPending={isPending}
                                     nowMs={nowMs}
-                                    onNoShow={handleNoShow}
                                     onRemove={handleRemove}
                                 />
                             ))}
@@ -286,7 +334,7 @@ export function TriageQueueSidebar({
                                     className="w-full text-left grid grid-cols-[40px_1fr_80px] sm:grid-cols-[60px_1fr_120px] gap-3 sm:gap-6 items-center px-3 sm:px-6 py-3 sm:py-4 border-b border-border bg-card"
                                 >
                                     <div className="text-xs sm:text-sm font-bold text-muted-foreground">
-                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : ''}
+                                        {visit.triageTicket ? `Triage #${visit.triageTicket}` : ''}
                                     </div>
                                     <div className="min-w-0 pr-2">
                                         <div className="font-bold text-[11px] sm:text-xs truncate text-muted-foreground line-through">
@@ -331,13 +379,11 @@ function PatientRow({
     visit,
     isPending,
     nowMs,
-    onNoShow,
     onRemove
 }: {
     visit: VisitWithPatient;
     isPending: boolean;
     nowMs: number | null;
-    onNoShow: (id: string, e: React.MouseEvent) => void;
     onRemove: (id: string, e: React.MouseEvent) => void;
 }) {
     const createdAtMs = new Date(visit.createdAt).getTime();
@@ -360,7 +406,7 @@ function PatientRow({
             {/* Ticket */}
             <div className="flex flex-col gap-0.5 text-primary/70">
                 <div className="text-xs sm:text-sm font-bold tracking-tight">
-                    {visit.ticketNumber ? `#${visit.ticketNumber}` : null}
+                    {visit.triageTicket ? `Triage #${visit.triageTicket}` : null}
                 </div>
                 <div className="flex flex-wrap gap-0.5">
                     {visit.categories && visit.categories.length > 0 &&
@@ -400,14 +446,6 @@ function PatientRow({
 
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button
-                    disabled={isPending}
-                    onClick={(e) => onNoShow(visit.id, e)}
-                    className="p-1 sm:p-1.5 hover:bg-amber-100 text-amber-600 rounded transition-colors"
-                    title="Mark as No Show"
-                >
-                    <UserMinus size={14} weight="bold" />
-                </button>
                 <button
                     disabled={isPending}
                     onClick={(e) => onRemove(visit.id, e)}

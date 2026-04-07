@@ -8,6 +8,8 @@ interface CallOverlayProps {
     callData: { ticket: string; windowName: string; calledAt: string | null } | null;
 }
 
+const DISPLAY_DURATION_SECONDS = 5;
+
 export function CallOverlay({ callData }: CallOverlayProps) {
     const [audioAllowed, setAudioAllowed] = useState(true);
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -224,7 +226,7 @@ export function CallOverlay({ callData }: CallOverlayProps) {
                             <motion.div 
                                 initial={{ width: "100%" }}
                                 animate={{ width: "0%" }}
-                                transition={{ duration: 7, ease: "linear" }}
+                                transition={{ duration: DISPLAY_DURATION_SECONDS, ease: "linear" }}
                                 className="h-4 bg-emerald-500 w-full absolute bottom-0 left-0"
                             />
                         </motion.div>

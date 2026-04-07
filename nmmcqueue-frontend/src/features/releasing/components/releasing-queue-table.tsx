@@ -135,7 +135,7 @@ export function ReleasingQueueTable({
                                 >
                                     {/* Ticket */}
                                     <div className="text-sm sm:text-base font-bold text-primary/60">
-                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : '—'}
+                                        {visit.triageTicket ? `#${visit.triageTicket}` : '—'}
                                     </div>
 
                                     {/* Name & Demographics */}
@@ -213,3 +213,4 @@ export function ReleasingQueueTable({
         </div>
     );
 }
+

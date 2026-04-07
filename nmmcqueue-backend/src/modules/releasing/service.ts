@@ -1,23 +1,72 @@
 import { db } from '../../config/database.js';
+import { withClaimConflictRetry } from '../../lib/claim-retry.js';
+import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import logger from '../../lib/logger.js';
-import { emitQueueUpdate } from '../../lib/sse.js';
+import { publishDepartmentEvent, publishDepartmentMonitorEvent, publishSseEvent, SSE_TOPICS } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
 import { assignTicketSchema } from './schema.js';
+
+async function getWindowVisitPayload(visitId: string) {
+    const visit = await db.visit.findUnique({
+        where: { id: visitId },
+        include: {
+            patient: true,
+            department: true,
+            categories: { include: { category: true } }
+        }
+    });
+    return visit;
+}
+
+async function publishWindowMonitorDiff(previousSnapshot?: Awaited<ReturnType<typeof monitorService.getWindowStatus>>) {
+    const snapshot = await monitorService.getWindowStatus();
+    const previousByStation = new Map((previousSnapshot?.active ?? []).map((window) => [window.stationNo, window]));
+    const nextByStation = new Map(snapshot.active.map((window) => [window.stationNo, window]));
+    const stationNos = new Set([
+        ...previousByStation.keys(),
+        ...nextByStation.keys(),
+    ]);
+
+    for (const stationNo of stationNos) {
+        const previous = previousByStation.get(stationNo);
+        const next = nextByStation.get(stationNo);
+        const previousKey = JSON.stringify(previous ?? null);
+        const nextKey = JSON.stringify(next ?? null);
+
+        if (previousKey === nextKey) {
+            continue;
+        }
+
+        if (next?.triageTicket) {
+            publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], 'monitor-upsert', { window: next });
+            continue;
+        }
+
+        publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], 'monitor-remove', { stationNo });
+    }
+
+    if (
+        !previousSnapshot ||
+        JSON.stringify(previousSnapshot.upcoming ?? []) !== JSON.stringify(snapshot.upcoming ?? [])
+    ) {
+        publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], 'monitor-upcoming', {
+            upcoming: snapshot.upcoming,
+        });
+    }
+}
 
 class ReleasingService {
     /**
      * Get the window queue: WAITING_WINDOW patients sorted by priority.
      */
     async getPendingQueue() {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const queueBusinessDay = getQueueBusinessDay();
 
         return db.visit.findMany({
             where: {
-                createdAt: { gte: today, lt: tomorrow },
+                queueBusinessDay,
                 status: { in: ['WAITING_WINDOW', 'IN_WINDOW', 'NO_SHOW'] },
             },
             include: {
@@ -57,17 +106,16 @@ class ReleasingService {
         const stationNo = user.workstation.stationNo;
         const isPriorityWindow = stationNo >= 1 && stationNo <= 2;
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const queueBusinessDay = getQueueBusinessDay();
 
         const baseWhere = {
-            createdAt: { gte: today, lt: tomorrow },
+            queueBusinessDay,
             status: 'WAITING_WINDOW' as const,
         };
 
-        const result = await db.$transaction(async (tx) => {
+        const previousMonitorSnapshot = await monitorService.getWindowStatus();
+
+        const result = await withClaimConflictRetry(() => db.$transaction(async (tx) => {
             let nextVisit = null;
 
             if (overrideClassification) {
@@ -148,7 +196,7 @@ class ReleasingService {
                 }
             });
 
-            logger.info(`Window claimed patient: ${nextVisit.patient.firstName} ${nextVisit.patient.lastName}`, {
+            logger.info('Window claimed patient', {
                 visitId: nextVisit.id,
                 userId,
                 windowNumber: stationNo,
@@ -157,10 +205,11 @@ class ReleasingService {
             });
 
             return updatedVisit;
-        });
+        }));
 
         if (result) {
-            await emitQueueUpdate('WINDOW');
+            publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: result });
+            await publishWindowMonitorDiff(previousMonitorSnapshot);
         }
         
         return result;
@@ -170,16 +219,13 @@ class ReleasingService {
      * Get the visit currently claimed by this window user (IN_WINDOW).
      */
     async getMyCurrentVisit(userId: string) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const queueBusinessDay = getQueueBusinessDay();
 
         return db.visit.findFirst({
             where: {
                 windowClaimedById: userId,
                 status: 'IN_WINDOW',
-                createdAt: { gte: today, lt: tomorrow },
+                queueBusinessDay,
             },
             include: {
                 patient: true,
@@ -193,6 +239,7 @@ class ReleasingService {
      * Legacy callTicket (kept for backward compat, now uses claim guard).
      */
     async callTicket(visitId: string, userId: string) {
+        const previousMonitorSnapshot = await monitorService.getWindowStatus();
         const user = await db.user.findUnique({
             where: { id: userId },
             include: { workstation: true }
@@ -232,26 +279,45 @@ class ReleasingService {
             include: { patient: true, department: true }
         });
 
-        await emitQueueUpdate('WINDOW');
-        return updated;
+        const payload = updated;
+        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: payload });
+        await publishWindowMonitorDiff(previousMonitorSnapshot);
+        return payload;
     }
 
     async noShowTicket(visitId: string, userId: string) {
-        const updated = await db.visit.update({
-            where: { id: visitId },
+        const previousMonitorSnapshot = await monitorService.getWindowStatus();
+        const updated = await db.visit.updateMany({
+            where: {
+                id: visitId,
+                status: 'IN_WINDOW',
+                windowClaimedById: userId,
+            },
             data: {
                 status: 'NO_SHOW',
                 windowClaimedById: null,
                 windowStartedAt: null,
-                statusHistory: { create: { status: 'NO_SHOW', changedBy: userId } }
             }
         });
-        await emitQueueUpdate('WINDOW');
-        return updated;
+        if (updated.count === 0) {
+            throw new AppError('Only your currently claimed window visit can be marked no-show.', 409, 'WINDOW_CLAIM_REQUIRED');
+        }
+        await db.visitStatusHistory.create({
+            data: { visitId, status: 'NO_SHOW', changedBy: userId }
+        });
+        const payload = await db.visit.findUnique({
+            where: { id: visitId },
+            include: { patient: true, department: true }
+        });
+        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: payload });
+        await publishWindowMonitorDiff(previousMonitorSnapshot);
+        return payload;
     }
 
     async assignTicket(visitId: string, payload: unknown, userId?: string) {
+        const previousMonitorSnapshot = await monitorService.getWindowStatus();
         const data = await assignTicketSchema.parseAsync(payload);
+        if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
 
         // Fetch category to check if it's priority
         const category = await db.priorityCategory.findUnique({
@@ -264,12 +330,21 @@ class ReleasingService {
 
         const classification = category?.isPriority ? 'PRIORITY' : 'REGULAR';
 
-        const visit = await db.visit.findUnique({ where: { id: visitId }, include: { patient: true } });
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            include: { patient: true },
+        });
         if (!visit) throw new Error('Visit not found');
+        if (visit.status !== 'IN_WINDOW') {
+            throw new AppError('Visit must be actively claimed at the window before assignment.', 409, 'INVALID_WINDOW_STATE');
+        }
+        if (visit.windowClaimedById !== userId) {
+            throw new AppError('Only the window clerk who claimed this visit can assign the service ticket.', 409, 'WINDOW_CLAIM_REQUIRED');
+        }
 
         const result = await db.$transaction(async (tx) => {
             const sequenceKey = `DEPT_${data.departmentId}`;
-            const nextTicket = await ticketService.generateNextTicketNumber(tx, sequenceKey);
+            const nextTicket = await ticketService.generateNextTicketNumber(tx, sequenceKey, visit.queueBusinessDay);
 
             await tx.visit.update({
                 where: { id: visitId },
@@ -277,8 +352,7 @@ class ReleasingService {
                     departmentId: data.departmentId,
                     classification: classification,
                     status: 'WAITING_CLINIC',
-                    windowTicketNumber: visit.ticketNumber, // Preserve the window ticket
-                    ticketNumber: nextTicket,
+                    serviceTicket: nextTicket,
                     sequenceKey: sequenceKey,
                     // Clear window claim since patient is moving on
                     windowClaimedById: null,
@@ -293,7 +367,8 @@ class ReleasingService {
             });
 
             return { 
-                ticketNumber: nextTicket, 
+                serviceTicket: nextTicket,
+                triageTicket: visit.triageTicket,
                 patientFullName: `${visit.patient.firstName} ${visit.patient.lastName}`.trim(),
                 priorityCode: category?.code || 'REG',
                 priorityName: category?.name || 'REGULAR',
@@ -302,10 +377,81 @@ class ReleasingService {
             };
         });
 
-        // Emit targeted update to this specific department
-        await emitQueueUpdate(data.departmentId);
-        await emitQueueUpdate('WINDOW'); // Clear from window monitor
+        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-remove', { visitId });
+        const clinicVisit = await db.visit.findUnique({
+            where: { id: visitId },
+            include: {
+                patient: true,
+                department: true,
+                referredFrom: true,
+                categories: { include: { category: true } }
+            }
+        });
+        if (clinicVisit?.departmentId) {
+            await publishDepartmentEvent(clinicVisit.departmentId, 'visit-upsert', {
+                visit: clinicVisit
+            });
+            const departmentSnapshot = await monitorService.getDepartmentStatus(clinicVisit.departmentId);
+            await publishDepartmentMonitorEvent(clinicVisit.departmentId, 'monitor-upcoming', {
+                upcoming: Array.isArray(departmentSnapshot) ? [] : departmentSnapshot.upcoming,
+            });
+        }
+        await publishWindowMonitorDiff(previousMonitorSnapshot);
         return result;
+    }
+
+    async linkPatientByHospitalId(visitId: string, hospitalId: string, userId?: string) {
+        if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+        const trimmedHospitalId = hospitalId.trim();
+        if (!trimmedHospitalId) throw new AppError('hospitalId is required', 400, 'HOSPITAL_ID_REQUIRED');
+
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            select: {
+                id: true,
+                patientId: true,
+                status: true,
+                windowClaimedById: true,
+            }
+        });
+        if (!visit) throw new AppError('Visit not found', 404);
+        if (visit.status !== 'IN_WINDOW') {
+            throw new AppError('Visit must be actively claimed at the window before linking an official patient record.', 409, 'INVALID_WINDOW_STATE');
+        }
+        if (visit.windowClaimedById !== userId) {
+            throw new AppError('Only the window clerk who claimed this visit can link the official patient record.', 409, 'WINDOW_CLAIM_REQUIRED');
+        }
+
+        const targetPatient = await db.patient.findUnique({ where: { hospitalId: trimmedHospitalId } });
+        if (!targetPatient) {
+            throw new AppError('Hospital ID not found.', 404, 'HOSPITAL_ID_NOT_FOUND');
+        }
+
+        const updatedVisit = await db.$transaction(async (tx) => {
+            const updated = await tx.visit.update({
+                where: { id: visitId },
+                data: {
+                    patientId: targetPatient.id,
+                    kioskRegistrationType: 'REGISTERED',
+                },
+                include: {
+                    patient: true,
+                    department: true,
+                    categories: { include: { category: true } }
+                }
+            });
+
+            const remainingVisits = await tx.visit.count({ where: { patientId: visit.patientId } });
+            if (remainingVisits === 0) {
+                await tx.patient.delete({ where: { id: visit.patientId } });
+            }
+
+            return updated;
+        });
+
+        const payload = updatedVisit;
+        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: payload });
+        return payload;
     }
 }
 

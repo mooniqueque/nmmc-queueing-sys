@@ -44,3 +44,25 @@ export const authLimiter = rateLimit({
         error: 'Too many login attempts, please try again after 15 minutes'
     }
 });
+
+export const monitorRestLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 60,
+    standardHeaders: 'draft-6',
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: 'Too many monitor requests from this IP, please slow down.'
+    }
+});
+
+export const monitorStreamLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 12,
+    standardHeaders: 'draft-6',
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: 'Too many monitor stream connections from this IP, please wait before reconnecting.'
+    }
+});

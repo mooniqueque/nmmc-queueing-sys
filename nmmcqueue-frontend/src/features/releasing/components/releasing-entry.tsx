@@ -13,7 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VisitWithPatient } from "@/features/triage/types";
 import { Department, PriorityCategory } from "@/shared/types/models";
-import { ArrowsCounterClockwise, ChartBar, Queue, CheckCircle, Play, CaretDown, User } from "@phosphor-icons/react";
+import { ArrowsCounterClockwise, ChartBar, Queue, Play, User } from "@phosphor-icons/react";
 import { useState, useTransition, useEffect } from "react";
 import { notify } from "@/shared/lib/notify";
 import { resetDailyQueue, callNextWindow, callTicket } from "../actions";
@@ -41,7 +41,6 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const [searchQuery, setSearchQuery] = useState("");
     const [isResetting, setIsResetting] = useState(false);
     const [resetDialogOpen, setResetDialogOpen] = useState(false);
-    const [overrideOpen, setOverrideOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [cooldown, setCooldown] = useState(0);
 
@@ -69,20 +68,17 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
     const hasActivePatient = !!currentVisit;
 
-    // Determine if a patient is manually selected and ready to be called
-    const isManuallyCallState = !!(selectedPatient && (selectedPatient.status === 'WAITING_WINDOW' || selectedPatient.status === 'NO_SHOW'));
 
     // ─── Call Next / Call Selected ───────────────────────
-    const handleCallNext = (overrideClassification?: 'PRIORITY' | 'REGULAR') => {
-        setOverrideOpen(false);
+    const handleCallNext = () => {
 
         // If a patient is manually selected (Waiting or No-Show) and no one is currently being served, call THEM
-        if (isManuallyCallState && !currentVisit && selectedPatient) {
+        if (false && !currentVisit && selectedPatient) {
             startTransition(async () => {
-                const res = await callTicket(selectedPatient.id);
+                const res = await callTicket(selectedPatient!.id);
                 if (res?.success) {
                     notify.success("Patient called to window", {
-                        description: `${selectedPatient.patient.lastName}, ${selectedPatient.patient.firstName} — Window ${stationNo}`
+                        description: `${selectedPatient!.patient.lastName}, ${selectedPatient!.patient.firstName} — Window ${stationNo}`
                     });
                 } else {
                     notify.error(res?.message || res?.error || "Failed to call selected patient");
@@ -92,14 +88,8 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         }
 
         // Tab-Aware Calling: If no manual selection, focus on the active tab's category
-        let finalOverride = overrideClassification;
-        if (!finalOverride) {
-            if (activeTab === "PRIORITY") finalOverride = "PRIORITY";
-            else if (activeTab === "REGULAR") finalOverride = "REGULAR";
-        }
-
         startTransition(async () => {
-            const res = await callNextWindow(finalOverride);
+            const res = await callNextWindow();
             if (res?.success && res.data) {
                 setSelectedPatient(res.data);
                 notify.success("Patient claimed", {
@@ -107,7 +97,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                 });
             } else if (res?.success && !res.data) {
                 notify.info("Queue is empty", { 
-                    description: `No ${finalOverride ? finalOverride.toLowerCase() : 'patients'} waiting for window.` 
+                    description: "No patients waiting for window." 
                 });
             } else {
                 notify.error(res?.error || "Failed to call next patient");
@@ -156,7 +146,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
-            (c.ticketNumber?.toString().includes(q) ?? false) ||
+            (c.triageTicket?.toString().includes(q) ?? false) ||
             c.patient.firstName.toLowerCase().includes(q) ||
             c.patient.lastName.toLowerCase().includes(q)
         );
@@ -214,48 +204,17 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
                         {/* ─── Right: Call Next + Reset ─── */}
                         <div className="flex items-center gap-2 w-full sm:w-auto">
-                            {/* Call Next Button with Override */}
+                            {/* Call Next Button */}
                             <div className="relative flex-1 sm:flex-none">
-                                <div className="flex">
-                                    <Button
-                                        onClick={() => handleCallNext()}
-                                        disabled={isPending || hasActivePatient}
-                                        className="flex-1 sm:flex-none h-9 sm:h-10 px-3 sm:px-5 font-bold text-xs sm:text-sm rounded-lg rounded-r-none bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all gap-2 disabled:opacity-50"
-                                    >
-                                        <Play size={14} weight="fill" />
-                                        <span className="hidden sm:inline">
-                                            {isManuallyCallState && !currentVisit ? 'Call Selected' : 'Call Next'}
-                                        </span>
-                                        <span className="sm:hidden">Call</span>
-                                    </Button>
-                                    <Button
-                                        onClick={() => setOverrideOpen(!overrideOpen)}
-                                        disabled={isPending || hasActivePatient}
-                                        className="h-9 sm:h-10 px-2 font-bold rounded-lg rounded-l-none bg-primary/90 hover:bg-primary/80 text-primary-foreground border-l border-primary-foreground/20 disabled:opacity-50"
-                                    >
-                                        <CaretDown size={14} weight="bold" />
-                                    </Button>
-                                </div>
-
-                                {/* Override Dropdown */}
-                                {overrideOpen && (
-                                    <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-xl z-50 min-w-[200px] py-1">
-                                        <button
-                                            onClick={() => handleCallNext('PRIORITY')}
-                                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-primary/5 transition-colors flex items-center gap-2"
-                                        >
-                                            <span className="w-2 h-2 rounded-full bg-destructive" />
-                                            Call Priority Patient
-                                        </button>
-                                        <button
-                                            onClick={() => handleCallNext('REGULAR')}
-                                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-primary/5 transition-colors flex items-center gap-2"
-                                        >
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                            Call Regular Patient
-                                        </button>
-                                    </div>
-                                )}
+                                <Button
+                                    onClick={handleCallNext}
+                                    disabled={isPending || hasActivePatient}
+                                    className="flex-1 sm:flex-none h-9 sm:h-10 px-3 sm:px-5 font-bold text-xs sm:text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all gap-2 disabled:opacity-50"
+                                >
+                                    <Play size={14} weight="fill" />
+                                    <span className="hidden sm:inline">Call Next</span>
+                                    <span className="sm:hidden">Call</span>
+                                </Button>
                             </div>
 
                             {/* Reset */}
@@ -303,10 +262,10 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                         <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                                     </div>
                                     <div className="text-xs sm:text-sm font-bold text-foreground truncate">
-                                        {currentVisit.ticketNumber && (
-                                            <span className="text-primary mr-2">
-                                                {currentVisit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}-{currentVisit.ticketNumber.toString().padStart(2, '0')}
-                                            </span>
+                                        {currentVisit.triageTicket && (
+                                        <span className="text-primary mr-2">
+                                                Triage {currentVisit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}-{currentVisit.triageTicket.toString().padStart(2, '0')}
+                                        </span>
                                         )}
                                         {currentVisit.patient.lastName}, {currentVisit.patient.firstName}
                                     </div>
@@ -397,6 +356,14 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                 <Card className="p-4">
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Shows</p>
                                     <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.noShowCount}</p>
+                                </Card>
+                                <Card className="p-4">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Kiosk to Window Avg</p>
+                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.avgKioskToWindowMinutes}m</p>
+                                </Card>
+                                <Card className="p-4">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Window to Clinic Avg</p>
+                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.avgWindowToClinicMinutes}m</p>
                                 </Card>
                             </div>
 

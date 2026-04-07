@@ -10,6 +10,11 @@ interface AnalyticsQuery {
     userId?: string;
 }
 
+function averageMinutes(values: number[]) {
+    if (values.length === 0) return 0;
+    return Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10;
+}
+
 // Status sets per scope
 const SCOPE_STATUSES: Record<AnalyticsScope, string[]> = {
     triage: ['WAITING_TRIAGE', 'IN_TRIAGE', 'WAITING_WINDOW', 'IN_WINDOW', 'WAITING_CLINIC', 'IN_PROGRESS', 'COMPLETED', 'NO_SHOW'],
@@ -90,8 +95,18 @@ export async function getAnalytics(query: AnalyticsQuery) {
         .filter(d => d >= 0 && d < 1440); // sanity: < 24h
 
     const avgProcessingMinutes = processingDurations.length > 0
-        ? Math.round((processingDurations.reduce((a, b) => a + b, 0) / processingDurations.length) * 10) / 10
+        ? averageMinutes(processingDurations)
         : 0;
+
+    const kioskToWindowDurations = visits
+        .filter(v => v.triageStartedAt && v.windowStartedAt)
+        .map(v => (new Date(v.windowStartedAt!).getTime() - new Date(v.triageStartedAt!).getTime()) / 60000)
+        .filter(d => d >= 0 && d < 1440);
+
+    const windowToClinicDurations = visits
+        .filter(v => v.windowStartedAt && v.calledAt)
+        .map(v => (new Date(v.calledAt!).getTime() - new Date(v.windowStartedAt!).getTime()) / 60000)
+        .filter(d => d >= 0 && d < 1440);
 
     // ─── Hourly Volume ──────────────
     const hourCounts = new Map<number, number>();
@@ -156,7 +171,8 @@ export async function getAnalytics(query: AnalyticsQuery) {
     // ─── Recent History (last 50) ──────────────
     const recentHistory = visits.slice(0, 50).map(v => ({
         id: v.id,
-        ticketNumber: v.ticketNumber,
+        triageTicket: v.triageTicket ?? null,
+        serviceTicket: v.serviceTicket ?? null,
         patientName: `${v.patient.lastName}, ${v.patient.firstName}`,
         status: v.status,
         timestamp: v.updatedAt.toISOString(),
@@ -172,6 +188,8 @@ export async function getAnalytics(query: AnalyticsQuery) {
             completedToday,
             noShowCount,
             peakHourLabel,
+            avgKioskToWindowMinutes: averageMinutes(kioskToWindowDurations),
+            avgWindowToClinicMinutes: averageMinutes(windowToClinicDurations),
         },
         hourlyVolume,
         classificationBreakdown,

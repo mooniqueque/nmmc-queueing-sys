@@ -215,3 +215,129 @@
 {"level":"info","message":"Ticket printed successfully to: XP-58 (copy 1)","service":"nmmc-queue-backend","timestamp":"2026-04-01 12:55:00"}
 {"level":"warn","message":"Failsafe: Reset 1 stuck IN_WINDOW visit(s) back to WAITING_WINDOW","service":"nmmc-queue-backend","timestamp":"2026-04-01 15:30:52"}
 {"level":"info","message":"SIGINT signal received: closing HTTP server","service":"nmmc-queue-backend","timestamp":"2026-04-01 15:38:02"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:45:03"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:45:03"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:56:22"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:56:22"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:56:43"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:56:43"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:56:49"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:56:49"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:57:00"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:57:00"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:57:13"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:57:13"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:57:22"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:57:22"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:57:51"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:57:51"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:58:07"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:58:07"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:58:34"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:58:34"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:58:47"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:58:47"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:58:54"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:58:54"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:11"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:11"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:18"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:18"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:25"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:25"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:32"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:32"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:45"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:45"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:50"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 21:59:50"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:07:31"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:07:31"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:07:48"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:07:48"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:12:10"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:12:10"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:51:51"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:51:51"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:54:05"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:54:21"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 22:54:21"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:00:25"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:00:25"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:01:31"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:01:31"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:01:44"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:01:44"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:01:58"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:01:58"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:02:20"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:02:20"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:02:47"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:02:47"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:03:03"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:03:03"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:03:18"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:03:18"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:03:37"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:03:37"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:03:54"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:03:54"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:08:11"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:08:11"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:08:59"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:08:59"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:09:11"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:09:11"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:09:20"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:09:20"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:09:51"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:09:51"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:09:58"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:09:58"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:10:07"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:10:07"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:10:31"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:10:31"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:11:47"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:11:47"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:12:28"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:12:28"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"nmmc-queue-backend","timestamp":"2026-04-06 23:46:58"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 10:08:39"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 10:08:39"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 10:39:24"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 10:39:24"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:10:15"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:10:15"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:10:37"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:10:37"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:10:50"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:10:50"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:10:57"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:10:57"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:11:10"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:11:10"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:11:20"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:11:20"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:11:34"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:11:34"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:12:04"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:12:04"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:12:15"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:12:15"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:12:43"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:12:43"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:13:02"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:13:02"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:13:16"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:13:16"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:13:26"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:13:26"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:14:00"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:14:00"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:14:11"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:14:11"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:30:32"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:30:32"}
+{"level":"info","message":"[server]: Server is running at http://localhost:3005","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:31:35"}
+{"level":"info","message":"Failsafe timer started: checking every 60s for stuck visits (timeout: triage=30m, window=30m)","service":"nmmc-queue-backend","timestamp":"2026-04-07 16:31:35"}

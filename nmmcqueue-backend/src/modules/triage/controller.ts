@@ -8,23 +8,30 @@ class TriageController {
         res.status(200).json({ success: true, message: 'Successfully queued for Triage.' });
     });
 
+    acknowledgeKiosk = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        await triageService.acknowledgeKioskSubmission(req.params.id, userId);
+        res.status(200).json({ success: true });
+    });
+
     submitTriage = asyncHandler(async (req: Request, res: Response) => {
         const userId = (req as any).user?.id;
         if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
         const result = await triageService.submitTriageForm(req.body.values, req.body.visitId, userId);
         
         let printError: string | null = null;
-        if (result?.ticketNumber) {
+        if (result?.triageTicket) {
             const prefix1 = result.classification === 'PRIORITY' ? 'PRIO' : 'REG';
-            const formattedTicket = `${prefix1}-${result.ticketNumber.toString().padStart(2, '0')}`;
+            const formattedTicket = `${prefix1}-${result.triageTicket.toString().padStart(2, '0')}`;
             const windowAssignment = result.classification === 'PRIORITY' ? 'Proceed to Window 1' : 'Proceed to Window 4';
 
             try {
                 const { printTicket } = await import('../../lib/printer.js');
                 await printTicket({
                     station: "Triage Station",
-                    label: "Window Queue Number",
-                    ticketNumber: formattedTicket,
+                    label: "Triage Ticket",
+                    displayNumber: formattedTicket,
                     date: new Date().toLocaleString(),
                     windowAssignment: windowAssignment,
                     footer: "This ticket is valid for today only."
@@ -40,7 +47,8 @@ class TriageController {
     });
 
     markNoShow = asyncHandler(async (req: Request, res: Response) => {
-        await triageService.markNoShow(req.params.id);
+        const userId = (req as any).user?.id;
+        await triageService.markNoShow(req.params.id, userId);
         res.status(200).json({ success: true });
     });
 
@@ -52,29 +60,6 @@ class TriageController {
     removeQueue = asyncHandler(async (req: Request, res: Response) => {
         await triageService.removeQueue(req.params.id);
         res.status(200).json({ success: true });
-    });
-
-    getPatientByHospitalId = asyncHandler(async (req: Request, res: Response) => {
-        const patient = await triageService.getPatientByHospitalId(req.params.id);
-        res.status(200).json({ success: true, data: patient });
-    });
-
-    searchPatients = asyncHandler(async (req: Request, res: Response) => {
-        const query = req.query.q as string;
-        if (!query) {
-            return res.status(200).json({ success: true, data: [] });
-        }
-        const patients = await triageService.searchPatients(query);
-        res.status(200).json({ success: true, data: patients });
-    });
-
-    mergePatient = asyncHandler(async (req: Request, res: Response) => {
-        const visitId = req.params.visitId;
-        const targetPatientId = req.body.targetPatientId;
-        if (!targetPatientId) return res.status(400).json({ success: false, error: 'targetPatientId is required.' });
-        
-        const result = await triageService.mergePatient(visitId, targetPatientId);
-        res.status(200).json({ success: true, data: result });
     });
 
     getPendingQueue = asyncHandler(async (req: Request, res: Response) => {

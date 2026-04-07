@@ -14,6 +14,7 @@ enum UserRole {
 }
 
 enum VisitStatus {
+  KIOSK_SUBMITTED
   WAITING_TRIAGE
   IN_TRIAGE
   WAITING_WINDOW
@@ -180,11 +181,12 @@ model Visit {
   id              String      @id @default(cuid())
   patientId           String
   departmentId        String?
-  ticketNumber        Int?
+  triageTicket        Int?
+  serviceTicket       Int?
   sequenceKey         String?
-  windowTicketNumber  Int?
+  queueBusinessDay    String      @db.VarChar(10)
   kioskRegistrationType String?     @default("UNREGISTERED")
-  status              VisitStatus @default(WAITING_TRIAGE)
+  status              VisitStatus @default(KIOSK_SUBMITTED)
   bloodPressure   String?
   heartRate       Int?
   respiratoryRate Int?
@@ -248,7 +250,9 @@ model Visit {
   @@index([windowClaimedById, status, createdAt])
   @@index([triageClaimedById, status, createdAt])
   @@index([departmentId, status, queueDate])
-  @@unique([queueDate, sequenceKey, ticketNumber])
+  @@index([queueBusinessDay, status, createdAt])
+  @@unique([queueBusinessDay, classification, triageTicket])
+  @@unique([queueBusinessDay, sequenceKey, serviceTicket])
   @@map("visit")
 }
 

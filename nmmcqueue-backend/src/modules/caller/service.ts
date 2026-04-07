@@ -1,11 +1,109 @@
 import { db } from '../../config/database.js';
-import { emitQueueUpdate } from '../../lib/sse.js';
+import { withClaimConflictRetry } from '../../lib/claim-retry.js';
+import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
+import logger from '../../lib/logger.js';
+import { publishDepartmentEvent, publishDepartmentMonitorEvent } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { monitorService } from '../monitor/service.js';
 
 const normalizeOption = (v: string) => v.trim().toUpperCase();
 const normalizeDepartmentKey = (v: string) => v.trim().toUpperCase();
 
 class CallerService {
+    private normalizeDepartmentMonitorSnapshot(
+        snapshot: Awaited<ReturnType<typeof monitorService.getDepartmentStatus>>
+    ) {
+        if (Array.isArray(snapshot)) {
+            return { active: [], upcoming: [] as string[] };
+        }
+
+        return snapshot;
+    }
+
+    private async publishDepartmentVisitUpsert(departmentId: string, visitId: string) {
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            include: {
+                patient: true,
+                department: true,
+                referredFrom: true,
+                categories: { include: { category: true } }
+            }
+        });
+        if (!visit) return;
+        await publishDepartmentEvent(departmentId, 'visit-upsert', {
+            visit
+        });
+    }
+
+    private async publishDepartmentVisitRemove(departmentId: string, visitId: string) {
+        await publishDepartmentEvent(departmentId, 'visit-remove', { visitId });
+    }
+
+    private async publishDepartmentMonitorSnapshot(departmentId: string) {
+        const snapshot = this.normalizeDepartmentMonitorSnapshot(
+            await monitorService.getDepartmentStatus(departmentId)
+        );
+
+        for (const window of snapshot.active) {
+            if (window.serviceTicket) {
+                await publishDepartmentMonitorEvent(departmentId, 'monitor-upsert', { window });
+                continue;
+            }
+
+            await publishDepartmentMonitorEvent(departmentId, 'monitor-remove', {
+                stationNo: window.stationNo,
+            });
+        }
+
+        await publishDepartmentMonitorEvent(departmentId, 'monitor-upcoming', {
+            upcoming: snapshot.upcoming,
+        });
+    }
+
+    private async publishDepartmentMonitorDiff(
+        departmentId: string,
+        previousSnapshot?: Awaited<ReturnType<typeof monitorService.getDepartmentStatus>>
+    ) {
+        const snapshot = this.normalizeDepartmentMonitorSnapshot(
+            await monitorService.getDepartmentStatus(departmentId)
+        );
+        const normalizedPrevious = previousSnapshot
+            ? this.normalizeDepartmentMonitorSnapshot(previousSnapshot)
+            : undefined;
+        const previousByStation = new Map((normalizedPrevious?.active ?? []).map((window) => [window.stationNo, window]));
+        const nextByStation = new Map(snapshot.active.map((window) => [window.stationNo, window]));
+        const stationNos = new Set([
+            ...previousByStation.keys(),
+            ...nextByStation.keys(),
+        ]);
+
+        for (const stationNo of stationNos) {
+            const previous = previousByStation.get(stationNo);
+            const next = nextByStation.get(stationNo);
+
+            if (JSON.stringify(previous ?? null) === JSON.stringify(next ?? null)) {
+                continue;
+            }
+
+            if (next?.serviceTicket) {
+                await publishDepartmentMonitorEvent(departmentId, 'monitor-upsert', { window: next });
+                continue;
+            }
+
+            await publishDepartmentMonitorEvent(departmentId, 'monitor-remove', { stationNo });
+        }
+
+        if (
+            !normalizedPrevious ||
+            JSON.stringify(normalizedPrevious.upcoming ?? []) !== JSON.stringify(snapshot.upcoming ?? [])
+        ) {
+            await publishDepartmentMonitorEvent(departmentId, 'monitor-upcoming', {
+                upcoming: snapshot.upcoming,
+            });
+        }
+    }
+
     private async getCallerScope(userId?: string) {
         if (!userId) {
             throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
@@ -88,13 +186,10 @@ class CallerService {
     }
     async getPendingQueue(departmentName?: string, userId?: string) {
         const scope = await this.getCallerScope(userId);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const queueBusinessDay = getQueueBusinessDay();
 
         const whereClause: any = {
-            createdAt: { gte: today, lt: tomorrow },
+            queueBusinessDay,
             departmentId: scope.departmentId,
             OR: [
                 { status: 'WAITING_CLINIC' },
@@ -136,6 +231,84 @@ class CallerService {
         });
     }
 
+    async callNextPatient(userId?: string) {
+        const scope = await this.getCallerScope(userId);
+        const queueBusinessDay = getQueueBusinessDay();
+        const previousMonitorSnapshot = await monitorService.getDepartmentStatus(scope.departmentId);
+
+        const currentClaim = await db.visit.findFirst({
+            where: {
+                calledByUserId: scope.userId,
+                departmentId: scope.departmentId,
+                queueBusinessDay,
+                status: 'IN_PROGRESS',
+            }
+        });
+        if (currentClaim) {
+            throw new AppError('Complete or transfer your current patient before calling the next one.', 409, 'CLAIM_ALREADY_ACTIVE');
+        }
+
+        const claimedVisit = await withClaimConflictRetry(() => db.$transaction(async (tx) => {
+            const nextVisit = await tx.visit.findFirst({
+                where: {
+                    departmentId: scope.departmentId,
+                    queueBusinessDay,
+                    status: 'WAITING_CLINIC',
+                },
+                orderBy: [
+                    { isReferred: 'desc' },
+                    { classification: 'desc' },
+                    { createdAt: 'asc' },
+                ],
+                select: { id: true }
+            });
+
+            if (!nextVisit) return null;
+
+            const claimed = await tx.visit.updateMany({
+                where: {
+                    id: nextVisit.id,
+                    status: 'WAITING_CLINIC',
+                },
+                data: {
+                    status: 'IN_PROGRESS',
+                    calledAt: new Date(),
+                    calledByUserId: scope.userId,
+                    calledAtStationId: scope.workstationId,
+                }
+            });
+
+            if (claimed.count === 0) {
+                throw new AppError('Patient was already claimed by another user. Try again.', 409, 'CLAIM_CONFLICT');
+            }
+
+            await tx.visitStatusHistory.create({
+                data: { visitId: nextVisit.id, status: 'IN_PROGRESS', changedBy: scope.userId }
+            });
+
+            return tx.visit.findUnique({
+                where: { id: nextVisit.id },
+                include: {
+                    patient: true,
+                    department: true,
+                    referredFrom: true,
+                    categories: {
+                        include: {
+                            category: true
+                        }
+                    }
+                }
+            });
+        }));
+
+        const payload = claimedVisit;
+        if (payload?.departmentId) {
+            await this.publishDepartmentVisitUpsert(payload.departmentId, payload.id);
+            await this.publishDepartmentMonitorDiff(payload.departmentId, previousMonitorSnapshot);
+        }
+        return payload;
+    }
+
     async getQueueOptionsByDepartment(names: string[]) {
         const trimmed = Array.from(new Set(names.map(n => n.trim().toUpperCase()).filter(n => n.length > 0)));
         const depts = await db.department.findMany({ 
@@ -166,8 +339,9 @@ class CallerService {
 
     async callPatient(visitId: string, userId?: string, windowNumber?: number) {
         const scope = await this.getCallerScope(userId);
+        const previousMonitorSnapshot = await monitorService.getDepartmentStatus(scope.departmentId);
 
-        const claimedVisit = await db.$transaction(async (tx) => {
+        const claimedVisit = await withClaimConflictRetry(() => db.$transaction(async (tx) => {
             const existing = await tx.visit.findUnique({
                 where: { id: visitId },
                 select: {
@@ -221,10 +395,14 @@ class CallerService {
             });
 
             return tx.visit.findUnique({ where: { id: visitId } });
-        });
+        }));
 
-        if (claimedVisit?.departmentId) await emitQueueUpdate(claimedVisit.departmentId);
-        return claimedVisit;
+        const payload = claimedVisit;
+        if (payload?.departmentId) {
+            await this.publishDepartmentVisitUpsert(payload.departmentId, payload.id);
+            await this.publishDepartmentMonitorDiff(payload.departmentId, previousMonitorSnapshot);
+        }
+        return payload;
     }
 
     async servePatient(visitId: string, userId?: string) {
@@ -251,8 +429,12 @@ class CallerService {
                 statusHistory: { create: { status: 'COMPLETED', changedBy: scope.userId } }
             }
         });
-        if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
-        return updated;
+        const payload = updated;
+        if (updated.departmentId) {
+            await this.publishDepartmentVisitRemove(updated.departmentId, visitId);
+            await this.publishDepartmentMonitorSnapshot(updated.departmentId);
+        }
+        return payload;
     }
 
     async noShowPatient(visitId: string, userId?: string) {
@@ -278,8 +460,12 @@ class CallerService {
                 statusHistory: { create: { status: 'NO_SHOW', changedBy: scope.userId } }
             }
         });
-        if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
-        return updated;
+        const payload = updated;
+        if (updated.departmentId) {
+            await this.publishDepartmentVisitUpsert(updated.departmentId, updated.id);
+            await this.publishDepartmentMonitorSnapshot(updated.departmentId);
+        }
+        return payload;
     }
 
     async transferPatient(visitId: string, targetDepartmentId: string, userId?: string) {
@@ -315,8 +501,12 @@ class CallerService {
             }
         });
         
-        if (visit.departmentId) await emitQueueUpdate(visit.departmentId);
-        await emitQueueUpdate(targetDepartmentId);
+        if (visit.departmentId) {
+            await this.publishDepartmentVisitRemove(visit.departmentId, visitId);
+            await this.publishDepartmentMonitorSnapshot(visit.departmentId);
+        }
+        await this.publishDepartmentVisitUpsert(targetDepartmentId, updated.id);
+        await this.publishDepartmentMonitorSnapshot(targetDepartmentId);
         return updated;
     }
 
@@ -330,7 +520,10 @@ class CallerService {
         const contactNo = visit.patient.contactNo;
         if (!contactNo) throw new Error('Patient has no contact number registered');
 
-        console.log(`[SMS MOCK] Sending SMS to ${contactNo}: "Please proceed to the clinic, it is almost your turn."`);
+        logger.info('SMS notification requested for clinic patient', {
+            visitId,
+            patientId: visit.patientId,
+        });
         return { success: true, message: 'Notification sent successfully' };
     }
     async restorePatient(visitId: string, userId?: string) {
@@ -353,8 +546,12 @@ class CallerService {
                 statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: scope.userId } }
             }
         });
-        if (updated.departmentId) await emitQueueUpdate(updated.departmentId);
-        return updated;
+        const payload = updated;
+        if (updated.departmentId) {
+            await this.publishDepartmentVisitUpsert(updated.departmentId, updated.id);
+            await this.publishDepartmentMonitorSnapshot(updated.departmentId);
+        }
+        return payload;
     }
 
     async forceRemoveVisit(visitId: string, userId?: string) {
@@ -369,7 +566,8 @@ class CallerService {
                 patientId: true,
                 departmentId: true,
                 status: true,
-                ticketNumber: true,
+                serviceTicket: true,
+                triageTicket: true,
             }
         });
 
@@ -391,11 +589,15 @@ class CallerService {
             return { deletedOrphanPatient };
         });
 
-        await emitQueueUpdate(visit.departmentId || undefined);
+        if (visit.departmentId) {
+            await this.publishDepartmentVisitRemove(visit.departmentId, visit.id);
+            await this.publishDepartmentMonitorSnapshot(visit.departmentId);
+        }
 
         return {
             visitId: visit.id,
-            ticketNumber: visit.ticketNumber,
+            serviceTicket: visit.serviceTicket ?? null,
+            triageTicket: visit.triageTicket ?? null,
             previousStatus: visit.status,
             departmentId: visit.departmentId,
             ...result,

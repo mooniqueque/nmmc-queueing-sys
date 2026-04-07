@@ -12,7 +12,7 @@ import { workstationRouter } from './modules/workstation/routes.js';
 
 import helmet from 'helmet';
 import { db } from './config/database.js';
-import { apiLimiter, authLimiter } from './middleware/rate-limit.js';
+import { authLimiter } from './middleware/rate-limit.js';
 
 import path from 'path';
 
@@ -30,7 +30,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'cookie'],
 }));
 app.use(express.json());
-app.use(apiLimiter);
+app.set('trust proxy', true);
 
 // Register API routes
 app.use('/api/monitor', monitorRouter); // Priority for monitor management

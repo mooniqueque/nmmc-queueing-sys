@@ -44,6 +44,20 @@ export async function assignTicket(
     return res.json();
 }
 
+export async function linkPatient(
+    visitId: string,
+    hospitalId: string,
+    options?: RequestInit
+) {
+    const res = await fetch(`${API_URL}/releasing/${visitId}/link-patient`, {
+        method: "POST",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ hospitalId }),
+    });
+    return res.json();
+}
+
 export async function resetDailyQueue(options?: RequestInit) {
     const res = await fetch(`${API_URL}/tickets/reset`, {
         method: "POST",

@@ -16,14 +16,6 @@ export async function registerKioskPatient(data: Record<string, unknown>) {
     return res.json();
 }
 
-export async function getPatientByHospitalId(hospitalId: string) {
-    const res = await fetch(
-        `${API_URL}/triage/kiosk/patient/${encodeURIComponent(hospitalId)}`
-    );
-    if (!res.ok) return { success: false, error: "Patient not found" };
-    return res.json();
-}
-
 // ─── Protected (Triage Nurse / Admin) ─────────────────────────
 export async function submitTriageForm(
     values: Record<string, unknown>,
@@ -47,6 +39,14 @@ export async function getPendingQueue(options?: RequestInit) {
     return res.json();
 }
 
+export async function acknowledgeKioskSubmission(visitId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/triage/${visitId}/acknowledge`, {
+        method: "POST",
+        ...options,
+    });
+    return res.json();
+}
+
 export async function markNoShow(visitId: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/triage/${visitId}/no-show`, {
         method: "POST",
@@ -65,16 +65,6 @@ export async function restoreNoShow(visitId: string, options?: RequestInit) {
 
 export async function searchPatients(query: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/triage/patients/search?q=${encodeURIComponent(query)}`, {
-        ...options,
-    });
-    return res.json();
-}
-
-export async function mergePatient(visitId: string, targetPatientId: string, options?: RequestInit) {
-    const res = await fetch(`${API_URL}/triage/${visitId}/merge-patient`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify({ targetPatientId }),
         ...options,
     });
     return res.json();

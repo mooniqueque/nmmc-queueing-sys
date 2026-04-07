@@ -54,6 +54,7 @@ async function hasFailedMigrations() {
 
 async function main() {
   const missing = [];
+  const unexpected = [];
 
   const requiredColumns = [
     ["department", "slug"],
@@ -65,12 +66,24 @@ async function main() {
     ["visit", "classification"],
     ["visit", "kioskRegistrationType"],
     ["visit", "sequenceKey"],
-    ["visit", "windowTicketNumber"],
+    ["visit", "queueBusinessDay"],
+    ["visit", "triageTicket"],
+    ["visit", "serviceTicket"],
   ];
 
   const requiredIndexes = [
     ["department", "department_slug_key"],
     ["visit", "visit_classification_idx"],
+    ["visit", "visit_queueBusinessDay_classification_triageTicket_key"],
+    ["visit", "visit_queueBusinessDay_sequenceKey_serviceTicket_key"],
+  ];
+
+  const forbiddenColumns = [
+    ["visit", "ticketNumber"],
+    ["visit", "windowTicketNumber"],
+  ];
+
+  const forbiddenIndexes = [
     ["visit", "visit_queueDate_sequenceKey_ticketNumber_key"],
   ];
 
@@ -86,6 +99,16 @@ async function main() {
     if (!ok) missing.push(`index ${tableName}.${indexName}`);
   }
 
+  for (const [tableName, columnName] of forbiddenColumns) {
+    const exists = await existsColumn(tableName, columnName);
+    if (exists) unexpected.push(`legacy column ${tableName}.${columnName}`);
+  }
+
+  for (const [tableName, indexName] of forbiddenIndexes) {
+    const exists = await existsIndex(tableName, indexName);
+    if (exists) unexpected.push(`legacy index ${tableName}.${indexName}`);
+  }
+
   for (const tableName of requiredTables) {
     const ok = await existsTable(tableName);
     if (!ok) missing.push(`table ${tableName}`);
@@ -97,14 +120,17 @@ async function main() {
     missing.push(
       `failed migrations in _prisma_migrations: ${failed
         .map((row) => row.migration_name)
-        .join(", ")}`
+        .join(", ")}` 
     );
   }
 
-  if (missing.length > 0) {
+  if (missing.length > 0 || unexpected.length > 0) {
     console.error("[db:verify] Schema verification failed.");
     for (const item of missing) {
       console.error(`  - missing ${item}`);
+    }
+    for (const item of unexpected) {
+      console.error(`  - unexpected ${item}`);
     }
     process.exit(1);
   }

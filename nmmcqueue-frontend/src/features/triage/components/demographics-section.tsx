@@ -10,10 +10,9 @@ import { CalendarBlank, UserCircle, MapPin, IdentificationBadge } from "@phospho
 import { calculateAge } from "@/shared/lib/utils";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useTriageStore } from "../store/use-triage-store";
-import { PatientLinkDialog } from "./patient-link-dialog";
 
 export function DemographicsSection() {
-    const { register, control, formState: { errors }, setValue } = useFormContext<TriageFormValues>();
+    const { register, control, formState: { errors } } = useFormContext<TriageFormValues>();
     const watchDob = useWatch({ control, name: "dateOfBirth" });
     const { selectedPatient } = useTriageStore();
 
@@ -31,26 +30,6 @@ export function DemographicsSection() {
                         Patient Demographics
                     </h3>
                     
-                    {selectedPatient && selectedPatient.kioskRegistrationType === 'UNREGISTERED' && (
-                        <PatientLinkDialog 
-                            visitId={selectedPatient.id} 
-                            currentPatientName={`${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName}`}
-                            onMergeSuccess={(mergedVisit) => {
-                                // Close out or reset if needed, for now just auto-sync the new demographics to the form
-                                if (mergedVisit && mergedVisit.patient) {
-                                    setValue('firstName', mergedVisit.patient.firstName);
-                                    setValue('lastName', mergedVisit.patient.lastName);
-                                    setValue('middleName', mergedVisit.patient.middleName || "");
-                                    setValue('dateOfBirth', new Date(mergedVisit.patient.dateOfBirth).toISOString().split('T')[0]);
-                                    setValue('gender', mergedVisit.patient.gender);
-                                    setValue('address', mergedVisit.patient.address || "");
-                                    setValue('birthPlace', mergedVisit.patient.birthPlace || "");
-                                    setValue('religion', mergedVisit.patient.religion || "");
-                                    setValue('civilStatus', mergedVisit.patient.civilStatus || "Single");
-                                }
-                            }}
-                        />
-                    )}
                 </div>
 
                 <Controller

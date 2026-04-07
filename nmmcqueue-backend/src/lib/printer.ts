@@ -62,7 +62,7 @@ export async function printTicket(data: any): Promise<void> {
         // Huge bold typography for the ticket number
         printer.setTextSize(2, 2);
         printer.bold(true);
-        printer.println(data.ticketNumber || '000');
+        printer.println(data.displayNumber || '000');
         printer.bold(false);
         printer.setTextNormal();
 

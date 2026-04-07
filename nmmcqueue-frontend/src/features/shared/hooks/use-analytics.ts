@@ -12,11 +12,14 @@ export interface AnalyticsKPIs {
     completedToday: number;
     noShowCount: number;
     peakHourLabel: string;
+    avgKioskToWindowMinutes: number;
+    avgWindowToClinicMinutes: number;
 }
 
 export interface HistoryItem {
     id: string;
-    ticketNumber: number | null;
+    triageTicket: number | null;
+    serviceTicket: number | null;
     patientName: string;
     status: string;
     timestamp: string;
@@ -36,7 +39,16 @@ export interface AnalyticsData {
 }
 
 const EMPTY_DATA: AnalyticsData = {
-    kpis: { totalToday: 0, currentlyWaiting: 0, avgProcessingMinutes: 0, completedToday: 0, noShowCount: 0, peakHourLabel: "—" },
+    kpis: {
+        totalToday: 0,
+        currentlyWaiting: 0,
+        avgProcessingMinutes: 0,
+        completedToday: 0,
+        noShowCount: 0,
+        peakHourLabel: "-",
+        avgKioskToWindowMinutes: 0,
+        avgWindowToClinicMinutes: 0,
+    },
     hourlyVolume: [],
     classificationBreakdown: [],
     departmentBreakdown: [],

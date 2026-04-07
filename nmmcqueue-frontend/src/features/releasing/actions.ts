@@ -52,6 +52,14 @@ export async function assignTicket(
     return result;
 }
 
+export async function linkPatient(visitId: string, hospitalId: string) {
+    const result = await releasingApi.linkPatient(visitId, hospitalId, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/releasing", "page");
+    return result;
+}
+
 export async function callNextWindow(overrideClassification?: 'PRIORITY' | 'REGULAR') {
     const result = await releasingApi.callNextWindow(overrideClassification, {
         headers: await getServerHeaders(),

@@ -3,6 +3,7 @@ type MonitorWindowLike = {
     windowName?: string | null;
     triageTicket?: string | null;
     serviceTicket?: string | null;
+    displayTicket?: string | null;
     calledAt?: string | Date | null;
 };
 
@@ -26,6 +27,9 @@ export function sanitizeMonitorWindow(window: MonitorWindowLike | null | undefin
         windowName: typeof window.windowName === 'string' ? window.windowName : '',
         triageTicket: typeof window.triageTicket === 'string' ? window.triageTicket : null,
         serviceTicket: typeof window.serviceTicket === 'string' ? window.serviceTicket : null,
+        displayTicket: typeof window.displayTicket === 'string'
+            ? window.displayTicket
+            : (typeof window.serviceTicket === 'string' ? window.serviceTicket : (typeof window.triageTicket === 'string' ? window.triageTicket : null)),
         calledAt: toIsoString(window.calledAt),
     };
 }

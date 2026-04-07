@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Department } from "@/shared/types/models";
 
-export type CallerTab = "regular" | "priority" | "noshow" | "referrals" | "history";
+export type CallerTab = "regular" | "priority" | "noshow" | "referrals" | "reports";
 
 interface CallerState {
   activeTab: CallerTab;

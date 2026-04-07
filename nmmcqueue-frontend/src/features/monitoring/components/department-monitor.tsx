@@ -105,10 +105,10 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
                                     </span>
                                 </div>
                                 <div className="text-right">
-                                    {window.ticketNumber ? (
+                                    {window.displayTicket ? (
                                         <div className={`${isVeryDense ? "w-44 h-18" : isDense ? "w-52 h-22" : "w-60 h-24"} flex items-center justify-center rounded-lg bg-emerald-50/40 border border-emerald-100`}>
                                             <span className={`${isVeryDense ? "text-3xl" : isDense ? "text-4xl" : "text-5xl"} font-black text-emerald-600 tracking-tight tabular-nums drop-shadow-sm leading-none whitespace-nowrap`}>
-                                                {window.ticketNumber}
+                                                {window.displayTicket}
                                             </span>
                                         </div>
                                     ) : (

@@ -92,10 +92,10 @@ export default function WindowMonitor() {
                                     </span>
                                 </div>
                                 <div className="text-right flex flex-col items-end">
-                                    {window.ticketNumber ? (
+                                    {window.displayTicket ? (
                                         <>
                                             <span className="text-3xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
-                                                {window.ticketNumber}
+                                                {window.displayTicket}
                                             </span>
                                             {window.priorityClass && false && (
                                                 <span className="text-sm font-extrabold text-slate-400 uppercase tracking-[0.2em] mt-3">

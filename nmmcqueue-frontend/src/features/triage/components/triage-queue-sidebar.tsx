@@ -11,8 +11,8 @@ import { Input } from "@/components/ui/input";
 import { notify } from "@/shared/lib/notify";
 import { SessionUser } from "@/shared/types/auth";
 import { calculateAge } from "@/shared/lib/utils";
-import { useAnalytics } from "@/features/shared/hooks/use-analytics";
-import { HistoryTable } from "@/features/shared/components/history-table";
+import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
+import { useTriageSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 
 interface TriageQueueSidebarProps {
     initialQueue: VisitWithPatient[];
@@ -32,8 +32,8 @@ export function TriageQueueSidebar({
     const [isPending, startTransition] = useTransition();
     const [searchQuery, setSearchQuery] = useState("");
     const [nowMs, setNowMs] = useState<number | null>(null);
-
-    const { data: analyticsData } = useAnalytics("triage");
+    const [reportDate, setReportDate] = useState(getTodayBusinessDay());
+    const { data: snapshotData } = useTriageSnapshot(reportDate);
 
     useEffect(() => {
         const updateNow = () => setNowMs(Date.now());
@@ -258,13 +258,13 @@ export function TriageQueueSidebar({
                             </span>
                         </button>
                         <button
-                            onClick={() => setActiveTab("HISTORY")}
-                            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-md transition-all ${activeTab === "HISTORY"
+                            onClick={() => setActiveTab("REPORTS")}
+                            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-md transition-all ${activeTab === "REPORTS"
                                 ? "bg-background text-foreground shadow-sm"
                                 : "text-muted-foreground hover:text-foreground"
                                 }`}
                         >
-                            <span>History</span>
+                            <span>Reports</span>
                         </button>
                     </div>
 
@@ -281,7 +281,7 @@ export function TriageQueueSidebar({
             </div>
 
             {/* Table Header */}
-            {activeTab !== "HISTORY" && (
+            {activeTab !== "REPORTS" && (
                 <div className={`grid grid-cols-[40px_1fr_70px_60px] sm:grid-cols-[50px_1fr_100px_90px] gap-2 sm:gap-4 px-3 sm:px-6 py-2.5 sm:py-3 bg-muted/30 text-[8px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-widest shrink-0 border-b border-border`}>
                     <div>Queue</div>
                     <div>Patient Name</div>
@@ -364,9 +364,42 @@ export function TriageQueueSidebar({
                             ))}
                         </div>
                     )
-                ) : activeTab === "HISTORY" ? (
-                    <div className="flex flex-col">
-                        <HistoryTable items={analyticsData.recentHistory} />
+                ) : activeTab === "REPORTS" ? (
+                    <div className="flex flex-col gap-4 p-4 sm:p-6">
+                        <ReportDatePicker value={reportDate} onChange={setReportDate} />
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <ReportMetricCard
+                                label="Total Tickets Generated"
+                                value={snapshotData.totals.totalTicketsGenerated.toString()}
+                                hint="Triage tickets issued on the selected business day."
+                            />
+                            <ReportMetricCard
+                                label="Abandoned Before Window"
+                                value={snapshotData.totals.abandonedBeforeWindow.toString()}
+                                hint="Marked no-show before ever reaching the window."
+                                tone="warning"
+                            />
+                            <ReportMetricCard
+                                label="Priority Tickets"
+                                value={snapshotData.totals.priorityCount.toString()}
+                                hint="Priority-classified triage tickets."
+                                tone="success"
+                            />
+                            <ReportMetricCard
+                                label="Regular Tickets"
+                                value={snapshotData.totals.regularCount.toString()}
+                                hint="Regular triage tickets."
+                            />
+                        </div>
+                        <ReportBreakdownCard
+                            title="Tickets Per Department"
+                            emptyLabel="No triage tickets were assigned to departments for this date."
+                            items={snapshotData.ticketsPerDepartment.map((item) => ({
+                                id: item.departmentId ?? item.departmentName,
+                                label: item.departmentName,
+                                value: item.count,
+                            }))}
+                        />
                     </div>
                 ) : null}
             </div>

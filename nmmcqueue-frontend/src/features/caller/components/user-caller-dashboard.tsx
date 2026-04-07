@@ -25,8 +25,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CallerApiError, callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
-import { HistoryTable } from "@/features/shared/components/history-table";
-import { useAnalytics } from "@/features/shared/hooks/use-analytics";
+import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
+import { useClinicSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 
 
 export default function UserCallerDashboard({
@@ -57,8 +57,7 @@ export default function UserCallerDashboard({
     // Live Queue Hook locked directly to the user's role department
     const { activeQueue } = useClinicQueue(department, initialQueue);
 
-    // History data for the History tab
-    const { data: analyticsData } = useAnalytics("clinic");
+    const [reportDate, setReportDate] = useState(getTodayBusinessDay());
 
     // Filter queue to make absolutely sure we only count tickets for THIS department
     const departmentQueue = activeQueue.filter((v: VisitWithPatient) =>
@@ -75,6 +74,8 @@ export default function UserCallerDashboard({
     const priorityWaitingList = waitingList.filter(v => v.classification === "PRIORITY" || v.isReferred);
 
     const noShowList = departmentQueue.filter(v => v.status === "NO_SHOW");
+    const currentDepartmentId = allDepartments.find((item) => item.name.toUpperCase() === department.toUpperCase())?.id;
+    const { data: snapshotData } = useClinicSnapshot(reportDate, currentDepartmentId, Boolean(currentDepartmentId));
 
     const handleCallerApiError = (error: unknown, fallbackMessage: string) => {
         if (error instanceof CallerApiError) {
@@ -257,12 +258,12 @@ export default function UserCallerDashboard({
                         )}
                     </button>
                     <button
-                        onClick={() => setActiveTab("history")}
-                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "history" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        onClick={() => setActiveTab("reports")}
+                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "reports" ? "text-primary" : "text-muted-foreground hover:text-foreground"
                             }`}
                     >
-                        History
-                        {activeTab === "history" && (
+                        Reports
+                        {activeTab === "reports" && (
                             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
                         )}
                     </button>
@@ -406,9 +407,55 @@ export default function UserCallerDashboard({
                                 ))}
                             </div>
                         )
-                    ) : activeTab === "history" ? (
-                        <div className="flex flex-col">
-                            <HistoryTable items={analyticsData.recentHistory} />
+                    ) : activeTab === "reports" ? (
+                        <div className="flex flex-col gap-4 p-5">
+                            <ReportDatePicker value={reportDate} onChange={setReportDate} />
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <ReportMetricCard
+                                    label="Patients Served"
+                                    value={snapshotData.totals.totalPatientsServed.toString()}
+                                    hint="Completed consultations for this department and date."
+                                    tone="success"
+                                />
+                                <ReportMetricCard
+                                    label="Clinic No-Shows"
+                                    value={snapshotData.totals.clinicNoShowCount.toString()}
+                                    hint="Patients routed to clinic but not served."
+                                    tone="warning"
+                                />
+                                <ReportMetricCard
+                                    label="Average Wait Time"
+                                    value={`${snapshotData.totals.avgWaitMinutes}m`}
+                                    hint="WAITING_CLINIC to IN_PROGRESS."
+                                />
+                                <ReportMetricCard
+                                    label="Average Serve Time"
+                                    value={`${snapshotData.totals.avgServeMinutes}m`}
+                                    hint="IN_PROGRESS to COMPLETED."
+                                    tone="success"
+                                />
+                            </div>
+                            <ReportBreakdownCard
+                                title="Referral & Transfer Summary"
+                                emptyLabel="No clinic referrals or transfers were recorded for this date."
+                                items={[
+                                    {
+                                        id: "transfers",
+                                        label: "Transferred / Referred",
+                                        value: snapshotData.totals.transferCount,
+                                    },
+                                    {
+                                        id: "transfer-rate",
+                                        label: "Transfer Rate",
+                                        value: `${snapshotData.totals.transferRate}%`,
+                                    },
+                                    {
+                                        id: "department",
+                                        label: "Scoped Department",
+                                        value: snapshotData.department?.name ?? department,
+                                    },
+                                ]}
+                            />
                         </div>
                     ) : null}
                 </div>

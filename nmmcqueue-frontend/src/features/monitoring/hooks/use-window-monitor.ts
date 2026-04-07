@@ -10,7 +10,7 @@ export interface WindowStatus {
     windowName: string;
     triageTicket?: string | null;
     serviceTicket?: string | null;
-    ticketNumber: string | null;
+    displayTicket: string | null;
     classification?: string | null;
     priorityClass?: string | null;
     calledAt: string | null;
@@ -22,7 +22,7 @@ function toDisplayWindow(window: Partial<WindowStatus>): WindowStatus {
         windowName: window.windowName ?? "",
         triageTicket: window.triageTicket ?? null,
         serviceTicket: window.serviceTicket ?? null,
-        ticketNumber: window.ticketNumber ?? window.serviceTicket ?? window.triageTicket ?? null,
+        displayTicket: window.displayTicket ?? window.serviceTicket ?? window.triageTicket ?? null,
         classification: window.classification ?? null,
         priorityClass: window.priorityClass ?? null,
         calledAt: window.calledAt ?? null,
@@ -45,7 +45,7 @@ function clearWindowByStation(items: WindowStatus[], stationNo: number) {
         if (item.stationNo !== stationNo) return item;
         return {
             ...item,
-            ticketNumber: null,
+            displayTicket: null,
             classification: null,
             priorityClass: null,
             calledAt: null,
@@ -114,9 +114,9 @@ export function useWindowMonitor(slugOrId?: string) {
                     setWindows((current) => upsertWindowByStation(current, toDisplayWindow(data.payload!.window!)));
                     setLoading(false);
 
-                    if (data.payload.window.ticketNumber) {
+                    if (data.payload.window.displayTicket) {
                         enqueueAnnouncement({
-                            ticket: data.payload.window.ticketNumber,
+                            ticket: data.payload.window.displayTicket,
                             windowName: data.payload.window.windowName,
                             calledAt: data.payload.window.calledAt,
                         });

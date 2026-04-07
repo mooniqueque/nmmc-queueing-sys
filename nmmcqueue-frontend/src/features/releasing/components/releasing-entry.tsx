@@ -21,9 +21,8 @@ import { useReleasingQueue } from "../hooks";
 import { ReleasingAssignPanel } from "./releasing-assign-panel";
 import { ReleasingQueueTable, QueueCategory } from "./releasing-queue-table";
 import { SessionUser } from "@/shared/types/auth";
-import { useAnalytics } from "@/features/shared/hooks/use-analytics";
-import { HistoryTable } from "@/features/shared/components/history-table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
+import { useWindowSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 
 // ─── Main Entry ───────────────────────────────────────────────
 interface ReleasingEntryProps {
@@ -44,8 +43,8 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const [isPending, startTransition] = useTransition();
     const [cooldown, setCooldown] = useState(0);
 
-    // History/analytics data for Reports tab
-    const { data: analyticsData } = useAnalytics("window");
+    const [reportDate, setReportDate] = useState(getTodayBusinessDay());
+    const { data: snapshotData } = useWindowSnapshot(reportDate);
 
     // Determine window type from user's station
     const stationNo = user?.workstation?.stationNo ?? 1;
@@ -339,45 +338,42 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
                     <TabsContent value="reports" className="mt-4 sm:mt-6 focus-visible:outline-none">
                         <div className="space-y-6 pb-8">
-                            {/* KPIs summary */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Today</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.totalToday}</p>
-                                </Card>
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Waiting</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.currentlyWaiting}</p>
-                                </Card>
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Completed</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.completedToday}</p>
-                                </Card>
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Shows</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.noShowCount}</p>
-                                </Card>
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Kiosk to Window Avg</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.avgKioskToWindowMinutes}m</p>
-                                </Card>
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Window to Clinic Avg</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.avgWindowToClinicMinutes}m</p>
-                                </Card>
+                            <ReportDatePicker value={reportDate} onChange={setReportDate} />
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                                <ReportMetricCard
+                                    label="Assigned To Clinics"
+                                    value={snapshotData.totals.totalAssignedToClinics.toString()}
+                                    hint="Patients successfully handed off from the window."
+                                />
+                                <ReportMetricCard
+                                    label="Window No-Shows"
+                                    value={snapshotData.totals.windowNoShowCount.toString()}
+                                    hint={`${snapshotData.totals.windowNoShowRate}% of called patients did not appear.`}
+                                    tone="warning"
+                                />
+                                <ReportMetricCard
+                                    label="Average Window Time"
+                                    value={`${snapshotData.totals.avgWindowProcessingMinutes}m`}
+                                    hint="Approximate time spent in the window phase."
+                                    tone="success"
+                                />
+                                <ReportMetricCard
+                                    label="Total Window Calls"
+                                    value={snapshotData.totals.totalWindowCalls.toString()}
+                                    hint="Patients moved into active window handling."
+                                />
                             </div>
 
-                            {/* Recent History */}
-                            <Card>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                        Recent Activity
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-0 max-h-96 overflow-y-auto custom-scrollbar">
-                                    <HistoryTable items={analyticsData.recentHistory} />
-                                </CardContent>
-                            </Card>
+                            <ReportBreakdownCard
+                                title="Processed Per Window Station"
+                                emptyLabel="No patients were processed by any window station for this date."
+                                items={snapshotData.processedPerStation.map((item) => ({
+                                    id: `${item.stationNo}`,
+                                    label: `Window ${item.stationNo}`,
+                                    value: item.count,
+                                }))}
+                            />
                         </div>
                     </TabsContent>
                 </Tabs>

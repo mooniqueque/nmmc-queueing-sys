@@ -5,7 +5,7 @@ import { VisitWithPatient } from "./types";
 import { useLiveQueue } from "@/shared/hooks/use-live-queue";
 import { removeVisitById, SSE_TOPICS, upsertVisitById } from "@/shared/lib/sse";
 
-export type TabType = "ACTIVE" | "NO_SHOW" | "HISTORY";
+export type TabType = "ACTIVE" | "NO_SHOW" | "REPORTS";
 
 export function useTriageQueue(initialQueue: VisitWithPatient[]) {
     const [queue, setQueue] = useState(initialQueue);

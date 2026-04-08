@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useTransition, useState, useEffect } from "react";
-import { markNoShow, removeQueue, restoreNoShow, callNextTriage, callSpecificTriage, acknowledgeKioskSubmission } from "../actions";
+import { markNoShow, removeQueue, restoreNoShow, callNextTriage, callSpecificTriage } from "../actions";
 import { useTriageQueue } from "../hooks";
 import { VisitWithPatient } from "../types";
 import { useTriageStore } from "../store/use-triage-store";
@@ -14,6 +14,7 @@ import { calculateAge } from "@/shared/lib/utils";
 import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
 import { useTriageSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 
+
 interface TriageQueueSidebarProps {
     initialQueue: VisitWithPatient[];
     currentVisit: VisitWithPatient | null;
@@ -22,18 +23,28 @@ interface TriageQueueSidebarProps {
 
 export function TriageQueueSidebar({
     initialQueue,
-    currentVisit,
+    currentVisit: staticCurrentVisit,
+    user,
 }: TriageQueueSidebarProps) {
     const { selectedPatient, isManualEntry, setSelectedPatient, setSubmitError, setManualEntry } = useTriageStore();
     const selectedPatientId = selectedPatient?.id;
     const onError = setSubmitError;
 
-    const { submittedQueue, activeQueue, noShowQueue, activeTab, setActiveTab } = useTriageQueue(initialQueue);
+    // TASK 2 FIX: userId is passed to hook for real-time claim isolation
+    const { activeQueue, noShowQueue, claimedVisit, activeTab, setActiveTab } = useTriageQueue(initialQueue, staticCurrentVisit, user?.id);
+    
     const [isPending, startTransition] = useTransition();
     const [searchQuery, setSearchQuery] = useState("");
     const [nowMs, setNowMs] = useState<number | null>(null);
     const [reportDate, setReportDate] = useState(getTodayBusinessDay());
     const { data: snapshotData } = useTriageSnapshot(reportDate);
+
+    // Sync real-time claimedVisit with the store
+    useEffect(() => {
+        if (claimedVisit) {
+            setSelectedPatient(claimedVisit);
+        }
+    }, [claimedVisit, setSelectedPatient]);
 
     useEffect(() => {
         const updateNow = () => setNowMs(Date.now());
@@ -47,6 +58,8 @@ export function TriageQueueSidebar({
         startTransition(async () => {
             const res = await callNextTriage();
             if (res?.success && res.data) {
+                // Note: local state will also be updated by SSE shortly, 
+                // but setting here for immediate feedback.
                 setSelectedPatient(res.data);
                 notify.success("Patient claimed", { description: `${res.data.patient.lastName}, ${res.data.patient.firstName}` });
             } else if (res?.success && !res.data) {
@@ -79,17 +92,6 @@ export function TriageQueueSidebar({
         });
     }
 
-    const handleAcknowledge = (visitId: string) => {
-        startTransition(async () => {
-            const res = await acknowledgeKioskSubmission(visitId);
-            if (res?.success) {
-                notify.success("Kiosk submission acknowledged");
-            } else {
-                notify.error(res?.message || res?.error || "Failed to acknowledge kiosk submission");
-            }
-        });
-    };
-
     const handleRestore = (visitId: string, e: React.MouseEvent) => {
         e.stopPropagation();
         startTransition(async () => {
@@ -120,46 +122,13 @@ export function TriageQueueSidebar({
     });
 
     // Check if there's an active claimed patient
-    const hasActivePatient = !!currentVisit || (selectedPatient && !isManualEntry);
+    const hasActivePatient = !!claimedVisit || (selectedPatient && !isManualEntry);
 
     return (
         <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden relative shadow-sm">
 
             {/* ─── Call Next + Header ─── */}
             <div className="bg-card shrink-0">
-                {submittedQueue.length > 0 && (
-                    <div className="border-b border-border px-3 sm:px-6 py-3 bg-amber-50/60">
-                        <div className="flex items-center justify-between gap-3 mb-3">
-                            <div>
-                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-amber-700">Kiosk Submissions</h3>
-                                <p className="text-xs text-amber-700/80 font-medium">{submittedQueue.length} waiting for acknowledgment</p>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            {submittedQueue.slice(0, 4).map((visit) => (
-                                <div key={visit.id} className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-background px-3 py-2">
-                                    <div className="min-w-0">
-                                        <div className="text-xs font-bold text-foreground truncate">
-                                            {visit.patient.lastName}, {visit.patient.firstName}
-                                        </div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                                            {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </div>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        disabled={isPending}
-                                        onClick={() => handleAcknowledge(visit.id)}
-                                        className="h-8 text-[10px] font-bold uppercase tracking-widest"
-                                    >
-                                        Acknowledge
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
                 {/* Call Next Button Row */}
                 <div className="border-b border-border px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -194,35 +163,35 @@ export function TriageQueueSidebar({
                 </div>
 
                 {/* ─── Current Patient Banner ─── */}
-                {currentVisit && (
+                {claimedVisit && (
                     <div
                         className="border-b-2 border-primary/30 bg-primary/5 px-3 sm:px-6 py-3 flex items-center gap-3 cursor-pointer hover:bg-primary/10 transition-colors"
-                        onClick={() => setSelectedPatient(currentVisit)}
+                        onClick={() => setSelectedPatient(claimedVisit)}
                     >
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                            <User size={18} weight="bold" className="text-primary" />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary shadow-inner">
+                            <User size={20} weight="bold" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
                                 <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">Currently Serving</span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                             </div>
-                        <div className="text-xs sm:text-sm font-bold text-foreground truncate">
-                            {currentVisit.patient.lastName}, {currentVisit.patient.firstName}
-                        </div>
-                        {currentVisit.triageTicket && (
-                            <div className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">
-                                Triage Ticket #{currentVisit.triageTicket}
+                            <div className="text-xs sm:text-sm font-bold text-foreground truncate">
+                                {claimedVisit.patient.lastName}, {claimedVisit.patient.firstName}
+                                {claimedVisit.triageTicket && (
+                                    <div className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest mt-0.5">
+                                        Triage Ticket #{claimedVisit.triageTicket}
+                                    </div>
+                                )}
                             </div>
-                        )}
                         </div>
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="text-primary font-bold text-[10px] sm:text-xs shrink-0"
+                            className="text-primary font-bold text-[10px] sm:text-xs shrink-0 ml-auto"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedPatient(currentVisit);
+                                setSelectedPatient(claimedVisit);
                             }}
                         >
                             Open Form →
@@ -316,6 +285,7 @@ export function TriageQueueSidebar({
                                     isPending={isPending}
                                     nowMs={nowMs}
                                     onRemove={handleRemove}
+                                    onNoShow={handleNoShow}
                                 />
                             ))}
                         </div>
@@ -407,17 +377,18 @@ export function TriageQueueSidebar({
     );
 }
 
-// ─── Read-Only Patient Row (no click-to-select) ────────────
 function PatientRow({
     visit,
     isPending,
     nowMs,
-    onRemove
+    onRemove,
+    onNoShow
 }: {
     visit: VisitWithPatient;
     isPending: boolean;
     nowMs: number | null;
     onRemove: (id: string, e: React.MouseEvent) => void;
+    onNoShow: (id: string, e: React.MouseEvent) => void;
 }) {
     const createdAtMs = new Date(visit.createdAt).getTime();
     const effectiveNowMs = nowMs ?? createdAtMs;
@@ -486,6 +457,14 @@ function PatientRow({
                     title="Remove completely"
                 >
                     <Trash size={14} weight="bold" />
+                </button>
+                <button
+                    disabled={isPending}
+                    onClick={(e) => onNoShow(visit.id, e)}
+                    className="p-1 sm:p-1.5 hover:bg-amber-500/10 text-amber-600 rounded transition-colors"
+                    title="Mark as No-Show"
+                >
+                    <User size={14} weight="bold" />
                 </button>
             </div>
 

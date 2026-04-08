@@ -98,7 +98,7 @@ class TriageService {
                 });
             }
 
-            const existingVisit = await tx.visit.findFirst({ where: { patientId: patient.id, queueBusinessDay, status: { in: ['KIOSK_SUBMITTED', 'WAITING_TRIAGE', 'IN_TRIAGE', 'WAITING_WINDOW', 'IN_WINDOW', 'IN_PROGRESS', 'WAITING_CLINIC'] } } });
+            const existingVisit = await tx.visit.findFirst({ where: { patientId: patient.id, queueBusinessDay, status: { in: ['WAITING_TRIAGE', 'IN_TRIAGE', 'WAITING_WINDOW', 'IN_WINDOW', 'IN_PROGRESS', 'WAITING_CLINIC'] } } });
             if (existingVisit) throw new AppError('ALREADY_IN_QUEUE', 400);
 
             const classification = await determineClassification(rawData.categoryIds || []);
@@ -106,7 +106,7 @@ class TriageService {
             const visit = await tx.visit.create({ 
                 data: { 
                     patientId: patient.id, 
-                    status: 'KIOSK_SUBMITTED', 
+                    status: 'WAITING_TRIAGE', 
                     triageTicket: null,
                     serviceTicket: null,
                     sequenceKey: null,
@@ -119,7 +119,7 @@ class TriageService {
                         create: (rawData.categoryIds || []).map(id => ({ categoryId: id }))
                     },
                     statusHistory: {
-                        create: { status: 'KIOSK_SUBMITTED' }
+                        create: { status: 'WAITING_TRIAGE' }
                     }
                 } 
             });
@@ -136,22 +136,6 @@ class TriageService {
         publishTriageVisitUpsert(await getTriageVisitPayload(createdVisitId));
     }
 
-    async acknowledgeKioskSubmission(visitId: string, userId: string) {
-        const acknowledged = await db.visit.updateMany({
-            where: { id: visitId, status: 'KIOSK_SUBMITTED' },
-            data: { status: 'WAITING_TRIAGE' }
-        });
-
-        if (acknowledged.count === 0) {
-            throw new AppError('Only kiosk-submitted visits can be acknowledged.', 409, 'INVALID_KIOSK_STATE');
-        }
-
-        await db.visitStatusHistory.create({
-            data: { visitId, status: 'WAITING_TRIAGE', changedBy: userId }
-        });
-
-        publishTriageVisitUpsert(await getTriageVisitPayload(visitId));
-    }
 
     async submitTriageForm(values: unknown, visitId: string | undefined, userId: string) {
         const validData = await triageFormSchema.parseAsync(values);
@@ -303,7 +287,7 @@ class TriageService {
         return db.visit.findMany({
             where: {
                 queueBusinessDay,
-                status: { in: ['KIOSK_SUBMITTED', 'WAITING_TRIAGE', 'NO_SHOW'] },
+                status: { in: ['WAITING_TRIAGE', 'NO_SHOW'] },
             },
             include: {
                 patient: true,

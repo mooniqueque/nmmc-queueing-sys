@@ -39,13 +39,6 @@ export async function getPendingQueue(options?: RequestInit) {
     return res.json();
 }
 
-export async function acknowledgeKioskSubmission(visitId: string, options?: RequestInit) {
-    const res = await fetch(`${API_URL}/triage/${visitId}/acknowledge`, {
-        method: "POST",
-        ...options,
-    });
-    return res.json();
-}
 
 export async function markNoShow(visitId: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/triage/${visitId}/no-show`, {

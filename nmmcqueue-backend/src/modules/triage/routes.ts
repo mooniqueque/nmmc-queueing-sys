@@ -9,7 +9,6 @@ export const triageRouter = Router();
 // Public routes (Kiosk)
 triageRouter.post('/kiosk/register', kioskLimiter, validate(kioskFormRequestSchema), triageController.registerKiosk);
 triageRouter.use(requireCapability('TRIAGE_VIEW'));
-triageRouter.post('/:id/acknowledge', triageController.acknowledgeKiosk);
 triageRouter.get('/pending', triageController.getPendingQueue);
 triageRouter.post('/call-next', requireCapability('TRIAGE_MUTATE'), triageController.callNextTriage);
 triageRouter.post('/:id/call-specific', requireCapability('TRIAGE_MUTATE'), triageController.callSpecificTriage);

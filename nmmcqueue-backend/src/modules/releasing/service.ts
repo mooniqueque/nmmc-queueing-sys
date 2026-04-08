@@ -88,9 +88,8 @@ class ReleasingService {
     /**
      * CLAIM-BASED: Atomically claim the next WAITING_WINDOW patient.
      * 
-     * Window Rules:
-     *   Window 1-2 (Priority Windows): Select PRIORITY first, fallback to REGULAR
-     *   Window 3-5 (Regular Windows): Select REGULAR first, fallback to PRIORITY
+     * Unified Window Rules:
+     *   All Windows: Select PRIORITY first, fallback to REGULAR
      * 
      * Optional overrideClassification allows manual override.
      */
@@ -104,8 +103,6 @@ class ReleasingService {
         }
 
         const stationNo = user.workstation.stationNo;
-        const isPriorityWindow = stationNo >= 1 && stationNo <= 2;
-
         const queueBusinessDay = getQueueBusinessDay();
 
         const baseWhere = {
@@ -128,34 +125,19 @@ class ReleasingService {
             }
 
             if (!nextVisit) {
-                if (isPriorityWindow) {
-                    // Window 1-2: Try PRIORITY first, then fall back to REGULAR
-                    nextVisit = await tx.visit.findFirst({
-                        where: { ...baseWhere, classification: 'PRIORITY' },
-                        orderBy: { createdAt: 'asc' },
-                        include: { patient: true }
-                    });
-                    if (!nextVisit) {
-                        nextVisit = await tx.visit.findFirst({
-                            where: { ...baseWhere, classification: 'REGULAR' },
-                            orderBy: { createdAt: 'asc' },
-                            include: { patient: true }
-                        });
-                    }
-                } else {
-                    // Window 3-5: Try REGULAR first, then fall back to PRIORITY
+                // Unified Fallback Strategy: Try PRIORITY first, then fall back to REGULAR for all windows
+                nextVisit = await tx.visit.findFirst({
+                    where: { ...baseWhere, classification: 'PRIORITY' },
+                    orderBy: { createdAt: 'asc' },
+                    include: { patient: true }
+                });
+                
+                if (!nextVisit) {
                     nextVisit = await tx.visit.findFirst({
                         where: { ...baseWhere, classification: 'REGULAR' },
                         orderBy: { createdAt: 'asc' },
                         include: { patient: true }
                     });
-                    if (!nextVisit) {
-                        nextVisit = await tx.visit.findFirst({
-                            where: { ...baseWhere, classification: 'PRIORITY' },
-                            orderBy: { createdAt: 'asc' },
-                            include: { patient: true }
-                        });
-                    }
                 }
             }
 
@@ -200,7 +182,6 @@ class ReleasingService {
                 visitId: nextVisit.id,
                 userId,
                 windowNumber: stationNo,
-                isPriorityWindow,
                 classification: nextVisit.classification
             });
 
@@ -357,10 +338,13 @@ class ReleasingService {
                     // Clear window claim since patient is moving on
                     windowClaimedById: null,
                     windowStartedAt: null,
-                    // Link the category explicitly
+                    // Append the queue lane while preserving Triage priority tags
                     categories: {
-                        deleteMany: {},
-                        create: { categoryId: data.priorityClass }
+                        upsert: {
+                            where: { visitId_categoryId: { visitId: visitId, categoryId: data.priorityClass } },
+                            create: { categoryId: data.priorityClass },
+                            update: {}
+                        }
                     },
                     statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: userId } }
                 }

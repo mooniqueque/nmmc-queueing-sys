@@ -28,13 +28,6 @@ export async function markNoShow(visitId: string) {
     return result;
 }
 
-export async function acknowledgeKioskSubmission(visitId: string) {
-    const result = await triageApi.acknowledgeKioskSubmission(visitId, {
-        headers: await getServerHeaders(),
-    });
-    if (result.success) revalidatePath("/triage");
-    return result;
-}
 
 export async function restoreNoShow(visitId: string) {
     const result = await triageApi.restoreNoShow(visitId, {

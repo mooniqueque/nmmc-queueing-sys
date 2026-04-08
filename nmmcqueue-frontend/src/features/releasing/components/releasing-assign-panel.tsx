@@ -3,12 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { VisitWithPatient } from "@/features/triage/types";
-import { notify } from "@/lib/notify";
-import { calculateAge } from "@/lib/utils";
-import { Department, PriorityCategory } from "@/types/models";
+import { notify } from "@/shared/lib/notify";
+import { calculateAge } from "@/shared/lib/utils";
+import { Department, PriorityCategory } from "@/shared/types/models";
 import { Printer, User, WarningCircle, X, Play } from "@phosphor-icons/react";
 import { useMemo, useState, useTransition } from "react";
-import { assignTicket, noShowTicket, callTicket } from "../actions";
+import { assignTicket, noShowTicket, linkPatient } from "../actions";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface ReleasingAssignPanelProps {
     selectedPatient: VisitWithPatient;
@@ -28,6 +29,7 @@ export function ReleasingAssignPanel({
     onAssignComplete
 }: ReleasingAssignPanelProps) {
     const [selectedDepartmentId, setSelectedDepartmentId] = useState(selectedPatient.departmentId || "");
+    const [hospitalId, setHospitalId] = useState("");
     const [notes, setNotes] = useState("");
     const [isPending, startTransition] = useTransition();
 
@@ -46,16 +48,9 @@ export function ReleasingAssignPanel({
     if (selectedPatient.id !== prevPatientId) {
         setPrevPatientId(selectedPatient.id);
         setSelectedDepartmentId(selectedPatient.departmentId || "");
+        setHospitalId("");
         setNotes("");
         
-        console.log('[ReleaseAssignPanel] Patient changed:', {
-            patientId: selectedPatient.id,
-            patientName: `${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName}`,
-            status: selectedPatient.status,
-            departmentId: selectedPatient.departmentId,
-            department: selectedPatient.department?.name,
-            classification: selectedPatient.classification
-        });
     }
 
     const queueOptions = useMemo(() => {
@@ -66,13 +61,6 @@ export function ReleasingAssignPanel({
         
         // Debug log
         if (process.env.NODE_ENV === 'development') {
-            console.log('[ReleaseAssignPanel] Queue options lookup:', {
-                departmentName: activeDepartment.name,
-                normalizedKey,
-                optionsCount: opts.length,
-                availableKeys: Object.keys(queueOptionsByDepartment),
-                allOptions: queueOptionsByDepartment
-            });
         }
         
         return opts;
@@ -104,31 +92,6 @@ export function ReleasingAssignPanel({
         return queueOptions.find((opt) => !opt.isPriority) ?? recommendedOption ?? queueOptions[0];
     }, [selectedDepartmentId, queueOptions, selectedPatient.classification, recommendedOption]);
 
-    const handleCall = () => {
-        if (selectedPatient.status === 'IN_WINDOW') {
-            notify.info("Patient already called", { description: "This patient is already in the window queue." });
-            return;
-        }
-
-        startTransition(async () => {
-            const res = await callTicket(selectedPatient.id);
-            if (res?.success) {
-                notify.success("Patient called to window", { description: "Ready for verification." });
-                // onAssignComplete will trigger parent to refresh
-                onAssignComplete();
-            } else {
-                if (res?.code === "CLAIM_CONFLICT") {
-                    notify.error("Patient already claimed by another window.", {
-                        description: "Queue refreshed to show latest ownership.",
-                    });
-                } else {
-                    notify.error(res?.message || res?.error || "Failed to call patient");
-                }
-                onAssignComplete();
-            }
-        });
-    };
-
     const handleNoShow = () => {
         startTransition(async () => {
             const res = await noShowTicket(selectedPatient.id);
@@ -148,24 +111,35 @@ export function ReleasingAssignPanel({
         });
     };
 
-    const handleAssign = () => {
-        console.log('[handleAssign] Starting assign:', {
-            status: selectedPatient.status,
-            selectedDepartmentId,
-            autoQueueOption: autoQueueOption?.id,
-            isInWindow,
+    const handleLinkPatient = () => {
+        if (!hospitalId.trim()) {
+            notify.error("Hospital ID required", { description: "Enter the verified hospital ID before linking." });
+            return;
+        }
+
+        startTransition(async () => {
+            const res = await linkPatient(selectedPatient.id, hospitalId.trim());
+            if (res?.success) {
+                notify.success("Patient identity verified", {
+                    description: `Visit linked to official hospital ID ${hospitalId.trim()}.`
+                });
+                onAssignComplete();
+            } else {
+                notify.error(res?.message || res?.error || "Failed to link official patient record");
+            }
         });
+    };
+
+    const handleAssign = () => {
 
         // Validate patient is in correct status
         if (selectedPatient.status !== 'IN_WINDOW') {
             notify.error("Patient not ready", { description: "Please call the patient to window first." });
-            console.warn('[handleAssign] Patient not in window:', selectedPatient.status);
             return;
         }
 
         if (!selectedDepartmentId) {
             notify.error("Department not selected", { description: "Choose a clinic department first." });
-            console.warn('[handleAssign] No department selected');
             return;
         }
 
@@ -173,43 +147,29 @@ export function ReleasingAssignPanel({
             notify.error("No queue option configured", {
                 description: `The ${activeDepartment?.name || 'selected'} department has no queue categories. Please go to Admin > Departments to add queue options.`
             });
-            console.warn('[handleAssign] No auto queue option available', {
-                departmentName: activeDepartment?.name,
-                queueOptions,
-                queueOptionsByDepartment
-            });
             return;
         }
 
         startTransition(async () => {
             try {
-                console.log('[handleAssign] Calling assignTicket API:', {
-                    visitId: selectedPatient.id,
-                    departmentId: selectedDepartmentId,
-                    priorityClass: autoQueueOption.id
-                });
 
                 const res = await assignTicket(selectedPatient.id, selectedDepartmentId, autoQueueOption.id);
                 
-                console.log('[handleAssign] API Response:', res);
 
                 if (res?.success && res?.data) {
                     // Patient successfully assigned to clinic queue
                     notify.success(
                         "Ticket assigned to clinic",
                         {
-                            description: `Patient ${res.data.patientFullName} → ${activeDepartment?.name || 'clinic'} (Ticket #${res.data.ticketNumber})`
+                            description: `Patient ${res.data.patientFullName} -> ${activeDepartment?.name || 'clinic'} (Service Ticket #${res.data.serviceTicket})`
                         }
                     );
-                    console.log('[handleAssign] Success, closing panel');
                 } else {
                     notify.error(res?.error || "Ticket assignment failed", {
                         description: "Please try again or contact support."
                     });
-                    console.error('[handleAssign] API returned error:', res);
                 }
             } catch (error) {
-                console.error('[handleAssign] Exception caught:', error);
                 notify.error("Error assigning ticket", {
                     description: error instanceof Error ? error.message : "Unknown error occurred"
                 });
@@ -258,10 +218,12 @@ export function ReleasingAssignPanel({
                         </div>
                         <div className="min-w-0 pr-4">
                             <h2 className="text-base sm:text-xl font-bold text-foreground leading-tight truncate">
-                                {selectedPatient.patient.firstName} {selectedPatient.patient.lastName}
+                                {selectedPatient.patient.firstName} {selectedPatient.patient.middleName ? `${selectedPatient.patient.middleName} ` : ''}{selectedPatient.patient.lastName}
                             </h2>
                             <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-[11px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
-                                <span>Ticket: <strong className="text-primary">{selectedPatient.ticketNumber ? `#${selectedPatient.ticketNumber}` : 'NO TICKET'}</strong></span>
+                                <span className="flex items-center gap-1">
+                                    Triage Ticket: <strong className="text-primary">{selectedPatient.triageTicket ? `#${selectedPatient.triageTicket}` : 'NO TICKET'}</strong>
+                                </span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
                                 <span>{selectedPatient.patient.gender}</span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
@@ -284,15 +246,47 @@ export function ReleasingAssignPanel({
                     </div>
                 </div>
 
-                {/* Triage Handoff Details */}
+                {/* Personal Information & Demographics */}
                 <div className="bg-card border border-border rounded-xl p-3 sm:p-5 lg:p-6 mb-5 sm:mb-7 shadow-sm">
-                    <h4 className="text-xs sm:text-sm font-extrabold text-muted-foreground uppercase tracking-wider mb-3 sm:mb-4">Triage Endorsement</h4>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-muted-foreground uppercase tracking-wider mb-4 border-b border-border pb-2">Personal Information</h4>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Date of Birth</span>
+                            <p className="text-xs font-extrabold text-foreground">
+                                {selectedPatient.patient.dateOfBirth ? new Date(selectedPatient.patient.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '---'}
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Civil Status</span>
+                            <p className="text-xs font-extrabold text-foreground uppercase">{selectedPatient.patient.civilStatus || '---'}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Religion</span>
+                            <p className="text-xs font-extrabold text-foreground uppercase">{selectedPatient.patient.religion || '---'}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Contact Number</span>
+                            <p className="text-xs font-extrabold text-primary">{selectedPatient.patient.contactNo || 'NONE'}</p>
+                        </div>
+                        <div className="col-span-full space-y-1 pt-1">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Home Address</span>
+                            <p className="text-xs font-bold text-foreground leading-relaxed italic opacity-90">
+                                {selectedPatient.patient.address || 'No address provided'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Triage Handoff Details */}
+                <div className="bg-primary/[0.03] border border-primary/10 rounded-xl p-3 sm:p-5 lg:p-6 mb-5 sm:mb-7 shadow-sm">
+                    <h4 className="text-xs sm:text-sm font-extrabold text-primary/80 uppercase tracking-wider mb-3 sm:mb-4">Triage Endorsement</h4>
                     <div className="space-y-2.5 sm:space-y-3.5">
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-3 sm:gap-4 pb-2 border-b border-border/60">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-3 sm:gap-4 pb-2 border-b border-primary/10">
                             <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">Disposition</span>
                             <span className="text-xs sm:text-sm font-extrabold text-foreground text-right">{selectedPatient.disposition || "Not set"}</span>
                         </div>
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-3 sm:gap-4 pb-2 border-b border-border/60">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-3 sm:gap-4 pb-2 border-b border-primary/10">
                             <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">Classification</span>
                             <span className="text-xs sm:text-sm font-extrabold text-foreground text-right">{selectedPatient.classification}</span>
                         </div>
@@ -303,21 +297,6 @@ export function ReleasingAssignPanel({
                     </div>
                 </div>
 
-                {/* Status Badge */}
-                {!isInWindow && (
-                    <div className="mb-6 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-center justify-between text-orange-600 font-bold text-xs">
-                        <span>⚠ Patient not yet called to window</span>
-                        <Button
-                            size="sm"
-                            onClick={handleCall}
-                            disabled={isPending}
-                            className="h-7 px-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-[9px] uppercase tracking-wider rounded-md gap-1"
-                        >
-                            <Play size={12} weight="fill" />
-                            <span className="hidden sm:inline">Call Now</span>
-                        </Button>
-                    </div>
-                )}
 
                 {/* Quick Actions — No-Show / Call Status */}
                 <div className="mb-6 sm:mb-8">
@@ -356,19 +335,39 @@ export function ReleasingAssignPanel({
 
                 {/* Routing Selects */}
                 <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+                    {selectedPatient.kioskRegistrationType === "UNREGISTERED" && (
+                        <div className="space-y-2">
+                            <Label className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Verified Hospital ID</Label>
+                            <div className="flex gap-2">
+                                <input
+                                    value={hospitalId}
+                                    onChange={(e) => setHospitalId(e.target.value)}
+                                    placeholder="Enter official hospital ID"
+                                    className="flex-1 h-10 rounded-xl border border-border bg-background px-3 text-xs font-bold outline-none focus:border-primary"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleLinkPatient}
+                                    disabled={isPending}
+                                    className="h-10 rounded-xl font-bold uppercase tracking-widest text-[10px]"
+                                >
+                                    Link
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                     {!selectedPatient.departmentId && (
                         <div>
                             <Label className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 sm:mb-2 block">Clinic / Department</Label>
-                            <select
-                                className="w-full bg-background border border-border text-foreground text-xs sm:text-sm font-bold rounded-lg h-9 sm:h-10 px-3 sm:px-4 appearance-none outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                            <SearchableSelect
+                                options={departments.map(d => ({ label: d.name, value: d.id }))}
                                 value={selectedDepartmentId}
-                                onChange={(e) => setSelectedDepartmentId(e.target.value)}
-                            >
-                                <option value="" disabled>Select Department...</option>
-                                {departments.map((dept) => (
-                                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                                ))}
-                            </select>
+                                onSelect={setSelectedDepartmentId}
+                                placeholder="Select Department..."
+                                searchPlaceholder="Search department..."
+                                className="h-10 text-xs sm:text-sm font-bold rounded-xl"
+                            />
                         </div>
                     )}
                 </div>
@@ -423,3 +422,5 @@ export function ReleasingAssignPanel({
         </div>
     );
 }
+
+

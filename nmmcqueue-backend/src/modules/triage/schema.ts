@@ -1,5 +1,39 @@
 import { z } from 'zod';
 
+const optionalBoundedNumber = (
+    min: number,
+    max: number,
+    label: string
+) => z.preprocess(
+    (value) => (value === '' || value === null ? undefined : value),
+    z.coerce
+        .number()
+        .min(min, `${label} must be at least ${min}`)
+        .max(max, `${label} must be at most ${max}`)
+        .optional()
+);
+
+const optionalBloodPressure = z.preprocess(
+    (value) => (value === '' || value === null ? undefined : value),
+    z
+        .string()
+        .trim()
+        .regex(/^\d{2,3}\/\d{2,3}$/, 'Blood pressure must be in format SYSTOLIC/DIASTOLIC (e.g., 120/80)')
+        .refine((value) => {
+            const [systolic, diastolic] = value.split('/').map(Number);
+            return (
+                Number.isFinite(systolic) &&
+                Number.isFinite(diastolic) &&
+                systolic >= 70 &&
+                systolic <= 250 &&
+                diastolic >= 40 &&
+                diastolic <= 150 &&
+                systolic > diastolic
+            );
+        }, 'Blood pressure values are out of expected range')
+        .optional()
+);
+
 export const kioskFormRequestSchema = z.object({
     body: z.object({
         hospitalId: z.string().optional(),
@@ -37,11 +71,11 @@ export const triageFormRequestSchema = z.object({
             birthPlace: z.string().optional(),
             religion: z.string().optional(),
             civilStatus: z.string().optional(),
-            bloodPressure: z.string().optional(),
-            heartRate: z.number().optional(),
-            respiratoryRate: z.number().optional(),
-            temperature: z.number().optional(),
-            oxygenSat: z.number().optional(),
+            bloodPressure: optionalBloodPressure,
+            heartRate: optionalBoundedNumber(20, 260, 'Heart rate'),
+            respiratoryRate: optionalBoundedNumber(5, 80, 'Respiratory rate'),
+            temperature: optionalBoundedNumber(30, 45, 'Temperature'),
+            oxygenSat: optionalBoundedNumber(50, 100, 'Oxygen saturation'),
             hasFever: z.boolean().default(false),
             hasCough: z.boolean().default(false),
             hasColds: z.boolean().default(false),

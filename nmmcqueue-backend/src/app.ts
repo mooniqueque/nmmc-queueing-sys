@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import { errorHandler } from './middleware/error-handler.js';
 import { authRouter, userRouter } from './modules/auth/routes.js';
+import { analyticsRouter } from './modules/analytics/routes.js';
 import { callerRouter } from './modules/caller/routes.js';
 import { monitorRouter } from './modules/monitor/routes.js';
 import { releasingRouter } from './modules/releasing/routes.js';
@@ -12,7 +13,7 @@ import { workstationRouter } from './modules/workstation/routes.js';
 
 import helmet from 'helmet';
 import { db } from './config/database.js';
-import { apiLimiter, authLimiter } from './middleware/rate-limit.js';
+import { authLimiter } from './middleware/rate-limit.js';
 
 import path from 'path';
 
@@ -30,10 +31,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'cookie'],
 }));
 app.use(express.json());
-app.use(apiLimiter);
+app.set('trust proxy', true);
 
 // Register API routes
 app.use('/api/monitor', monitorRouter); // Priority for monitor management
+app.use('/api/analytics', analyticsRouter);
 app.use('/api/shared', sharedRouter);
 app.use('/api/tickets', ticketRouter);
 app.use('/api/triage', triageRouter);

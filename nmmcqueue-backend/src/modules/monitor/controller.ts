@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../middleware/error-handler.js';
+import { sanitizeMonitorSnapshot } from '../../lib/monitor-sanitizer.js';
 import { monitorService } from './service.js';
 import multer from 'multer';
 import path from 'path';
@@ -37,13 +38,16 @@ export const upload = multer({
 class MonitorController {
     getWindowStatus = asyncHandler(async (req: Request, res: Response) => {
         const status = await monitorService.getWindowStatus();
-        res.status(200).json({ success: true, data: status });
+        res.status(200).json({ success: true, data: sanitizeMonitorSnapshot(status) });
     });
 
     getDepartmentStatus = asyncHandler(async (req: Request, res: Response) => {
         const { slug } = req.params;
         const status = await monitorService.getDepartmentStatus(slug);
-        res.status(200).json({ success: true, data: status });
+        res.status(200).json({
+            success: true,
+            data: Array.isArray(status) ? sanitizeMonitorSnapshot() : sanitizeMonitorSnapshot(status),
+        });
     });
 
     getDepartmentsVideos = asyncHandler(async (req: Request, res: Response) => {

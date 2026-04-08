@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { notify } from "@/lib/notify";
+import { notify } from "@/shared/lib/notify";
 import { 
     VideoCamera, 
     Upload, 
@@ -15,7 +15,7 @@ import {
     Check,
     MagnifyingGlass
 } from "@phosphor-icons/react";
-import { Department } from "@/types/models";
+import { Department } from "@/shared/types/models";
 import { uploadVideo, getDepartmentsVideos } from "../actions";
 import { API_URL } from "@/lib/api";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,7 +27,7 @@ import {
     CommandItem,
     CommandList
 } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 export default function MonitorSettings() {
     const [departments, setDepartments] = useState<Department[]>([]);

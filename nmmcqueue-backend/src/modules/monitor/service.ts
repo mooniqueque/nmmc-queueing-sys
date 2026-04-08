@@ -1,11 +1,9 @@
 import { db } from '../../config/database.js';
+import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 
 class MonitorService {
     async getWindowStatus() {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const queueBusinessDay = getQueueBusinessDay();
 
         // Find all workstations of type WINDOW
         const windows = await db.workStation.findMany({
@@ -13,63 +11,70 @@ class MonitorService {
             orderBy: { stationNo: 'asc' }
         });
 
+        const activeVisits = await db.visit.findMany({
+            where: {
+                status: 'IN_WINDOW',
+                sequenceKey: { startsWith: 'WINDOW' },
+                queueBusinessDay,
+                windowNumber: { not: null },
+            },
+            orderBy: [{ calledAt: 'desc' }],
+            select: {
+                windowNumber: true,
+                triageTicket: true,
+                classification: true,
+                calledAt: true,
+                categories: {
+                    include: {
+                        category: true,
+                    },
+                },
+            },
+        });
+
+        const latestVisitByWindow = new Map<number, (typeof activeVisits)[number]>();
+        for (const visit of activeVisits) {
+            if (visit.windowNumber == null) continue;
+            if (!latestVisitByWindow.has(visit.windowNumber)) {
+                latestVisitByWindow.set(visit.windowNumber, visit);
+            }
+        }
+
         const formatTicket = (ticketNo: number | null | undefined, classification: string | null | undefined) => {
             if (!ticketNo) return null;
             const prefix = classification === 'PRIORITY' ? 'PRIO' : 'REG';
             return `${prefix}-${String(ticketNo)}`;
         };
 
-        // For each window, find the currently serving ticket (IN_WINDOW)
-        const status = await Promise.all(windows.map(async (window) => {
-            const currentVisit = await db.visit.findFirst({
-                where: {
-                    windowNumber: window.stationNo,
-                    status: 'IN_WINDOW',
-                    sequenceKey: { startsWith: 'WINDOW' },
-                    createdAt: { gte: today, lt: tomorrow }
-                },
-                orderBy: { calledAt: 'desc' },
-                select: {
-                    ticketNumber: true,
-                    classification: true,
-                    calledAt: true,
-                    categories: {
-                        include: {
-                            category: true
-                        }
-                    }
-                }
-            });
-
+        const status = windows.map((window) => {
+            const currentVisit = latestVisitByWindow.get(window.stationNo);
             return {
                 windowName: window.name,
                 stationNo: window.stationNo,
-                ticketNumber: currentVisit ? formatTicket(currentVisit.ticketNumber, currentVisit.classification) : null,
+                triageTicket: currentVisit ? formatTicket(currentVisit.triageTicket, currentVisit.classification) : null,
+                serviceTicket: null,
                 classification: currentVisit?.classification,
                 calledAt: currentVisit?.calledAt || null,
                 categories: currentVisit?.categories.map(vc => vc.category)
             };
-        }));
+        });
 
         const waitlistVisits = await db.visit.findMany({
             where: {
                 status: 'WAITING_WINDOW',
-                createdAt: { gte: today, lt: tomorrow }
+                queueBusinessDay
             },
             orderBy: { queueDate: 'asc' },
             take: 4,
-            select: { ticketNumber: true, classification: true }
+            select: { triageTicket: true, classification: true }
         });
-        const upcoming = waitlistVisits.map(v => formatTicket(v.ticketNumber, v.classification) as string).filter(Boolean);
+        const upcoming = waitlistVisits.map(v => formatTicket(v.triageTicket, v.classification) as string).filter(Boolean);
 
         return { active: status, upcoming };
     }
 
     async getDepartmentStatus(slugOrId: string) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const queueBusinessDay = getQueueBusinessDay();
 
         // 1. Fetch Department Info by slug (or fallback to ID for compatibility)
         const department = await db.department.findFirst({
@@ -112,12 +117,13 @@ class MonitorService {
                 departmentId,
                 status: 'IN_PROGRESS',
                 sequenceKey: `DEPT_${departmentId}`,
-                createdAt: { gte: today, lt: tomorrow }
+                queueBusinessDay
             },
             orderBy: { calledAt: 'asc' },
             select: { 
-                ticketNumber: true, 
+                serviceTicket: true, 
                 classification: true, 
+                calledAt: true,
                 categories: { include: { category: true } } 
             }
         });
@@ -187,8 +193,10 @@ class MonitorService {
             return {
                 windowName: config.station.name,
                 stationNo: config.station.stationNo,
-                ticketNumber: patient ? formatTicket(patient.ticketNumber, patient.classification) : null,
+                triageTicket: null,
+                serviceTicket: patient ? formatTicket(patient.serviceTicket, patient.classification) : null,
                 classification: patient?.classification,
+                calledAt: patient?.calledAt || null,
                 categories: patient?.categories.map(vc => vc.category)
             };
         });
@@ -198,13 +206,13 @@ class MonitorService {
             where: {
                 departmentId,
                 status: 'WAITING_CLINIC',
-                createdAt: { gte: today, lt: tomorrow }
+                queueBusinessDay
             },
             orderBy: { queueDate: 'asc' },
             take: 4,
-            select: { ticketNumber: true, classification: true }
+            select: { serviceTicket: true, classification: true }
         });
-        const upcoming = upcomingVisits.map(v => formatTicket(v.ticketNumber, v.classification) as string).filter(Boolean);
+        const upcoming = upcomingVisits.map(v => formatTicket(v.serviceTicket, v.classification) as string).filter(Boolean);
 
         return { active, upcoming };
 

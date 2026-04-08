@@ -104,6 +104,15 @@ export async function callPatient(visitId: string, options?: RequestInit) {
     return parseApiResponse(res);
 }
 
+export async function callNextPatient(options?: RequestInit) {
+    const res = await fetch(`${API_URL}/caller/call-next`, {
+        method: "POST",
+        credentials: "include",
+        ...options,
+    });
+    return parseApiResponse(res);
+}
+
 export async function servePatient(visitId: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/caller/visit/${encodeURIComponent(visitId)}/serve`, {
         method: "POST",

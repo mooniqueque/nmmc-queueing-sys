@@ -1,4 +1,4 @@
-import { notify } from "@/lib/notify";
+import { notify } from "@/shared/lib/notify";
 
 export function printThermalReceipt(htmlContent: string) {
     // Open a new window (or tab, depending on user browser settings)

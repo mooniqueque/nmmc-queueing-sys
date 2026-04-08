@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import { Department } from "@/types/models";
+import { Department } from "@/shared/types/models";
 
-export type CallerTab = "pending" | "noshow" | "referrals" | "history";
+export type CallerTab = "regular" | "priority" | "noshow" | "referrals" | "reports";
 
 interface CallerState {
   activeTab: CallerTab;
@@ -20,7 +20,7 @@ interface CallerState {
 }
 
 export const useCallerStore = create<CallerState>((set) => ({
-  activeTab: "pending",
+  activeTab: "regular",
   isProcessing: false,
   allDepartments: [],
   isReferralModalOpen: false,

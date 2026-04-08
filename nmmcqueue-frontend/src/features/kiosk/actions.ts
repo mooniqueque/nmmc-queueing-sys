@@ -4,7 +4,3 @@ import * as triageApi from "@/features/triage/api";
 export async function registerKioskPatient(data: Record<string, unknown>) {
     return triageApi.registerKioskPatient(data);
 }
-
-export async function getPatientByHospitalId(hospitalId: string) {
-    return triageApi.getPatientByHospitalId(hospitalId);
-}

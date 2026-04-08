@@ -1,12 +1,12 @@
+import { getDepartments } from '@/features/admin/department-actions';
 import { getAllUsers } from '@/features/admin/user-actions';
 import { getWorkstations } from '@/features/admin/workstation-actions';
-import { getDepartments } from '@/features/admin/department-actions';
 import { auth } from "@/lib/database/auth";
-import { SessionUser } from "@/types/auth";
-import { Department, WorkStation } from "@/types/models";
+import { SessionUser } from "@/shared/types/auth";
+import { Department, WorkStation } from "@/shared/types/models";
 import { headers } from "next/headers";
 import { connection } from "next/server";
-import AdminDashboard from './admin';
+import AdminDashboard from './admin-dashboard-client';
 
 export default async function AdminDashboardData() {
     await connection();

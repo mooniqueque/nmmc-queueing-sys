@@ -35,9 +35,14 @@ export function HistoryTable({ items }: { items: HistoryItem[] }) {
                             <span className="text-sm font-bold text-foreground truncate">
                                 {item.patientName}
                             </span>
-                            {item.ticketNumber && (
+                            {item.triageTicket && (
                                 <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">
-                                    #{item.ticketNumber}
+                                    Triage #{item.triageTicket}
+                                </span>
+                            )}
+                            {item.serviceTicket && (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                    Service #{item.serviceTicket}
                                 </span>
                             )}
                         </div>

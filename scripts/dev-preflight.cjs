@@ -148,6 +148,23 @@ async function main() {
     process.exit(migrate.status || 1);
   }
 
+  console.log("[predev] Checking Prisma migration status...");
+
+  const migrateStatus = spawnSync(
+    "pnpm",
+    ["--filter", "nmmcqueue-backend", "run", "db:migrate:status"],
+    {
+      cwd: rootDir,
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    }
+  );
+
+  if (migrateStatus.status !== 0) {
+    console.error("[predev] Prisma migrate status is not clean. Startup aborted.");
+    process.exit(migrateStatus.status || 1);
+  }
+
   console.log("[predev] Verifying database schema...");
 
   const verify = spawnSync(

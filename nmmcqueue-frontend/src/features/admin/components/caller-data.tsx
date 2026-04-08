@@ -1,12 +1,12 @@
+import { getDepartments } from "@/features/admin/department-actions";
 import { getQueueOptionsByDepartment } from "@/features/admin/queue-option-actions";
 import { VisitWithPatient } from "@/features/triage/types";
-import { getDepartments } from "@/features/admin/department-actions";
 import { auth } from "@/lib/database/auth";
-import { SessionUser } from "@/types/auth";
-import { Department } from "@/types/models";
+import { SessionUser } from "@/shared/types/auth";
+import { Department } from "@/shared/types/models";
 import { headers } from "next/headers";
 import { connection } from "next/server";
-import CallerDashboard from './caller';
+import CallerDashboard from './caller-analytics-dashboard';
 
 export default async function CallerData() {
     await connection();

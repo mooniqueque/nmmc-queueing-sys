@@ -1,7 +1,7 @@
 import { getWorkstations } from "@/features/admin/workstation-actions";
 import { getDepartments } from "@/features/admin/department-actions";
 import WorkstationSettings from "@/features/admin/components/admin-settings/workstations";
-import { WorkStation, Department } from "@/types/models";
+import { WorkStation, Department } from "@/shared/types/models";
 import { connection } from "next/server";
 import { auth } from "@/lib/database/auth";
 import { headers } from "next/headers";

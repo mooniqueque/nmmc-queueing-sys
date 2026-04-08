@@ -1,18 +1,18 @@
 import { fetchDistinctStatusesAPI, fetchReportVisitsAPI } from "@/features/reports/actions";
 import {
-  buildDailyTrend,
-  buildHourlyVolume,
-  buildPatientsPerDepartment,
-  buildStatusDistribution,
-  buildSummaryMetrics,
-  filterVisits,
-  getDefaultDateRange,
-  type DailyTrendRow,
-  type DepartmentChartRow,
-  type HourlyChartRow,
-  type ReportFilters,
-  type StatusChartRow,
-  type SummaryMetrics,
+    buildDailyTrend,
+    buildHourlyVolume,
+    buildPatientsPerDepartment,
+    buildStatusDistribution,
+    buildSummaryMetrics,
+    filterVisits,
+    getDefaultDateRange,
+    type DailyTrendRow,
+    type DepartmentChartRow,
+    type HourlyChartRow,
+    type ReportFilters,
+    type StatusChartRow,
+    type SummaryMetrics,
 } from "./report-analytics";
 
 export type ReportVisitRecord = {
@@ -76,7 +76,15 @@ export async function getReportSnapshot(filters?: Partial<ReportFilters>): Promi
 
   const statusRes = await fetchDistinctStatusesAPI();
   const statuses = statusRes.success && statusRes.data ? statusRes.data : [
-    { status: "KIOSK_SUBMITTED" }, { status: "WAITING" }, { status: "SERVING" }, { status: "COMPLETED" }, { status: "NO_SHOW" }
+    { status: "KIOSK_SUBMITTED" },
+    { status: "WAITING_TRIAGE" },
+    { status: "IN_TRIAGE" },
+    { status: "WAITING_WINDOW" },
+    { status: "IN_WINDOW" },
+    { status: "WAITING_CLINIC" },
+    { status: "IN_PROGRESS" },
+    { status: "COMPLETED" },
+    { status: "NO_SHOW" },
   ];
 
   const filteredVisits = filterVisits(visits, normalizedFilters);

@@ -1,7 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/database/auth-client";
-import { notify } from "@/lib/notify";
+import { notify } from "@/shared/lib/notify";
 import { CircleNotch, Eye, EyeClosed } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

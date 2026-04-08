@@ -12,18 +12,17 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VisitWithPatient } from "@/features/triage/types";
-import { Department, PriorityCategory } from "@/types/models";
-import { ArrowsCounterClockwise, ChartBar, Queue, CheckCircle, Play, CaretDown, User } from "@phosphor-icons/react";
+import { Department, PriorityCategory } from "@/shared/types/models";
+import { ArrowsCounterClockwise, ChartBar, Queue, Play, User } from "@phosphor-icons/react";
 import { useState, useTransition, useEffect } from "react";
-import { notify } from "@/lib/notify";
-import { resetDailyQueue, callNextWindow } from "../actions";
+import { notify } from "@/shared/lib/notify";
+import { resetDailyQueue, callNextWindow, callTicket } from "../actions";
 import { useReleasingQueue } from "../hooks";
 import { ReleasingAssignPanel } from "./releasing-assign-panel";
 import { ReleasingQueueTable, QueueCategory } from "./releasing-queue-table";
-import { SessionUser } from "@/types/auth";
-import { useAnalytics } from "@/features/shared/hooks/use-analytics";
-import { HistoryTable } from "@/features/shared/components/history-table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SessionUser } from "@/shared/types/auth";
+import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
+import { useWindowSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 
 // ─── Main Entry ───────────────────────────────────────────────
 interface ReleasingEntryProps {
@@ -41,15 +40,23 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const [searchQuery, setSearchQuery] = useState("");
     const [isResetting, setIsResetting] = useState(false);
     const [resetDialogOpen, setResetDialogOpen] = useState(false);
-    const [overrideOpen, setOverrideOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [cooldown, setCooldown] = useState(0);
 
-    // History/analytics data for Reports tab
-    const { data: analyticsData } = useAnalytics("window");
+    const [reportDate, setReportDate] = useState(getTodayBusinessDay());
+    const { data: snapshotData } = useWindowSnapshot(reportDate);
 
     // Determine window type from user's station
     const stationNo = user?.workstation?.stationNo ?? 1;
     const isPriorityWindow = stationNo >= 1 && stationNo <= 2;
+
+    // Call Again Cooldown Timer
+    useEffect(() => {
+        if (cooldown > 0) {
+            const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [cooldown]);
 
     // Auto-select the claimed patient on mount
     useEffect(() => {
@@ -58,22 +65,57 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         }
     }, [currentVisit]);
 
-    const hasActivePatient = !!currentVisit || !!selectedPatient;
+    const hasActivePatient = !!currentVisit;
 
-    // ─── Call Next (Claim-Based) ─────────────────────────
-    const handleCallNext = (overrideClassification?: 'PRIORITY' | 'REGULAR') => {
-        setOverrideOpen(false);
+
+    // ─── Call Next / Call Selected ───────────────────────
+    const handleCallNext = () => {
+
+        // If a patient is manually selected (Waiting or No-Show) and no one is currently being served, call THEM
+        if (false && !currentVisit && selectedPatient) {
+            startTransition(async () => {
+                const res = await callTicket(selectedPatient!.id);
+                if (res?.success) {
+                    notify.success("Patient called to window", {
+                        description: `${selectedPatient!.patient.lastName}, ${selectedPatient!.patient.firstName} — Window ${stationNo}`
+                    });
+                } else {
+                    notify.error(res?.message || res?.error || "Failed to call selected patient");
+                }
+            });
+            return;
+        }
+
+        // Tab-Aware Calling: If no manual selection, focus on the active tab's category
         startTransition(async () => {
-            const res = await callNextWindow(overrideClassification);
+            const res = await callNextWindow();
             if (res?.success && res.data) {
                 setSelectedPatient(res.data);
                 notify.success("Patient claimed", {
                     description: `${res.data.patient.lastName}, ${res.data.patient.firstName} — Window ${stationNo}`
                 });
             } else if (res?.success && !res.data) {
-                notify.info("Queue is empty", { description: "No patients waiting for window." });
+                notify.info("Queue is empty", { 
+                    description: "No patients waiting for window." 
+                });
             } else {
                 notify.error(res?.error || "Failed to call next patient");
+            }
+        });
+    };
+
+    const handleCallAgain = () => {
+        if (!currentVisit || cooldown > 0) return;
+        
+        startTransition(async () => {
+            const res = await callTicket(currentVisit.id);
+            if (res?.success) {
+                setCooldown(10); // 10 second cooldown
+                notify.success("Patient called again", {
+                    description: `Ringing bell for ${currentVisit.patient.lastName}, Window ${stationNo}`
+                });
+            } else {
+                notify.error(res?.message || res?.error || "Failed to re-call patient");
             }
         });
     };
@@ -103,7 +145,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
-            (c.ticketNumber?.toString().includes(q) ?? false) ||
+            (c.triageTicket?.toString().includes(q) ?? false) ||
             c.patient.firstName.toLowerCase().includes(q) ||
             c.patient.lastName.toLowerCase().includes(q)
         );
@@ -161,46 +203,17 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
                         {/* ─── Right: Call Next + Reset ─── */}
                         <div className="flex items-center gap-2 w-full sm:w-auto">
-                            {/* Call Next Button with Override */}
+                            {/* Call Next Button */}
                             <div className="relative flex-1 sm:flex-none">
-                                <div className="flex">
-                                    <Button
-                                        onClick={() => handleCallNext()}
-                                        disabled={isPending || hasActivePatient}
-                                        className="flex-1 sm:flex-none h-9 sm:h-10 px-3 sm:px-5 font-bold text-xs sm:text-sm rounded-lg rounded-r-none bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all gap-2 disabled:opacity-50"
-                                    >
-                                        <Play size={14} weight="fill" />
-                                        <span className="hidden sm:inline">Call Next</span>
-                                        <span className="sm:hidden">Call</span>
-                                    </Button>
-                                    <Button
-                                        onClick={() => setOverrideOpen(!overrideOpen)}
-                                        disabled={isPending || hasActivePatient}
-                                        className="h-9 sm:h-10 px-2 font-bold rounded-lg rounded-l-none bg-primary/90 hover:bg-primary/80 text-primary-foreground border-l border-primary-foreground/20 disabled:opacity-50"
-                                    >
-                                        <CaretDown size={14} weight="bold" />
-                                    </Button>
-                                </div>
-
-                                {/* Override Dropdown */}
-                                {overrideOpen && (
-                                    <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-xl z-50 min-w-[200px] py-1">
-                                        <button
-                                            onClick={() => handleCallNext('PRIORITY')}
-                                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-primary/5 transition-colors flex items-center gap-2"
-                                        >
-                                            <span className="w-2 h-2 rounded-full bg-destructive" />
-                                            Call Priority Patient
-                                        </button>
-                                        <button
-                                            onClick={() => handleCallNext('REGULAR')}
-                                            className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-primary/5 transition-colors flex items-center gap-2"
-                                        >
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                            Call Regular Patient
-                                        </button>
-                                    </div>
-                                )}
+                                <Button
+                                    onClick={handleCallNext}
+                                    disabled={isPending || hasActivePatient}
+                                    className="flex-1 sm:flex-none h-9 sm:h-10 px-3 sm:px-5 font-bold text-xs sm:text-sm rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all gap-2 disabled:opacity-50"
+                                >
+                                    <Play size={14} weight="fill" />
+                                    <span className="hidden sm:inline">Call Next</span>
+                                    <span className="sm:hidden">Call</span>
+                                </Button>
                             </div>
 
                             {/* Reset */}
@@ -235,36 +248,62 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                     {/* ─── Current Patient Banner ─── */}
                     {currentVisit && (
                         <div
-                            className="mt-3 sm:mt-4 border-2 border-primary/30 bg-primary/5 rounded-xl px-3 sm:px-5 py-3 flex items-center gap-3 cursor-pointer hover:bg-primary/10 transition-colors"
+                            className="mt-3 sm:mt-4 border-2 border-primary/30 bg-primary/5 rounded-xl px-3 sm:px-5 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-primary/10 transition-colors"
                             onClick={() => setSelectedPatient(currentVisit)}
                         >
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                                <User size={18} weight="bold" className="text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">Currently Serving • Window {stationNo}</span>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                    <User size={18} weight="bold" className="text-primary" />
                                 </div>
-                                <div className="text-xs sm:text-sm font-bold text-foreground truncate">
-                                    {currentVisit.ticketNumber && (
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">Currently Serving • Window {stationNo}</span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                    </div>
+                                    <div className="text-xs sm:text-sm font-bold text-foreground truncate">
+                                        {currentVisit.triageTicket && (
                                         <span className="text-primary mr-2">
-                                            {currentVisit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}-{currentVisit.ticketNumber.toString().padStart(2, '0')}
+                                                Triage {currentVisit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}-{currentVisit.triageTicket.toString().padStart(2, '0')}
                                         </span>
-                                    )}
-                                    {currentVisit.patient.lastName}, {currentVisit.patient.firstName}
+                                        )}
+                                        {currentVisit.patient.lastName}, {currentVisit.patient.firstName}
+                                    </div>
                                 </div>
                             </div>
-                            <span className={`hidden sm:inline text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-widest ${currentVisit.classification === 'PRIORITY' ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                                {currentVisit.classification}
-                            </span>
+                            
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCallAgain();
+                                    }}
+                                    disabled={isPending || cooldown > 0}
+                                    className="h-8 px-3 bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-widest rounded-lg gap-2 shadow-sm disabled:bg-muted disabled:text-muted-foreground transition-all"
+                                >
+                                    {cooldown > 0 ? (
+                                        <>
+                                            <ArrowsCounterClockwise size={12} weight="bold" className="animate-spin" />
+                                            Reload ({cooldown}s)
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Play size={12} weight="fill" />
+                                            Call Again
+                                        </>
+                                    )}
+                                </Button>
+                                <span className={`hidden sm:inline text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-widest ${currentVisit.classification === 'PRIORITY' ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                                    {currentVisit.classification}
+                                </span>
+                            </div>
                         </div>
                     )}
 
                     <TabsContent value="queue" className="mt-4 sm:mt-6 focus-visible:outline-none">
                         <div className="flex flex-col lg:flex-row h-full w-full gap-3 sm:gap-4 lg:gap-6 pb-4 sm:pb-8">
                             {/* Left Box: Queue Table */}
-                            <div className={`flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${selectedPatient ? "lg:w-[60%] xl:w-[65%]" : "w-full"}`}>
+                            <div className={`flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${selectedPatient ? "lg:w-[55%] xl:w-[55%]" : "w-full"}`}>
                                 <ReleasingQueueTable
                                     items={tabFiltered}
                                     counts={counts}
@@ -283,7 +322,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
                             {/* Right Box: Assignment Panel */}
                             {selectedPatient && (
-                                <div className="flex flex-col w-full lg:w-[40%] xl:w-[35%] animate-in slide-in-from-right-8 fade-in duration-500">
+                                <div className="flex flex-col w-full lg:w-[45%] xl:w-[45%] animate-in slide-in-from-right-8 fade-in duration-500">
                                     <ReleasingAssignPanel
                                         selectedPatient={selectedPatient}
                                         departments={departments}
@@ -299,37 +338,42 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
                     <TabsContent value="reports" className="mt-4 sm:mt-6 focus-visible:outline-none">
                         <div className="space-y-6 pb-8">
-                            {/* KPIs summary */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Today</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.totalToday}</p>
-                                </Card>
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Waiting</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.currentlyWaiting}</p>
-                                </Card>
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Completed</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.completedToday}</p>
-                                </Card>
-                                <Card className="p-4">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Shows</p>
-                                    <p className="text-2xl font-bold text-foreground">{analyticsData.kpis.noShowCount}</p>
-                                </Card>
+                            <ReportDatePicker value={reportDate} onChange={setReportDate} />
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                                <ReportMetricCard
+                                    label="Assigned To Clinics"
+                                    value={snapshotData.totals.totalAssignedToClinics.toString()}
+                                    hint="Patients successfully handed off from the window."
+                                />
+                                <ReportMetricCard
+                                    label="Window No-Shows"
+                                    value={snapshotData.totals.windowNoShowCount.toString()}
+                                    hint={`${snapshotData.totals.windowNoShowRate}% of called patients did not appear.`}
+                                    tone="warning"
+                                />
+                                <ReportMetricCard
+                                    label="Average Window Time"
+                                    value={`${snapshotData.totals.avgWindowProcessingMinutes}m`}
+                                    hint="Approximate time spent in the window phase."
+                                    tone="success"
+                                />
+                                <ReportMetricCard
+                                    label="Total Window Calls"
+                                    value={snapshotData.totals.totalWindowCalls.toString()}
+                                    hint="Patients moved into active window handling."
+                                />
                             </div>
 
-                            {/* Recent History */}
-                            <Card>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                        Recent Activity
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-0 max-h-96 overflow-y-auto custom-scrollbar">
-                                    <HistoryTable items={analyticsData.recentHistory} />
-                                </CardContent>
-                            </Card>
+                            <ReportBreakdownCard
+                                title="Processed Per Window Station"
+                                emptyLabel="No patients were processed by any window station for this date."
+                                items={snapshotData.processedPerStation.map((item) => ({
+                                    id: `${item.stationNo}`,
+                                    label: `Window ${item.stationNo}`,
+                                    value: item.count,
+                                }))}
+                            />
                         </div>
                     </TabsContent>
                 </Tabs>

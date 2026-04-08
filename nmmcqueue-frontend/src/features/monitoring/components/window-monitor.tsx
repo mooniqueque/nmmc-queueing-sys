@@ -1,42 +1,18 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { useWindowMonitor, WindowStatus } from "@/features/monitoring/hooks/use-window-monitor";
 import { CallOverlay } from "@/features/monitoring/components/call-overlay";
-import { useCurrentTime } from "@/hooks/use-current-time";
+import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
+import { useCurrentTime } from "@/shared/hooks/use-current-time";
 import { API_URL } from "@/lib/api";
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function WindowMonitor() {
     const currentTime = useCurrentTime();
-    const { windows, upcoming, loading } = useWindowMonitor();
+    const { windows, upcoming, loading, currentAnnouncement } = useWindowMonitor();
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
-    const [callData, setCallData] = useState<{ ticket: string; windowName: string; calledAt: string | null } | null>(null);
-    const prevWindowsRef = useRef<WindowStatus[]>([]);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    useEffect(() => {
-        if (windows.length > 0 && prevWindowsRef.current.length > 0) {
-            let newCall: WindowStatus | null = null;
-            windows.forEach(win => {
-                const prev = prevWindowsRef.current.find(p => p.stationNo === win.stationNo);
-                if (prev && win.ticketNumber && (prev.ticketNumber !== win.ticketNumber || prev.calledAt !== win.calledAt)) {
-                    newCall = win;
-                }
-            });
-
-            if (newCall) {
-                if (timeoutRef.current) clearTimeout(timeoutRef.current);
-                setTimeout(() => {
-                    setCallData({ ticket: newCall!.ticketNumber!, windowName: newCall!.windowName, calledAt: newCall!.calledAt });
-                    timeoutRef.current = setTimeout(() => setCallData(null), 7000); // 7s modal popup
-                }, 0);
-            }
-        }
-        prevWindowsRef.current = windows;
-    }, [windows]);
 
     useEffect(() => {
         // Fetch securely from the Public monitor API
@@ -44,7 +20,7 @@ export default function WindowMonitor() {
             .then(res => res.json())
             .then(json => {
                 if (json.success && json.data) {
-                    const dept = json.data.find((d: { name: string; videoUrl: string }) => d.name === 'CASHIER / REGISTRATION');
+                    const dept = json.data.find((d: { name: string; videoUrl: string }) => d.name === 'REGISTRATION');
                     if (dept) setVideoUrl(dept.videoUrl || null);
                 }
             })
@@ -71,7 +47,7 @@ export default function WindowMonitor() {
 
     return (
         <div className="w-full h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden">
-            <CallOverlay callData={callData} />
+            <CallOverlay callData={currentAnnouncement} />
             {/* MINIMALIST HEADER */}
             <header className="bg-white px-8 py-5 flex justify-between items-center sticky top-0 z-10 border-b border-slate-200 w-full shrink-0 shadow-sm">
                 <div className="flex items-center gap-6">
@@ -116,10 +92,10 @@ export default function WindowMonitor() {
                                     </span>
                                 </div>
                                 <div className="text-right flex flex-col items-end">
-                                    {window.ticketNumber ? (
+                                    {window.displayTicket ? (
                                         <>
                                             <span className="text-3xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
-                                                {window.ticketNumber}
+                                                {window.displayTicket}
                                             </span>
                                             {window.priorityClass && false && (
                                                 <span className="text-sm font-extrabold text-slate-400 uppercase tracking-[0.2em] mt-3">

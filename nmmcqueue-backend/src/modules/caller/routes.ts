@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth, requireRole } from '../../middleware/rbac.js';
+import { requireAuth, requireCapability, requireRole } from '../../middleware/rbac.js';
 import { callerController } from './controller.js';
 
 export const callerRouter = Router();
@@ -15,12 +15,13 @@ callerRouter.post('/queue-options', requireRole(['ADMIN']), callerController.cre
 callerRouter.delete('/queue-options/:id', requireRole(['ADMIN']), callerController.deleteQueueOption);
 
 // Caller operational routes (Available to all operational staff)
-callerRouter.post('/visit/:visitId/call', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.callPatient);
-callerRouter.post('/visit/:visitId/serve', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.servePatient);
-callerRouter.post('/visit/:visitId/no-show', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.noShowPatient);
-callerRouter.post('/visit/:visitId/transfer', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.transferPatient);
-callerRouter.post('/visit/:visitId/restore', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.restorePatient);
-callerRouter.post('/visit/:visitId/notify', requireRole(['CLINIC_CALLER', 'TRIAGE_NURSE', 'WINDOW_CLERK']), callerController.notifyPatient);
+callerRouter.post('/call-next', requireCapability('CLINIC_MUTATE'), callerController.callNextPatient);
+callerRouter.post('/visit/:visitId/call', requireCapability('CLINIC_MUTATE'), callerController.callPatient);
+callerRouter.post('/visit/:visitId/serve', requireCapability('CLINIC_MUTATE'), callerController.servePatient);
+callerRouter.post('/visit/:visitId/no-show', requireCapability('CLINIC_MUTATE'), callerController.noShowPatient);
+callerRouter.post('/visit/:visitId/transfer', requireCapability('CLINIC_MUTATE'), callerController.transferPatient);
+callerRouter.post('/visit/:visitId/restore', requireCapability('CLINIC_MUTATE'), callerController.restorePatient);
+callerRouter.post('/visit/:visitId/notify', requireCapability('CLINIC_MUTATE'), callerController.notifyPatient);
 
 // Admin override route (for clearing ghost/stuck currently-serving patients)
 callerRouter.delete('/visit/:visitId/force-remove', requireRole(['ADMIN']), callerController.forceRemoveVisit);

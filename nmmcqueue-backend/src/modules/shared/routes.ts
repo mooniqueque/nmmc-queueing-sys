@@ -1,7 +1,8 @@
 import { Request, Response, Router } from 'express';
+import logger from '../../lib/logger.js';
 import { requireAuth } from '../../middleware/rbac.js';
 import { callerController } from '../caller/controller.js';
-import { getAnalytics, AnalyticsScope } from './analytics.js';
+import { AnalyticsScope, getAnalytics } from './analytics.js';
 
 export const sharedRouter = Router();
 
@@ -24,7 +25,13 @@ sharedRouter.get('/analytics', requireAuth, async (req: Request, res: Response) 
 
         const data = await getAnalytics({ scope, departmentId, fromDate, toDate, userId });
         res.status(200).json({ success: true, data });
-    } catch (error: any) {
-        res.status(500).json({ success: false, error: error.message });
+    } catch (error: unknown) {
+        logger.error('Failed to load analytics', {
+            path: req.path,
+            scope: req.query.scope,
+            userId: (req as any).user?.id,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        res.status(500).json({ success: false, error: 'Failed to load analytics' });
     }
 });

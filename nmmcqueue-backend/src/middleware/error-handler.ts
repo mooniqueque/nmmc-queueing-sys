@@ -18,6 +18,7 @@ export class AppError extends Error {
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
     const statusCode = err.statusCode || 500;
     const status = statusCode >= 400 && statusCode < 500 ? 'fail' : 'error';
+    const isDevelopment = process.env.NODE_ENV === 'development';
 
     // Log error for internal monitoring using Winston
     if (statusCode >= 500) {
@@ -37,12 +38,16 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
         });
     }
 
+    const publicMessage = statusCode >= 500
+        ? 'Internal server error'
+        : (err.message || 'Request failed');
+
     res.status(statusCode).json({
         success: false,
         status,
-        message: err.message || 'An unexpected error occurred',
+        message: publicMessage,
         code: err.code || undefined,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+        ...(isDevelopment && { stack: err.stack }),
         errors: err.errors || undefined
     });
 };

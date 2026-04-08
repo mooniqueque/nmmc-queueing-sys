@@ -30,8 +30,8 @@ class ReleasingController {
         const userId = (req as any).user?.id;
         const result = await releasingService.assignTicket(req.params.id, req.body, userId);
 
-        if (result?.ticketNumber) {
-            const formattedTicket = `${result.departmentCode} - ${result.ticketNumber.toString().padStart(2, '0')}`;
+        if (result?.serviceTicket) {
+            const formattedTicket = `${result.departmentCode} - ${result.serviceTicket.toString().padStart(2, '0')}`;
 
             let labelText = "REGULAR";
             if (result.classification === "PRIORITY") {
@@ -49,7 +49,7 @@ class ReleasingController {
                     station: "Releasing Window",
                     label: labelText,
                     labelBold: true,
-                    ticketNumber: formattedTicket,
+                    displayNumber: formattedTicket,
                     date: new Date().toLocaleString(),
                     footer: "This ticket is valid for today only."
                 });
@@ -71,6 +71,12 @@ class ReleasingController {
     noShowTicket = asyncHandler(async (req: Request, res: Response) => {
         const userId = (req as any).user?.id;
         const updated = await releasingService.noShowTicket(req.params.id, userId);
+        res.status(200).json({ success: true, data: updated });
+    });
+
+    linkPatient = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        const updated = await releasingService.linkPatientByHospitalId(req.params.id, req.body.hospitalId, userId);
         res.status(200).json({ success: true, data: updated });
     });
 }

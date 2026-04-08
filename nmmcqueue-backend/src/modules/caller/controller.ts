@@ -61,6 +61,12 @@ class CallerController {
         res.status(200).json({ success: true, data });
     });
 
+    callNextPatient = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        const data = await callerService.callNextPatient(userId);
+        res.status(200).json({ success: true, data });
+    });
+
     servePatient = asyncHandler(async (req: Request, res: Response) => {
         const userId = (req as any).user?.id;
         const visitId = req.params.visitId;

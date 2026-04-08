@@ -1,5 +1,5 @@
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import AdminSidebar from "@/components/layouts/admin-sidebar"
+import AdminSidebar from "@/shared/layouts/admin-sidebar"
 
 import type { Metadata } from 'next'
 export const metadata: Metadata = {

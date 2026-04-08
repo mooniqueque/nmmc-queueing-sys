@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { VisitWithPatient } from "@/features/triage/types";
 import { CheckCircle, Clock, MagnifyingGlass, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { useState } from "react";
-import { calculateAge } from "@/lib/utils";
+import { calculateAge } from "@/shared/lib/utils";
 
 export type QueueCategory = "ALL" | "PRIORITY" | "REGULAR" | "NO_SHOW";
 
@@ -135,7 +135,7 @@ export function ReleasingQueueTable({
                                 >
                                     {/* Ticket */}
                                     <div className="text-sm sm:text-base font-bold text-primary/60">
-                                        {visit.ticketNumber ? `#${visit.ticketNumber}` : '—'}
+                                        {visit.triageTicket ? `#${visit.triageTicket}` : '—'}
                                     </div>
 
                                     {/* Name & Demographics */}
@@ -213,3 +213,4 @@ export function ReleasingQueueTable({
         </div>
     );
 }
+

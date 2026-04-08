@@ -1,6 +1,6 @@
 "use client";
 
-import { APP_ALERT_EVENT, AppAlertPayload } from "@/lib/notify";
+import { APP_ALERT_EVENT, AppAlertPayload } from "@/shared/lib/notify";
 import { ReactNode, useEffect } from "react";
 import { toast, Toaster } from "sonner";
 

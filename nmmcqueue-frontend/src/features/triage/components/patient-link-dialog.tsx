@@ -4,25 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { mergePatient, searchPatients } from "@/features/triage/actions";
-import { notify } from "@/lib/notify";
-import { calculateAge } from "@/lib/utils";
+import { searchPatients } from "@/features/triage/actions";
+import { notify } from "@/shared/lib/notify";
+import { calculateAge } from "@/shared/lib/utils";
 import { Link as LinkIcon, MagnifyingGlass, UserPlus } from "@phosphor-icons/react";
 import { useState, useTransition } from "react";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface SearchPatient {
+    id: string;
+    firstName: string;
+    lastName: string;
+    middleName?: string | null;
+    hospitalId?: string | null;
+    dateOfBirth: string | Date;
+    address?: string | null;
+}
+
 interface PatientLinkDialogProps {
     visitId: string;
     currentPatientName: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onMergeSuccess: (mergedData: any) => void;
+    onMergeSuccess: (mergedData: unknown) => void;
 }
 
 export function PatientLinkDialog({ visitId, currentPatientName, onMergeSuccess }: PatientLinkDialogProps) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [results, setResults] = useState<any[]>([]);
+    const [results, setResults] = useState<SearchPatient[]>([]);
     const [isSearching, startSearch] = useTransition();
     const [isMerging, startMerge] = useTransition();
 
@@ -31,25 +38,17 @@ export function PatientLinkDialog({ visitId, currentPatientName, onMergeSuccess 
         startSearch(async () => {
             const res = await searchPatients(query);
             if (res.success && res.data) {
-                setResults(res.data);
+                setResults(res.data as SearchPatient[]);
             }
         });
     };
 
     const handleMerge = (targetPatientId: string) => {
         startMerge(async () => {
-            const res = await mergePatient(visitId, targetPatientId);
-            if (res.success) {
-                notify.success("Patient Record Linked", {
-                    description: "The Kiosk visit has been safely merged into the existing HIS profile."
-                });
-                onMergeSuccess(res.data);
-                setOpen(false);
-            } else {
-                notify.error("Failed to merge patient record", {
-                    description: res.error || "Unknown error occurred"
-                });
-            }
+            void targetPatientId;
+            void visitId;
+            void onMergeSuccess;
+            notify.error("Patient linking is now handled at the window verification step.");
         });
     };
 

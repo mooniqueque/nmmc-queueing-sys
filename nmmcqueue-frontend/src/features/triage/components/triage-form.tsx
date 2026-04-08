@@ -1,26 +1,27 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { getDepartments, getQueueOptions } from "@/features/shared/api";
+import { notify } from "@/shared/lib/notify";
+import { Department, PriorityCategory } from "@/shared/types/models";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CaretDoubleRight, Printer, Tag, WarningCircle, XCircle } from "@phosphor-icons/react";
 import { useEffect, useState, useTransition } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import { submitTriageForm, markNoShow } from "../actions";
+import { markNoShow, submitTriageForm } from "../actions";
 import { triageFormSchema, TriageFormValues } from "../schemas";
-import { CaretDoubleRight, Printer, WarningCircle, Tag, XCircle } from "@phosphor-icons/react";
-import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getQueueOptions, getDepartments } from "@/features/shared/api";
-import { PriorityCategory, Department } from "@/shared/types/models";
 
+import { useTriageStore } from "../store/use-triage-store";
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
 import { VitalsSection } from "./vitals-section";
-import { useTriageStore } from "../store/use-triage-store";
 
 export function TriageForm() {
     const {
@@ -109,13 +110,24 @@ export function TriageForm() {
                     setSubmitSuccess(true);
                 }
 
+                notify.success("Patient is Successfully Queued For Window Processing");
+
+                resetTriage();
                 setTimeout(() => {
-                    resetTriage();
                     setSubmitSuccess(false);
                     methods.reset();
                 }, 2000);
             }
         });
+    };
+
+    const handleInvalid = (errors: Record<string, { message?: string }>) => {
+        const bpError = errors.bloodPressure?.message;
+        if (bpError) {
+            notify.error("Invalid BP format", {
+                description: "Use SYSTOLIC/DIASTOLIC, e.g., 120/80.",
+            });
+        }
     };
 
     const handleNoShowClick = () => {
@@ -169,12 +181,12 @@ export function TriageForm() {
                         <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100 mb-6">
                             <CaretDoubleRight size={32} weight="duotone" className="text-slate-300" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-600 mb-2">Select a Patient</h3>
-                        <p className="text-sm font-medium">Click a patient from the Waiting List on the right, or toggle Manual Entry above.</p>
+                        <h3 className="text-xl font-bold text-slate-600 mb-2">Call Next Patient</h3>
+                        <p className="text-sm font-medium">Click <strong>CALL NEXT</strong> to automatically call Waiting List on the right or toggle Manual Entry above.</p>
                     </div>
                 ) : (
                     <FormProvider {...methods}>
-                        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-0 relative">
+                        <form onSubmit={methods.handleSubmit(onSubmit, handleInvalid)} className="space-y-0 relative">
                             {/* The inner sections handle their own top margins for a masonry/stack effect */}
                             <DemographicsSection />
                             <VitalsSection />

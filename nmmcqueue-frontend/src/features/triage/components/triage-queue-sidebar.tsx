@@ -1,18 +1,17 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useTransition, useState, useEffect } from "react";
-import { markNoShow, removeQueue, restoreNoShow, callNextTriage, callSpecificTriage } from "../actions";
-import { useTriageQueue } from "../hooks";
-import { VisitWithPatient } from "../types";
-import { useTriageStore } from "../store/use-triage-store";
-import { MagnifyingGlass, Clock, CheckCircle, User, Play, Plus, Trash } from "@phosphor-icons/react";
-import { Input } from "@/components/ui/input";
-import { notify } from "@/shared/lib/notify";
-import { SessionUser } from "@/shared/types/auth";
-import { calculateAge } from "@/shared/lib/utils";
 import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
 import { useTriageSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
+import { notify } from "@/shared/lib/notify";
+import { calculateAge } from "@/shared/lib/utils";
+import { SessionUser } from "@/shared/types/auth";
+import { CheckCircle, Clock, Play, Plus, Trash, User } from "@phosphor-icons/react";
+import { useEffect, useState, useTransition } from "react";
+import { callNextTriage, callSpecificTriage, markNoShow, removeQueue, restoreNoShow } from "../actions";
+import { useTriageQueue } from "../hooks";
+import { useTriageStore } from "../store/use-triage-store";
+import { VisitWithPatient } from "../types";
 
 
 interface TriageQueueSidebarProps {
@@ -34,7 +33,6 @@ export function TriageQueueSidebar({
     const { activeQueue, noShowQueue, claimedVisit, activeTab, setActiveTab } = useTriageQueue(initialQueue, staticCurrentVisit, user?.id);
     
     const [isPending, startTransition] = useTransition();
-    const [searchQuery, setSearchQuery] = useState("");
     const [nowMs, setNowMs] = useState<number | null>(null);
     const [reportDate, setReportDate] = useState(getTodayBusinessDay());
     const { data: snapshotData } = useTriageSnapshot(reportDate);
@@ -53,6 +51,9 @@ export function TriageQueueSidebar({
         return () => window.clearInterval(intervalId);
     }, []);
 
+    // Check if there's an active claimed patient
+    const hasActivePatient = !!claimedVisit || (selectedPatient && !isManualEntry);
+
     // ─── Call Next (Claim-Based) ────────────────────────────
     const handleCallNext = () => {
         startTransition(async () => {
@@ -69,6 +70,25 @@ export function TriageQueueSidebar({
             }
         });
     };
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.code !== "Space") return;
+            if (event.repeat) return;
+
+            const target = event.target as HTMLElement | null;
+            if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+                return;
+            }
+            if (isPending || hasActivePatient) return;
+
+            event.preventDefault();
+            handleCallNext();
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isPending, hasActivePatient]);
 
     const handleCallSpecific = (visitId: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -109,20 +129,6 @@ export function TriageQueueSidebar({
             if (selectedPatientId === visitId) setSelectedPatient(null);
         });
     }
-
-    // Filter active queue by search
-    const filteredActiveQueue = activeQueue.filter(v => {
-        if (!searchQuery) return true;
-        const q = searchQuery.toLowerCase();
-        return (
-            (v.triageTicket?.toString().includes(q) ?? false) ||
-            v.patient.firstName.toLowerCase().includes(q) ||
-            v.patient.lastName.toLowerCase().includes(q)
-        );
-    });
-
-    // Check if there's an active claimed patient
-    const hasActivePatient = !!claimedVisit || (selectedPatient && !isManualEntry);
 
     return (
         <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden relative shadow-sm">
@@ -199,8 +205,8 @@ export function TriageQueueSidebar({
                     </div>
                 )}
 
-                {/* Search + Tabs */}
-                <div className="border-b border-border px-3 sm:px-6 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                {/* Tabs */}
+                <div className="border-b border-border px-3 sm:px-6 py-2.5 flex items-center">
                     <div className="flex items-center gap-1 p-1 bg-muted rounded-lg border border-border">
                         <button
                             onClick={() => setActiveTab("ACTIVE")}
@@ -236,16 +242,6 @@ export function TriageQueueSidebar({
                             <span>Reports</span>
                         </button>
                     </div>
-
-                    <div className="relative w-full sm:w-52 lg:w-64">
-                        <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={14} weight="bold" />
-                        <Input
-                            placeholder="Search patients..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-8 h-8 w-full bg-muted/50 border-border text-xs font-bold rounded-md focus-visible:ring-primary/20"
-                        />
-                    </div>
                 </div>
             </div>
 
@@ -270,7 +266,7 @@ export function TriageQueueSidebar({
                 )}
 
                 {activeTab === "ACTIVE" ? (
-                    filteredActiveQueue.length === 0 ? (
+                    activeQueue.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 sm:p-12 text-center">
                             <CheckCircle size={40} className="mb-4 text-muted/30" weight="bold" />
                             <p className="text-sm font-bold text-foreground">Queue Empty</p>
@@ -278,7 +274,7 @@ export function TriageQueueSidebar({
                         </div>
                     ) : (
                         <div className="flex flex-col">
-                            {filteredActiveQueue.map((visit) => (
+                            {activeQueue.map((visit) => (
                                 <PatientRow
                                     key={visit.id}
                                     visit={visit}

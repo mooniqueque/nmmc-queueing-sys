@@ -9,14 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { getDepartments, getQueueOptions } from "@/features/shared/api";
 import { notify } from "@/shared/lib/notify";
-import { Department, PriorityCategory } from "@/shared/types/models";
+import { Department, PriorityCategory, VisitPriorityCategory } from "@/shared/types/models";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CaretDoubleRight, Printer, Tag, WarningCircle, XCircle } from "@phosphor-icons/react";
 import { useEffect, useState, useTransition } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { z } from "zod";
 import { markNoShow, submitTriageForm } from "../actions";
-import { triageFormSchema, TriageFormValues } from "../schemas";
+import { TriageFormInput, TriageFormValues, triageFormSchema } from "../schemas";
 
 import { useTriageStore } from "../store/use-triage-store";
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
@@ -45,8 +44,8 @@ export function TriageForm() {
         });
     }, []);
 
-    const methods = useForm<z.input<typeof triageFormSchema>, unknown, TriageFormValues>({
-        resolver: zodResolver(triageFormSchema as any),
+    const methods = useForm<TriageFormInput, unknown, TriageFormValues>({
+        resolver: zodResolver(triageFormSchema),
         defaultValues: {
             isManualEntry: false,
             firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Male",
@@ -85,7 +84,7 @@ export function TriageForm() {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: selectedPatient.classification || "REGULAR",
-                categoryIds: selectedPatient.categories?.map((c: any) => c.categoryId) || []
+                categoryIds: selectedPatient.categories?.map((c: VisitPriorityCategory) => c.categoryId) || []
             });
         } else {
             methods.reset();

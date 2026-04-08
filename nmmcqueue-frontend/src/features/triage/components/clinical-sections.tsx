@@ -2,12 +2,12 @@
 
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Info, Notepad, WarningCircle } from "@phosphor-icons/react";
 import { Controller, useFormContext } from "react-hook-form";
-import { TriageFormValues } from "../schemas";
-import { WarningCircle, Info, Notepad } from "@phosphor-icons/react";
+import { TriageFormInput } from "../schemas";
 
 export function SymptomsSection() {
-    const { control } = useFormContext<TriageFormValues>();
+    const { control } = useFormContext<TriageFormInput>();
 
     const labels = {
         hasCough: "Cough",
@@ -57,7 +57,7 @@ export function SymptomsSection() {
 }
 
 export function ClinicalNotesSection() {
-    const { register, formState: { errors } } = useFormContext<TriageFormValues>();
+    const { register, formState: { errors } } = useFormContext<TriageFormInput>();
 
     return (
         <div className="bg-muted/10 p-6 rounded-xl border border-border shadow-sm mt-8">

@@ -6,17 +6,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { getQueueOptions } from "@/features/shared/api";
 import { useCurrentTime } from "@/shared/hooks/use-current-time";
 import { calculateAge as libCalculateAge } from "@/shared/lib/utils";
 import { PriorityCategory } from "@/shared/types/models";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { FormEvent, useEffect, useState } from "react";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { registerKioskPatient } from "../actions";
 import { kioskFormSchema, KioskFormValues } from "../schemas";
-import { motion } from "framer-motion";
 
 const RELIGION_OPTIONS = [
     "Roman Catholic",
@@ -428,9 +428,9 @@ export function KioskForm() {
                         </div>
                     </div>
 
-                    <div className="pt-6 border-t mt-8 mb-5 flex gap-4">
+                    <div className="pt-6 border-t mt-8 mb-5 flex flex-col sm:flex-row gap-3 sm:gap-4">
                         {/* Cancel / Back Button Container -> takes up 1/3 of the space */}
-                        <Link href="/kiosk" className="w-1/3">
+                        <Link href="/kiosk" className="w-full sm:w-1/3">
                             <Button type="button" variant="outline" className="w-full h-12 text-base font-semibold border-slate-300 text-slate-700">
                                 Back
                             </Button>
@@ -440,12 +440,12 @@ export function KioskForm() {
                             type="button"
                             variant="outline"
                             onClick={handleClearForm}
-                            className="w-full md:w-1/6 h-12 text-base font-semibold border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                            className="w-full sm:w-auto sm:min-w-[140px] h-12 text-base font-semibold border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
                         >
                             Clear Form
                         </Button>
                         {/* Submit Button Container */}
-                        <Button type="submit" className="w-full md:w-2/4 h-12 text-base font-semibold bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
+                        <Button type="submit" className="w-full sm:flex-1 h-12 text-base font-semibold bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
                             {isLoading ? "Submitting Form..." : "Submit Registration"}
                         </Button>
                     </div>

@@ -2,12 +2,12 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Drop, Heartbeat, Thermometer, Waves, Wind } from "@phosphor-icons/react";
 import { useFormContext } from "react-hook-form";
-import { TriageFormValues } from "../schemas";
-import { Heartbeat, Thermometer, Drop, Waves, Wind } from "@phosphor-icons/react";
+import { TriageFormInput } from "../schemas";
 
 export function VitalsSection() {
-    const { register } = useFormContext<TriageFormValues>();
+    const { register } = useFormContext<TriageFormInput>();
 
     return (
         <div className="bg-muted/10 p-6 rounded-xl border border-border shadow-sm mt-8">

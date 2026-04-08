@@ -2,17 +2,17 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Controller, useFormContext, useWatch } from "react-hook-form";
-import { TriageFormValues } from "../schemas";
-import { CalendarBlank, UserCircle, MapPin, IdentificationBadge } from "@phosphor-icons/react";
 import { calculateAge } from "@/shared/lib/utils";
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { CalendarBlank, IdentificationBadge, MapPin, UserCircle } from "@phosphor-icons/react";
+import { Controller, useFormContext, useWatch } from "react-hook-form";
+import { TriageFormInput } from "../schemas";
 import { useTriageStore } from "../store/use-triage-store";
 
 export function DemographicsSection() {
-    const { register, control, formState: { errors } } = useFormContext<TriageFormValues>();
+    const { register, control, formState: { errors } } = useFormContext<TriageFormInput>();
     const watchDob = useWatch({ control, name: "dateOfBirth" });
     const { selectedPatient } = useTriageStore();
 
@@ -125,13 +125,13 @@ export function DemographicsSection() {
                     ) : null}
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Age</Label>
+                    <Label className="text-sm font-bold text-gray-700 uppercase tracking-wider pl-1">Age</Label>
                     <Input
                         value={calculateAge(watchDob) !== null ? `${calculateAge(watchDob)} years` : ''}
                         disabled
                         placeholder="Calculated automatically"
-                        className={`h-10 rounded-lg border-border bg-muted/50 px-4 text-xs font-bold ${
-                            (watchDob && calculateAge(watchDob) === null) ? 'text-destructive/60' : 'text-muted-foreground/60'
+                        className={`h-10 rounded-lg border-border bg-muted/50 px-4 text-base font-semibold ${
+                            (watchDob && calculateAge(watchDob) === null) ? 'text-destructive/70' : 'text-gray-600'
                         }`}
                     />
                     {(watchDob && calculateAge(watchDob) === null) && (
@@ -139,9 +139,9 @@ export function DemographicsSection() {
                     )}
                 </div>
                 <div className="space-y-2 md:col-span-2 relative">
-                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Birthplace *</Label>
+                    <Label className="text-sm font-bold text-gray-700 uppercase tracking-wider pl-1">Birthplace *</Label>
                     <Input
-                        className="h-10 rounded-lg border-border bg-background px-4 text-xs font-bold transition-all focus:ring-primary/20 focus:border-primary/50"
+                        className="h-10 rounded-lg border-border bg-background px-4 text-base font-semibold text-slate-900 transition-all focus:ring-primary/20 focus:border-primary/50"
                         disabled={disabled}
                         placeholder="Cagayan de Oro City"
                         {...register("birthPlace")}
@@ -152,7 +152,7 @@ export function DemographicsSection() {
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-2 relative">
-                    <Label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
+                    <Label className="flex items-center gap-1.5 text-sm font-bold text-gray-700 uppercase tracking-wider pl-1">
                         <UserCircle size={14} weight="bold" /> Gender *
                     </Label>
                     <Controller
@@ -160,12 +160,12 @@ export function DemographicsSection() {
                         name="gender"
                         render={({ field }) => (
                             <Select disabled={disabled} onValueChange={field.onChange} value={field.value as string}>
-                                <SelectTrigger className="h-10 rounded-lg border-border bg-background px-4 text-xs font-bold transition-all focus:ring-primary/20 focus:border-primary/50">
+                                <SelectTrigger className="h-10 rounded-lg border-border bg-background px-4 text-base font-semibold text-slate-900 transition-all focus:ring-primary/20 focus:border-primary/50">
                                     <SelectValue placeholder="Select Gender" />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-lg border-border bg-background">
-                                    <SelectItem value="Male" className="text-xs font-bold py-2">Male</SelectItem>
-                                    <SelectItem value="Female" className="text-xs font-bold py-2">Female</SelectItem>
+                                    <SelectItem value="Male" className="text-sm font-semibold py-2">Male</SelectItem>
+                                    <SelectItem value="Female" className="text-sm font-semibold py-2">Female</SelectItem>
                                 </SelectContent>
                             </Select>
                         )}
@@ -173,21 +173,21 @@ export function DemographicsSection() {
                     {errors.gender && <span className="absolute -bottom-5 left-1 text-destructive text-[9px] font-bold uppercase tracking-widest">{errors.gender.message}</span>}
                 </div>
                 <div className="space-y-2 relative">
-                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Civil Status *</Label>
+                    <Label className="text-sm font-bold text-gray-700 uppercase tracking-wider pl-1">Civil Status *</Label>
                     <Controller
                         control={control}
                         name="civilStatus"
                         render={({ field }) => (
                             <Select disabled={disabled} onValueChange={field.onChange} value={field.value as string}>
-                                <SelectTrigger className="h-10 rounded-lg border-border bg-background px-4 text-xs font-bold transition-all focus:ring-primary/20 focus:border-primary/50">
+                                <SelectTrigger className="h-10 rounded-lg border-border bg-background px-4 text-base font-semibold text-slate-900 transition-all focus:ring-primary/20 focus:border-primary/50">
                                     <SelectValue placeholder="Select Civil Status" />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-lg border-border bg-background">
-                                    <SelectItem value="Single" className="text-xs font-bold py-2">Single</SelectItem>
-                                    <SelectItem value="Married" className="text-xs font-bold py-2">Married</SelectItem>
-                                    <SelectItem value="Widowed" className="text-xs font-bold py-2">Widowed</SelectItem>
-                                    <SelectItem value="Divorced" className="text-xs font-bold py-2">Divorced</SelectItem>
-                                    <SelectItem value="Separated" className="text-xs font-bold py-2">Separated</SelectItem>
+                                    <SelectItem value="Single" className="text-sm font-semibold py-2">Single</SelectItem>
+                                    <SelectItem value="Married" className="text-sm font-semibold py-2">Married</SelectItem>
+                                    <SelectItem value="Widowed" className="text-sm font-semibold py-2">Widowed</SelectItem>
+                                    <SelectItem value="Divorced" className="text-sm font-semibold py-2">Divorced</SelectItem>
+                                    <SelectItem value="Separated" className="text-sm font-semibold py-2">Separated</SelectItem>
                                 </SelectContent>
                             </Select>
                         )}
@@ -195,7 +195,7 @@ export function DemographicsSection() {
                     {errors.civilStatus && <span className="absolute -bottom-5 left-1 text-destructive text-[9px] font-bold uppercase tracking-widest">{errors.civilStatus.message}</span>}
                 </div>
                 <div className="space-y-2 relative">
-                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Religion *</Label>
+                    <Label className="text-sm font-bold text-gray-700 uppercase tracking-wider pl-1">Religion *</Label>
                     <Controller
                         control={control}
                         name="religion"
@@ -219,7 +219,7 @@ export function DemographicsSection() {
                                 placeholder="Select Religion"
                                 searchPlaceholder="Search religion..."
                                 emptyMessage="No religion found."
-                                className="h-10 text-xs font-bold"
+                                className="h-10 text-base font-semibold text-slate-900"
                                 disabled={disabled}
                             />
                         )}

@@ -3,6 +3,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { ReportBreakdownCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
 import { useTriageSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 import { notify } from "@/shared/lib/notify";
@@ -105,7 +107,7 @@ export function TriageEntry({ initialQueue, currentVisit, user }: TriageEntryPro
         <div className="min-h-screen w-full bg-background">
             <div className="grid grid-cols-12 min-h-screen">
                 {/* Left Pane: Sticky Sidebar */}
-                <aside className="col-span-12 lg:col-span-4 xl:col-span-3 lg:sticky lg:top-0 lg:h-screen overflow-visible lg:overflow-y-auto border-r border-border bg-card">
+                <aside className="col-span-12 lg:col-span-5 xl:col-span-4 lg:sticky lg:top-0 lg:h-screen overflow-visible lg:overflow-y-auto border-r border-border bg-card">
                     <div className="p-3 sm:p-4 lg:p-6">
                         <TriageQueueSidebar
                             activeQueue={activeQueue}
@@ -121,7 +123,7 @@ export function TriageEntry({ initialQueue, currentVisit, user }: TriageEntryPro
                 </aside>
 
                 {/* Right Pane: Dynamic Workspace */}
-                <main className="col-span-12 lg:col-span-8 xl:col-span-9 flex-1 bg-muted/20 pb-10">
+                <main className="col-span-12 lg:col-span-7 xl:col-span-8 flex-1 bg-muted/20 pb-10">
                     {activeTab === "REPORTS" ? (
                         <div className="p-3 sm:p-4 lg:p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -170,7 +172,7 @@ export function TriageEntry({ initialQueue, currentVisit, user }: TriageEntryPro
                         <div className="p-3 sm:p-4 lg:p-6">
                             <Card className="border-border shadow-sm">
                                 <CardHeader className="border-b border-border bg-muted/20">
-                                    <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                                    <CardTitle className="text-lg font-extrabold text-gray-800 tracking-wider uppercase">
                                         Active Action Zone
                                     </CardTitle>
                                 </CardHeader>
@@ -205,32 +207,46 @@ export function TriageEntry({ initialQueue, currentVisit, user }: TriageEntryPro
                                     ) : (
                                         <div className="space-y-6">
                                             <div className="rounded-xl border border-border bg-background px-4 py-5 sm:px-6">
-                                                {showManualEntry ? (
-                                                    <div className="space-y-2">
-                                                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Manual Entry</div>
-                                                        <div className="text-xl sm:text-2xl font-bold text-foreground">Walk-in Patient</div>
-                                                        <Badge variant="outline" className="border-primary/30 text-primary">
-                                                            Walk-In Form
-                                                        </Badge>
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-2">
-                                                        <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Now Serving</div>
-                                                        <div className="text-2xl sm:text-3xl font-black text-foreground">
-                                                            {activePatient?.patient.lastName}, {activePatient?.patient.firstName}
-                                                        </div>
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            {activePatient?.triageTicket && (
-                                                                <Badge className="bg-primary/10 text-primary border border-primary/20">
-                                                                    Queue #{activePatient.triageTicket}
-                                                                </Badge>
-                                                            )}
-                                                            <Badge variant="outline" className="text-muted-foreground">
-                                                                In Triage
+                                                <div className="flex justify-between items-start">
+                                                    {showManualEntry ? (
+                                                        <div className="space-y-2">
+                                                            <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Manual Entry</div>
+                                                            <div className="text-xl sm:text-2xl font-bold text-foreground">Walk-in Patient</div>
+                                                            <Badge variant="outline" className="border-primary/30 text-primary">
+                                                                Walk-In Form
                                                             </Badge>
                                                         </div>
+                                                    ) : (
+                                                        <div className="space-y-2">
+                                                            <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Now Serving</div>
+                                                            <div className="text-2xl sm:text-3xl font-black text-foreground">
+                                                                {activePatient?.patient.lastName}, {activePatient?.patient.firstName}
+                                                            </div>
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                {activePatient?.triageTicket && (
+                                                                    <Badge className="bg-primary/10 text-primary border border-primary/20">
+                                                                        Queue #{activePatient.triageTicket}
+                                                                    </Badge>
+                                                                )}
+                                                                <Badge variant="outline" className="text-muted-foreground">
+                                                                    In Triage
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex items-center space-x-3 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 ml-4 shrink-0 transition-all hover:shadow-md">
+                                                        <Switch
+                                                            id="manual-entry-toggle"
+                                                            checked={isManualEntry}
+                                                            onCheckedChange={setManualEntry}
+                                                            className="data-[state=checked]:bg-emerald-600 shadow-inner"
+                                                        />
+                                                        <Label htmlFor="manual-entry-toggle" className="text-sm sm:text-base font-bold text-gray-800 uppercase tracking-wide cursor-pointer select-none">
+                                                            Walk-in / Manual Entry
+                                                        </Label>
                                                     </div>
-                                                )}
+                                                </div>
 
                                                 {!showManualEntry && (
                                                     <div className="mt-5 flex flex-wrap gap-3">

@@ -46,7 +46,7 @@ export function TriageQueueSidebar({
             <CardHeader className="border-b border-border bg-muted/20">
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle className="text-sm font-bold uppercase tracking-widest text-foreground">
+                        <CardTitle className="text-lg font-extrabold text-gray-800 tracking-wider uppercase">
                             Upcoming Queue
                         </CardTitle>
                     </div>
@@ -57,31 +57,31 @@ export function TriageQueueSidebar({
             </CardHeader>
             <CardContent className="p-4 sm:p-5">
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabType)} className="w-full">
-                    <TabsList className="flex flex-wrap items-center gap-1 rounded-lg bg-muted/50 border border-border p-1">
+                    <TabsList className="flex w-full flex-nowrap justify-between gap-1 rounded-lg bg-muted/50 border border-border p-1 h-auto">
                         <TabsTrigger
                             value="ACTIVE"
                             disabled={isLocked}
-                            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold uppercase tracking-wide data-[state=active]:bg-background data-[state=active]:text-primary"
+                            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-base font-bold uppercase tracking-wide whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-primary"
                         >
                             <span className="truncate">Active Queue</span>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-gray-600 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-sm font-bold text-gray-600 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                                 {activeQueue.length}
                             </span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="NO_SHOW"
                             disabled={isLocked}
-                            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold uppercase tracking-wide data-[state=active]:bg-background data-[state=active]:text-emerald-600"
+                            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-base font-bold uppercase tracking-wide whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-emerald-600"
                         >
                             <span className="truncate">No Show</span>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-gray-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-sm font-bold text-gray-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">
                                 {noShowQueue.length}
                             </span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="REPORTS"
                             disabled={isLocked}
-                            className="rounded-md px-2 py-1 text-xs font-bold uppercase tracking-wide data-[state=active]:bg-background"
+                            className="rounded-md px-2 py-1.5 text-base font-bold uppercase tracking-wide whitespace-nowrap data-[state=active]:bg-background"
                         >
                             Reports
                         </TabsTrigger>

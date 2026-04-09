@@ -63,7 +63,8 @@ class CallerController {
 
     callNextPatient = asyncHandler(async (req: Request, res: Response) => {
         const userId = (req as any).user?.id;
-        const data = await callerService.callNextPatient(userId);
+        const overrideClassification = req.body?.overrideClassification as 'PRIORITY' | 'REGULAR' | undefined;
+        const data = await callerService.callNextPatient(userId, overrideClassification);
         res.status(200).json({ success: true, data });
     });
 

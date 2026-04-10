@@ -1,29 +1,28 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
-    DialogTrigger
+    DialogTitle
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { VisitWithPatient } from "@/features/triage/types";
-import { Department, PriorityCategory } from "@/shared/types/models";
-import { ArrowsCounterClockwise, Play, WarningCircle, Printer, X } from "@phosphor-icons/react";
-import { useState, useTransition, useEffect, useMemo } from "react";
-import { notify } from "@/shared/lib/notify";
-import { resetDailyQueue, callNextWindow, callTicket, assignTicket, noShowTicket } from "../actions";
-import { useReleasingQueue } from "../hooks";
-import { ReleasingQueueSidebar, SidebarTab } from "./releasing-queue-sidebar";
-import { SessionUser } from "@/shared/types/auth";
 import { ReportBreakdownCard, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
 import { useWindowSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
+import { VisitWithPatient } from "@/features/triage/types";
+import { notify } from "@/shared/lib/notify";
+import { SessionUser } from "@/shared/types/auth";
+import { Department, PriorityCategory } from "@/shared/types/models";
+import { ArrowsCounterClockwise, Play, Printer, WarningCircle, X } from "@phosphor-icons/react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { assignTicket, callNextWindow, callTicket, noShowTicket, resetDailyQueue } from "../actions";
+import { useReleasingQueue } from "../hooks";
+import { ReleasingQueueSidebar, SidebarTab } from "./releasing-queue-sidebar";
 
 interface ReleasingEntryProps {
     initialQueue: VisitWithPatient[];
@@ -45,7 +44,6 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const { data: snapshotData } = useWindowSnapshot(reportDate);
 
     const stationNo = user?.workstation?.stationNo ?? 1;
-    const isPriorityWindow = stationNo >= 1 && stationNo <= 2;
 
     const [demographics, setDemographics] = useState({
         firstName: "",
@@ -225,46 +223,9 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
     return (
         <div className="min-h-screen w-full bg-background">
-            {/* Top Toolbar Action Bar specifically for Reset & Station Info */}
-            <div className="bg-card w-full px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between border-b border-border shadow-sm">
-                 <div className="flex flex-col shrink-0">
-                    <h1 className="text-sm sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
-                        Window Registration
-                    </h1>
-                    <p className="text-[9px] sm:text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">
-                        Station {stationNo} • {isPriorityWindow ? 'Priority' : 'Regular'}
-                    </p>
-                </div>
-                <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-9 px-3 rounded-lg font-bold text-destructive hover:bg-destructive/5 hover:text-destructive border border-border shrink-0 transition-colors">
-                            <ArrowsCounterClockwise size={16} weight="bold" className={isResetting ? "animate-spin" : ""} />
-                            <span className="hidden sm:inline ml-1.5">Reset Sequence</span>
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md rounded-xl p-6 sm:p-8 border-border shadow-xl">
-                        <DialogHeader className="pt-2">
-                            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-6 mx-auto">
-                                <ArrowsCounterClockwise size={24} weight="bold" />
-                            </div>
-                            <DialogTitle className="text-center text-xl font-bold text-foreground tracking-tight mb-2">Reset Daily Queue?</DialogTitle>
-                            <DialogDescription className="text-center text-muted-foreground font-medium text-sm leading-relaxed">
-                                This action will reset the ticket sequence to <span className="font-bold text-foreground">1</span> and clear all pending visits.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter className="mt-8 flex gap-3 sm:justify-center">
-                            <Button variant="ghost" onClick={() => setResetDialogOpen(false)} className="flex-1 h-11 rounded-lg font-bold">Cancel</Button>
-                            <Button onClick={handleReset} disabled={isResetting} className="flex-1 h-11 rounded-lg font-bold bg-destructive hover:bg-destructive/90 text-white shadow-sm">
-                                {isResetting ? "Resetting..." : "Confirm Reset"}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
-
             <div className="grid grid-cols-12 min-h-[calc(100vh-65px)]">
                 {/* Left Pane: Sticky Sidebar */}
-                <aside className="col-span-12 lg:col-span-5 xl:col-span-4 lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)] overflow-y-auto border-r border-border bg-card">
+                <aside className="col-span-12 lg:col-span-5 xl:col-span-4 lg:sticky lg:top-16.25 lg:h-[calc(100vh-65px)] overflow-y-auto border-r border-border bg-card">
                     <div className="p-4 lg:p-6 h-full">
                         <ReleasingQueueSidebar
                             items={[...waitingQueue, ...noShowQueue]}
@@ -280,7 +241,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                 </aside>
 
                 {/* Right Pane: Dynamic Workspace */}
-                <main className="col-span-12 lg:col-span-7 xl:col-span-8 flex-1 bg-muted/20 pb-10">
+                <main className="col-span-12 lg:col-span-7 xl:col-span-8 flex-1 bg-slate-50 pb-10">
                     {activeTab === "REPORTS" ? (
                         <div className="p-4 lg:p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -294,30 +255,67 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                 emptyLabel="No patients processed."
                                 items={snapshotData.processedPerStation.map((item) => ({ id: `${item.stationNo}`, label: `Window ${item.stationNo}`, value: item.count }))}
                             />
+                            <Card className="mt-6 rounded-2xl border border-rose-100 bg-rose-50/40">
+                                <CardHeader>
+                                    <CardTitle className="text-sm font-extrabold uppercase tracking-widest text-rose-700">
+                                        Administrative Actions
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            onClick={() => setResetDialogOpen(true)}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            <ArrowsCounterClockwise size={16} weight="bold" className={isResetting ? "animate-spin" : ""} />
+                                            <span className="ml-1.5">Reset Sequence</span>
+                                        </Button>
+                                        <DialogContent className="sm:max-w-md rounded-xl p-6 sm:p-8 border-border shadow-xl">
+                                            <DialogHeader className="pt-2">
+                                                <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-6 mx-auto">
+                                                    <ArrowsCounterClockwise size={24} weight="bold" />
+                                                </div>
+                                                <DialogTitle className="text-center text-xl font-bold text-foreground tracking-tight mb-2">Reset Daily Queue?</DialogTitle>
+                                                <DialogDescription className="text-center text-muted-foreground font-medium text-sm leading-relaxed">
+                                                    This action will reset the ticket sequence to <span className="font-bold text-foreground">1</span> and clear all pending visits.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <DialogFooter className="mt-8 flex gap-3 sm:justify-center">
+                                                <Button variant="ghost" onClick={() => setResetDialogOpen(false)} className="flex-1 h-11 rounded-lg font-bold">Cancel</Button>
+                                                <Button onClick={handleReset} disabled={isResetting} className="flex-1 h-11 rounded-lg font-bold bg-destructive hover:bg-destructive/90 text-white shadow-sm">
+                                                    {isResetting ? "Resetting..." : "Confirm Reset"}
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                </CardContent>
+                            </Card>
                         </div>
                     ) : (
                         <div className="p-4 lg:p-6">
-                            <Card className="border-border shadow-sm min-h-[60vh]">
-                                <CardHeader className="border-b border-border bg-muted/20">
+                            <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 min-h-[60vh]">
+                                <CardHeader className="border-b border-slate-100 bg-slate-50/70">
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-lg font-extrabold text-gray-800 tracking-wider uppercase">
-                                            Active Action Zone
+                                            Calling Zone
                                         </CardTitle>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-6">
                                     {!hasActivePatient ? (
-                                        <div className="flex flex-col items-center justify-center text-center rounded-xl border border-dashed border-border bg-background/60 p-12 lg:p-24 mt-4">
+                                        <div className="flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-slate-200 bg-white p-12 lg:p-24 mt-4 shadow-sm">
                                             <div className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
                                                 Queue Ready
                                             </div>
-                                            <div className="mt-3 text-2xl font-bold text-foreground">
+                                            <div className="mt-3 text-2xl font-black tracking-tight text-slate-800">
                                                 No patient currently claimed
                                             </div>
                                             <Button
                                                 onClick={handleCallNext}
                                                 disabled={isPending}
-                                                className="mt-8 h-16 px-12 text-lg font-black uppercase tracking-widest bg-green-600 hover:bg-green-700 text-white shadow-lg transition-transform hover:scale-105"
+                                                className="mt-8 h-16 px-12 text-lg font-black uppercase tracking-[0.18em] bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl shadow-sm transition-transform hover:scale-105"
                                             >
                                                 <Play size={24} weight="fill" className="mr-3" />
                                                 Call Next
@@ -361,7 +359,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                                         onClick={() => handleCallAgain()}
                                                         disabled={isPending || cooldown > 0}
                                                         variant="outline"
-                                                        className="h-14 px-6 font-bold uppercase tracking-widest text-primary border-primary/20 hover:bg-primary/5 hover:text-primary transition-all shadow-sm"
+                                                        className="h-14 px-6 font-bold uppercase tracking-widest text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-all shadow-sm rounded-xl"
                                                     >
                                                         Call Again
                                                     </Button>
@@ -370,7 +368,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                                         variant="destructive"
                                                         onClick={handleNoShow}
                                                         disabled={isPending}
-                                                        className="h-14 px-6 font-bold uppercase tracking-widest transition-all shadow-sm"
+                                                        className="h-14 px-6 font-bold uppercase tracking-widest transition-all shadow-sm rounded-xl border-rose-200 text-rose-600 bg-rose-50/50 hover:bg-rose-50 hover:text-rose-700"
                                                     >
                                                         <X size={20} weight="bold" className="mr-2" />
                                                         No Show
@@ -378,7 +376,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                                     <Button
                                                         onClick={handlePrintAndAssign}
                                                         disabled={isPending || !currentVisit?.departmentId}
-                                                        className={`h-14 px-8 font-extrabold uppercase tracking-widest transition-transform shadow-lg ${!currentVisit?.departmentId ? 'opacity-50 cursor-not-allowed text-primary-foreground/50' : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:-translate-y-1'}`}
+                                                        className={`h-14 px-8 font-extrabold uppercase tracking-widest transition-transform shadow-lg rounded-xl border ${!currentVisit?.departmentId ? 'opacity-50 cursor-not-allowed text-emerald-700 bg-emerald-50 border-emerald-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 hover:-translate-y-1'}`}
                                                     >
                                                         <Printer size={20} weight="fill" className="mr-3" />
                                                         Print & Assign
@@ -387,58 +385,58 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                             </div>
 
                                             {(!currentVisit?.departmentId) && (
-                                                <div className="bg-destructive/10 border border-destructive/30 p-4 rounded-xl flex items-center gap-3 text-destructive font-bold">
+                                                <div className="bg-rose-50/70 border border-rose-200 p-4 rounded-xl flex items-center gap-3 text-rose-600 font-bold">
                                                     <WarningCircle size={24} weight="fill" />
                                                     Cannot assign: Patient missing Triage Department Endorsement. Proceed to Re-Triage.
                                                 </div>
                                             )}
 
                                             {/* Section A: Triage Endorsement Card */}
-                                            <div className="bg-green-50/50 border border-green-100 rounded-2xl p-6 shadow-sm">
-                                                <div className="text-sm font-extrabold text-green-700 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+                                                <div className="text-sm font-extrabold text-emerald-700 uppercase tracking-widest mb-4 flex items-center gap-2">
                                                     Triage Endorsement
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                    <div className="bg-white/60 p-4 rounded-xl border border-green-100/50">
-                                                        <div className="text-[10px] font-bold text-green-800 uppercase tracking-widest mb-1 opacity-70">Disposition</div>
-                                                        <div className="text-xl font-black text-green-950 uppercase">{currentVisit?.disposition || "None"}</div>
+                                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 opacity-70">Disposition</div>
+                                                        <div className="text-xl font-black text-slate-900 uppercase">{currentVisit?.disposition || "None"}</div>
                                                     </div>
-                                                    <div className="bg-white/60 p-4 rounded-xl border border-green-100/50">
-                                                        <div className="text-[10px] font-bold text-green-800 uppercase tracking-widest mb-1 opacity-70">Classification</div>
-                                                        <div className="text-xl font-black text-green-950 uppercase">{currentVisit?.classification || "Regular"}</div>
+                                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 opacity-70">Classification</div>
+                                                        <div className="text-xl font-black text-slate-900 uppercase">{currentVisit?.classification || "Regular"}</div>
                                                     </div>
-                                                    <div className="bg-white/60 p-4 rounded-xl border border-green-100/50 ring-2 ring-green-200/50">
-                                                        <div className="text-[10px] font-bold text-green-800 uppercase tracking-widest mb-1 opacity-70">Clinic Dept</div>
-                                                        <div className="text-xl font-black text-green-950">{triageAssignedDepartmentName}</div>
+                                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 ring-2 ring-emerald-100/70">
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 opacity-70">Clinic Dept</div>
+                                                        <div className="text-xl font-black text-slate-900">{triageAssignedDepartmentName}</div>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Vitals Ribbon */}
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                <div className="bg-muted/30 border border-border p-4 rounded-xl">
+                                                <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-sm">
                                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 block">Blood Pressure</span>
                                                     <div className="flex items-baseline gap-1">
                                                         <span className="text-xl font-bold tracking-tight text-foreground">{currentVisit?.bloodPressure || "--/--"}</span>
                                                         <span className="text-xs font-medium text-muted-foreground">mmHg</span>
                                                     </div>
                                                 </div>
-                                                <div className="bg-muted/30 border border-border p-4 rounded-xl">
+                                                <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-sm">
                                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 block">Temperature</span>
                                                     <div className="flex items-baseline gap-1">
                                                         <span className="text-xl font-bold tracking-tight text-foreground">{currentVisit?.temperature || "--"}</span>
                                                         <span className="text-xs font-medium text-muted-foreground">°C</span>
                                                     </div>
                                                 </div>
-                                                <div className="col-span-2 bg-muted/30 border border-border p-4 rounded-xl">
+                                                <div className="col-span-2 bg-white border border-slate-100 p-4 rounded-xl shadow-sm">
                                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 block">Chief Complaint</span>
                                                     <span className="text-sm font-semibold tracking-tight text-foreground italic line-clamp-2">&quot;{currentVisit?.chiefComplaint || "None recorded"}&quot;</span>
                                                 </div>
                                             </div>
 
                                             {/* Section B: Editable Patient Demographics Fields */}
-                                            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                                                <div className="text-sm font-extrabold text-foreground uppercase tracking-widest mb-4 border-b border-border pb-3">
+                                            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+                                                <div className="text-sm font-extrabold text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-100 pb-3">
                                                     Editable Patient Demographics
                                                 </div>
 

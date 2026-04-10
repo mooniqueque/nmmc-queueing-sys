@@ -2,9 +2,9 @@
 
 import { Input } from "@/components/ui/input";
 import { VisitWithPatient } from "@/features/triage/types";
-import { CheckCircle, Clock, MagnifyingGlass, CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { useState } from "react";
 import { calculateAge } from "@/shared/lib/utils";
+import { CaretLeft, CaretRight, CheckCircle, Clock, MagnifyingGlass } from "@phosphor-icons/react";
+import { useState } from "react";
 
 export type QueueCategory = "ALL" | "PRIORITY" | "REGULAR" | "NO_SHOW";
 
@@ -43,14 +43,14 @@ export function ReleasingQueueTable({
     const paginatedItems = items.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     return (
-        <div className="flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden relative shadow-sm">
+        <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-100 overflow-hidden relative shadow-sm">
 
             {/* Header */}
             <div className="bg-muted/10 shrink-0">
                 {/* Title + Search */}
-                <div className="border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center px-3 sm:px-6 lg:px-8 py-3 sm:py-5 gap-3 sm:gap-4">
+                <div className="border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center px-3 sm:px-6 lg:px-8 py-3 sm:py-5 gap-3 sm:gap-4 bg-slate-50/70">
                     <div>
-                        <h2 className="text-sm sm:text-lg font-bold text-foreground tracking-tight">Pending Referrals</h2>
+                        <h2 className="text-sm sm:text-lg font-bold text-foreground tracking-tight">Waitlist</h2>
                         <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">
                             Currently <strong className="text-primary font-bold mx-0.5">{counts.ALL}</strong> patients waiting
                         </p>
@@ -68,8 +68,8 @@ export function ReleasingQueueTable({
                 </div>
 
                 {/* Tabs */}
-                <div className="border-b border-border px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center">
-                    <div className="flex p-0.5 sm:p-1 bg-muted/50 rounded-lg border border-border overflow-x-auto">
+                <div className="border-b border-slate-100 px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center bg-transparent">
+                    <div className="flex p-0 bg-transparent border-b border-slate-200 overflow-x-auto">
                         {TABS.map(tab => {
                             const count = counts[tab.key];
                             const isActive = activeTab === tab.key;
@@ -77,15 +77,15 @@ export function ReleasingQueueTable({
                                 <button
                                     key={tab.key}
                                     onClick={() => { onTabChange(tab.key); setCurrentPage(1); }}
-                                    className={`relative flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-md transition-all duration-200 whitespace-nowrap ${isActive
-                                        ? `${tab.activeBg} ${tab.activeText} shadow-sm`
-                                        : `bg-transparent ${tab.color}`
+                                    className={`relative flex items-center gap-1.5 px-2.5 sm:px-4 py-2 text-[10px] sm:text-[11px] font-bold rounded-none transition-all duration-200 whitespace-nowrap bg-transparent shadow-none ${isActive
+                                        ? `${tab.activeBg} ${tab.activeText} border-b-2 border-emerald-500`
+                                        : `text-slate-500`
                                         }`}
                                 >
                                     <span className="hidden sm:inline">{tab.label}</span>
                                     <span className="sm:hidden">{tab.shortLabel || tab.label}</span>
                                     {count > 0 && (
-                                        <span className={`px-1 sm:px-1.5 py-0.5 rounded-md text-[8px] sm:text-[9px] leading-none transition-colors ${isActive ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}>
+                                        <span className={`px-1 sm:px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] leading-none transition-colors ${isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                                             {count}
                                         </span>
                                     )}
@@ -97,7 +97,7 @@ export function ReleasingQueueTable({
             </div>
 
             {/* Table Header */}
-            <div className={`grid ${isPanelOpen ? "grid-cols-[50px_1fr_80px] sm:grid-cols-[60px_1fr_120px]" : "grid-cols-[50px_1fr_80px] sm:grid-cols-[80px_1fr_1fr_120px]"} gap-2 sm:gap-6 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-card text-[8px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em] shrink-0 border-b border-border`}>
+            <div className={`grid ${isPanelOpen ? "grid-cols-[50px_1fr_80px] sm:grid-cols-[60px_1fr_120px]" : "grid-cols-[50px_1fr_80px] sm:grid-cols-[80px_1fr_1fr_120px]"} gap-2 sm:gap-6 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-slate-50/70 text-[8px] sm:text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] shrink-0 border-b border-slate-100`}>
                 <div>#Queue</div>
                 <div>Patient Name</div>
                 {!isPanelOpen && <div className="hidden sm:block">Department</div>}
@@ -105,11 +105,13 @@ export function ReleasingQueueTable({
             </div>
 
             {/* Table Body */}
-            <div className="flex-1 overflow-y-auto bg-slate-50/50 relative custom-scrollbar">
+            <div className="flex-1 overflow-y-auto bg-slate-50 relative custom-scrollbar">
                 {paginatedItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-slate-400 p-6 sm:p-12">
-                        <CheckCircle size={40} className="mb-4 opacity-20" weight="duotone" />
-                        <p className="text-base sm:text-xl font-bold">Queue is empty</p>
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100">
+                            <CheckCircle size={36} className="text-emerald-300" weight="duotone" />
+                        </div>
+                        <p className="text-base sm:text-xl font-black tracking-tight text-slate-800">Queue is empty</p>
                     </div>
                 ) : (
                     <div className="flex flex-col">
@@ -131,7 +133,7 @@ export function ReleasingQueueTable({
                                 <div
                                     key={visit.id}
                                     onClick={() => onRowClick && onRowClick(visit)}
-                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[50px_1fr_80px] sm:grid-cols-[60px_1fr_120px]" : "grid-cols-[50px_1fr_80px] sm:grid-cols-[80px_1fr_1fr_120px]"} gap-2 sm:gap-6 items-center px-3 sm:px-6 lg:px-8 py-3 sm:py-4 transition-all duration-200 min-h-[56px] sm:min-h-[72px] border-b border-border bg-background ${onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                                    className={`w-full text-left grid ${isPanelOpen ? "grid-cols-[50px_1fr_80px] sm:grid-cols-[60px_1fr_120px]" : "grid-cols-[50px_1fr_80px] sm:grid-cols-[80px_1fr_1fr_120px]"} gap-2 sm:gap-6 items-center px-3 sm:px-6 lg:px-8 py-3 sm:py-4 transition-all duration-200 min-h-14 sm:min-h-18 border-b border-slate-100 bg-white ${onRowClick ? 'cursor-pointer hover:bg-slate-50' : ''}`}
                                 >
                                     {/* Ticket */}
                                     <div className="text-sm sm:text-base font-bold text-primary/60">
@@ -185,7 +187,7 @@ export function ReleasingQueueTable({
 
             {/* Pagination */}
             {items.length > 0 && (
-                <div className="border-t border-border px-3 sm:px-6 py-3 sm:py-4 bg-muted/10 flex items-center justify-between shrink-0">
+                <div className="border-t border-slate-100 px-3 sm:px-6 py-3 sm:py-4 bg-slate-50/70 flex items-center justify-between shrink-0">
                     <div className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                         {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, items.length)} of {items.length}
                     </div>
@@ -193,7 +195,7 @@ export function ReleasingQueueTable({
                         <button
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
-                            className="p-1 sm:p-1.5 border border-border rounded-md text-foreground hover:bg-background disabled:opacity-30 transition-all shadow-sm"
+                            className="p-1 sm:p-1.5 border border-slate-200 rounded-full text-foreground hover:bg-white disabled:opacity-30 transition-all shadow-sm"
                         >
                             <CaretLeft size={12} weight="bold" />
                         </button>
@@ -203,7 +205,7 @@ export function ReleasingQueueTable({
                         <button
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            className="p-1 sm:p-1.5 border border-border rounded-md text-foreground hover:bg-background disabled:opacity-30 transition-all shadow-sm"
+                            className="p-1 sm:p-1.5 border border-slate-200 rounded-full text-foreground hover:bg-white disabled:opacity-30 transition-all shadow-sm"
                         >
                             <CaretRight size={12} weight="bold" />
                         </button>

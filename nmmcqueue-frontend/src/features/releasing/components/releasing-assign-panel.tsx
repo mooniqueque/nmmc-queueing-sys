@@ -2,14 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { VisitWithPatient } from "@/features/triage/types";
 import { notify } from "@/shared/lib/notify";
 import { calculateAge } from "@/shared/lib/utils";
 import { Department, PriorityCategory } from "@/shared/types/models";
-import { Printer, User, WarningCircle, X, Play } from "@phosphor-icons/react";
+import { Printer, User, WarningCircle, X } from "@phosphor-icons/react";
 import { useMemo, useState, useTransition } from "react";
-import { assignTicket, noShowTicket, linkPatient } from "../actions";
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { assignTicket, linkPatient, noShowTicket } from "../actions";
 
 interface ReleasingAssignPanelProps {
     selectedPatient: VisitWithPatient;
@@ -184,17 +184,17 @@ export function ReleasingAssignPanel({
     const isReadyForAssignment = isInWindow && selectedDepartmentId && autoQueueOption;
 
     return (
-        <div className="bg-card rounded-xl border border-border h-full flex flex-col pt-3 sm:pt-4 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-2xl border border-slate-100 h-full flex flex-col pt-3 sm:pt-4 overflow-hidden shadow-sm">
 
             {/* Header */}
-            <div className="px-3 sm:px-6 lg:px-8 pb-3 sm:pb-4 flex items-center justify-between border-b border-border">
+            <div className="px-3 sm:px-6 lg:px-8 pb-3 sm:pb-4 flex items-center justify-between border-b border-slate-100">
                 <div className="flex flex-col">
                     <h3 className="text-sm sm:text-base font-bold text-foreground tracking-tight">Patient Verification</h3>
                     <p className="text-[9px] sm:text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">Routing & Assignment</p>
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-1.5 hover:bg-muted rounded-md transition-colors text-muted-foreground"
+                    className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-muted-foreground"
                 >
                     <X size={18} weight="bold" />
                 </button>
@@ -204,16 +204,16 @@ export function ReleasingAssignPanel({
 
                 {/* Status Alert */}
                 {isNoShow && (
-                    <div className="mb-6 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2.5 text-destructive font-bold text-xs">
+                    <div className="mb-6 p-3 bg-rose-50/70 border border-rose-200 rounded-xl flex items-center gap-2.5 text-rose-600 font-bold text-xs">
                         <WarningCircle size={16} weight="fill" />
                         Patient was previously marked as NO-SHOW.
                     </div>
                 )}
 
                 {/* Profile Card */}
-                <div className="bg-muted/30 border border-border rounded-xl p-3 sm:p-5 relative mb-4 sm:mb-6">
+                <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-3 sm:p-5 relative mb-4 sm:mb-6 shadow-sm">
                     <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-5">
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 bg-background rounded-lg border border-border flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-full border border-slate-100 flex items-center justify-center shrink-0 shadow-sm">
                             <User size={22} weight="bold" className="text-muted-foreground/40" />
                         </div>
                         <div className="min-w-0 pr-4">
@@ -247,8 +247,8 @@ export function ReleasingAssignPanel({
                 </div>
 
                 {/* Personal Information & Demographics */}
-                <div className="bg-card border border-border rounded-xl p-3 sm:p-5 lg:p-6 mb-5 sm:mb-7 shadow-sm">
-                    <h4 className="text-xs sm:text-sm font-extrabold text-muted-foreground uppercase tracking-wider mb-4 border-b border-border pb-2">Personal Information</h4>
+                <div className="bg-white border border-slate-100 rounded-2xl p-3 sm:p-5 lg:p-6 mb-5 sm:mb-7 shadow-sm">
+                    <h4 className="text-xs sm:text-sm font-extrabold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Personal Information</h4>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         <div className="space-y-1">
@@ -279,8 +279,8 @@ export function ReleasingAssignPanel({
                 </div>
 
                 {/* Triage Handoff Details */}
-                <div className="bg-primary/[0.03] border border-primary/10 rounded-xl p-3 sm:p-5 lg:p-6 mb-5 sm:mb-7 shadow-sm">
-                    <h4 className="text-xs sm:text-sm font-extrabold text-primary/80 uppercase tracking-wider mb-3 sm:mb-4">Triage Endorsement</h4>
+                <div className="bg-white border border-slate-100 rounded-2xl p-3 sm:p-5 lg:p-6 mb-5 sm:mb-7 shadow-sm">
+                    <h4 className="text-xs sm:text-sm font-extrabold text-emerald-700 uppercase tracking-wider mb-3 sm:mb-4">Triage Endorsement</h4>
                     <div className="space-y-2.5 sm:space-y-3.5">
                         <div className="grid grid-cols-[1fr_auto] items-center gap-3 sm:gap-4 pb-2 border-b border-primary/10">
                             <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">Disposition</span>
@@ -304,7 +304,7 @@ export function ReleasingAssignPanel({
                         variant="outline"
                         onClick={handleNoShow}
                         disabled={isPending || isNoShow}
-                        className="flex-1 h-10 sm:h-11 border-border text-muted-foreground font-bold uppercase tracking-widest text-[10px] sm:text-xs gap-2 rounded-xl hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 transition-all shadow-sm"
+                        className="flex-1 h-10 sm:h-11 border-rose-200 text-rose-600 bg-rose-50/50 font-bold uppercase tracking-widest text-[10px] sm:text-xs gap-2 rounded-xl hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 transition-all shadow-sm"
                     >
                         <X size={16} weight="bold" />
                         Mark No Show
@@ -313,7 +313,7 @@ export function ReleasingAssignPanel({
 
                 {/* Vitals Ribbon */}
                 <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-6 sm:mb-8">
-                    <div className="bg-card border border-border p-2.5 sm:p-3 rounded-lg flex flex-col justify-center">
+                    <div className="bg-white border border-slate-100 p-2.5 sm:p-3 rounded-xl flex flex-col justify-center shadow-sm">
                         <span className="text-[8px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Blood Pressure</span>
                         <div className="flex items-baseline gap-1">
                             <span className={`text-sm sm:text-lg font-bold tracking-tight ${selectedPatient.bloodPressure ? 'text-foreground' : 'text-muted/30'}`}>
@@ -322,7 +322,7 @@ export function ReleasingAssignPanel({
                             <span className="text-[9px] sm:text-[10px] font-medium text-muted-foreground">mmHg</span>
                         </div>
                     </div>
-                    <div className="bg-card border border-border p-2.5 sm:p-3 rounded-lg flex flex-col justify-center">
+                    <div className="bg-white border border-slate-100 p-2.5 sm:p-3 rounded-xl flex flex-col justify-center shadow-sm">
                         <span className="text-[8px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Temperature</span>
                         <div className="flex items-baseline gap-1">
                             <span className={`text-sm sm:text-lg font-bold tracking-tight ${selectedPatient.temperature ? 'text-foreground' : 'text-muted/30'}`}>
@@ -343,14 +343,14 @@ export function ReleasingAssignPanel({
                                     value={hospitalId}
                                     onChange={(e) => setHospitalId(e.target.value)}
                                     placeholder="Enter official hospital ID"
-                                    className="flex-1 h-10 rounded-xl border border-border bg-background px-3 text-xs font-bold outline-none focus:border-primary"
+                                    className="flex-1 h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:border-emerald-500"
                                 />
                                 <Button
                                     type="button"
                                     variant="outline"
                                     onClick={handleLinkPatient}
                                     disabled={isPending}
-                                    className="h-10 rounded-xl font-bold uppercase tracking-widest text-[10px]"
+                                    className="h-10 rounded-xl font-bold uppercase tracking-widest text-[10px] border-slate-200 text-slate-700 bg-white hover:bg-slate-50"
                                 >
                                     Link
                                 </Button>
@@ -376,7 +376,7 @@ export function ReleasingAssignPanel({
                 <div className="mb-6 sm:mb-8">
                     <Label className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 sm:mb-2 block">Internal Routing Notes</Label>
                     <textarea
-                        className="w-full bg-muted/50 border border-border text-foreground text-xs font-medium rounded-lg p-2.5 sm:p-3 outline-none focus:bg-background focus:ring-1 focus:ring-primary/20 focus:border-primary transition-all shadow-inner resize-none h-20 sm:h-24 placeholder:text-muted-foreground/50 italic"
+                                className="w-full bg-slate-50 border border-slate-200 text-foreground text-xs font-medium rounded-xl p-2.5 sm:p-3 outline-none focus:bg-white focus:ring-1 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-inner resize-none h-20 sm:h-24 placeholder:text-muted-foreground/50 italic"
                         placeholder="Add instructions for receiving clinic..."
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
@@ -385,7 +385,7 @@ export function ReleasingAssignPanel({
             </div>
 
             {/* Bottom Global Actions */}
-            <div className="bg-muted/10 border-t border-border p-3 sm:p-5 lg:p-6 flex items-center justify-between gap-3 sm:gap-4 mt-auto">
+            <div className="bg-slate-50/70 border-t border-slate-100 p-3 sm:p-5 lg:p-6 flex items-center justify-between gap-3 sm:gap-4 mt-auto">
                 <button
                     onClick={onClose}
                     className="text-[9px] sm:text-[10px] font-bold text-muted-foreground hover:text-foreground uppercase tracking-widest transition-all"
@@ -406,7 +406,7 @@ export function ReleasingAssignPanel({
                                 ? "No queue options configured for this department"
                                 : "Print and assign to clinic queue"
                         }
-                        className="h-9 sm:h-11 bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] sm:text-xs px-4 sm:px-6 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-md shadow-primary/10 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="h-9 sm:h-11 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] sm:text-xs px-4 sm:px-6 font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-sm gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isPending ? "Routing..." : (
                             <>

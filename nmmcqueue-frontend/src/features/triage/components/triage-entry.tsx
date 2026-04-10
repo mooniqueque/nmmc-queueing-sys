@@ -125,12 +125,12 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                 </aside>
 
                 {/* Right Pane: Dynamic Workspace */}
-                <main className="col-span-12 lg:col-span-7 xl:col-span-8 flex-1 bg-muted/20 pb-10">
+                <main className="col-span-12 lg:col-span-7 xl:col-span-8 flex-1 bg-slate-50 pb-10">
                     {activeTab === "REPORTS" ? (
                         <div className="p-3 sm:p-4 lg:p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <Card className="border-border shadow-sm">
-                                    <CardHeader>
+                                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100">
+                                    <CardHeader className="border-b border-slate-100 bg-slate-50/70">
                                         <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                                             Total Tickets
                                         </CardTitle>
@@ -139,8 +139,8 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                         {snapshotData.totals.totalTicketsGenerated}
                                     </CardContent>
                                 </Card>
-                                <Card className="border-border shadow-sm">
-                                    <CardHeader>
+                                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100">
+                                    <CardHeader className="border-b border-slate-100 bg-slate-50/70">
                                         <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                                             Priority vs Regular
                                         </CardTitle>
@@ -149,8 +149,8 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                         {snapshotData.totals.priorityCount} / {snapshotData.totals.regularCount}
                                     </CardContent>
                                 </Card>
-                                <Card className="border-border shadow-sm">
-                                    <CardHeader>
+                                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100">
+                                    <CardHeader className="border-b border-slate-100 bg-slate-50/70">
                                         <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                                             Abandoned
                                         </CardTitle>
@@ -172,26 +172,29 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                         </div>
                     ) : (
                         <div className="p-3 sm:p-4 lg:p-6">
-                            <Card className="border-border shadow-sm">
-                                <CardHeader className="border-b border-border bg-muted/20">
+                            <Card className="bg-white rounded-2xl shadow-sm border border-slate-100">
+                                <CardHeader className="border-b border-slate-100 bg-slate-50/70">
                                     <CardTitle className="text-lg font-extrabold text-gray-800 tracking-wider uppercase">
-                                        Active Action Zone
+                                        Calling Zone
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-4 sm:p-6">
                                     {showEmptyState ? (
-                                        <div className="flex flex-col items-center justify-center text-center rounded-xl border border-dashed border-border bg-background/60 p-8 sm:p-12">
-                                            <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                        <div className="flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-slate-200 bg-white p-8 sm:p-12 shadow-sm">
+                                            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100">
+                                                <Play size={28} weight="fill" className="text-emerald-300" />
+                                            </div>
+                                            <div className="text-xs font-bold uppercase tracking-widest text-slate-500">
                                                 Queue Empty
                                             </div>
-                                            <div className="mt-3 text-lg sm:text-xl font-bold text-foreground">
+                                            <div className="mt-3 text-lg sm:text-xl font-black tracking-tight text-slate-800">
                                                 No patient currently claimed
                                             </div>
                                             <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
                                                 <Button
                                                     onClick={handleCallNext}
                                                     disabled={!canCallNext}
-                                                    className="h-14 px-10 text-sm font-black uppercase tracking-widest bg-green-600 hover:bg-green-700 text-white shadow-md"
+                                                    className="h-14 px-8 text-sm font-black uppercase tracking-[0.18em] bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl shadow-sm"
                                                 >
                                                     <Play size={18} weight="fill" />
                                                     Call Next
@@ -200,7 +203,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                                     type="button"
                                                     variant="outline"
                                                     onClick={() => setManualEntry(true)}
-                                                    className="h-14 px-8 text-xs font-bold uppercase tracking-widest"
+                                                    className="h-14 px-8 text-xs font-bold uppercase tracking-widest rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50"
                                                 >
                                                     Walk-in / Manual Entry
                                                 </Button>
@@ -208,13 +211,13 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                         </div>
                                     ) : (
                                         <div className="space-y-6">
-                                            <div className="rounded-xl border border-border bg-background px-4 py-5 sm:px-6">
+                                            <div className="rounded-2xl border border-slate-100 bg-white px-4 py-5 sm:px-6 shadow-sm">
                                                 <div className="flex justify-between items-start">
                                                     {showManualEntry ? (
                                                         <div className="space-y-2">
                                                             <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Manual Entry</div>
                                                             <div className="text-xl sm:text-2xl font-bold text-foreground">Walk-in Patient</div>
-                                                            <Badge variant="outline" className="border-primary/30 text-primary">
+                                                            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 rounded-full">
                                                                 Walk-In Form
                                                             </Badge>
                                                         </div>
@@ -226,18 +229,18 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                                             </div>
                                                             <div className="flex flex-wrap items-center gap-2">
                                                                 {activePatient?.triageTicket && (
-                                                                    <Badge className="bg-primary/10 text-primary border border-primary/20">
+                                                                    <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
                                                                         Queue #{activePatient.triageTicket}
                                                                     </Badge>
                                                                 )}
-                                                                <Badge variant="outline" className="text-muted-foreground">
+                                                                <Badge variant="outline" className="text-slate-500 border-slate-200 rounded-full bg-slate-50">
                                                                     In Triage
                                                                 </Badge>
                                                             </div>
                                                         </div>
                                                     )}
 
-                                                    <div className="flex items-center space-x-3 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 ml-4 shrink-0 transition-all hover:shadow-md">
+                                                    <div className="flex items-center space-x-3 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-100 ml-4 shrink-0 transition-all hover:shadow-md">
                                                         <Switch
                                                             id="manual-entry-toggle"
                                                             checked={isManualEntry}
@@ -255,7 +258,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                                         <Button
                                                             onClick={handleCallNext}
                                                             disabled={!canCallNext}
-                                                            className="h-11 px-6 font-bold uppercase tracking-widest bg-green-600 hover:bg-green-700 text-white"
+                                                            className="h-11 px-6 font-bold uppercase tracking-widest bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl"
                                                         >
                                                             <Play size={16} weight="fill" />
                                                             Call Next
@@ -264,7 +267,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                                             type="button"
                                                             variant="destructive"
                                                             onClick={handleNoShow}
-                                                            className="h-11 px-6 font-bold uppercase tracking-widest"
+                                                            className="h-11 px-6 font-bold uppercase tracking-widest rounded-xl border-rose-200 text-rose-600 bg-rose-50/50 hover:bg-rose-50 hover:text-rose-700"
                                                         >
                                                             No Show
                                                         </Button>

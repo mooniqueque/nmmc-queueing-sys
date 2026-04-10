@@ -23,8 +23,9 @@ import {
     UserMinus,
     Users
 } from "@phosphor-icons/react";
+import { BarChart2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CallerApiError, callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
 
@@ -37,7 +38,6 @@ export default function UserCallerDashboard({
     initialQueue?: VisitWithPatient[];
 }) {
     const router = useRouter();
-    const isAvailable = true;
     const [isProcessing, setIsProcessing] = useState(false);
     const [callAgainCooldown, setCallAgainCooldown] = useState(0);
     const {
@@ -72,6 +72,15 @@ export default function UserCallerDashboard({
     const regularWaitingList = waitingList.filter(v => v.classification === "REGULAR" && !v.isReferred);
     // Priority: Priority classification OR referred (to merge them)
     const priorityWaitingList = waitingList.filter(v => v.classification === "PRIORITY" || v.isReferred);
+    const unifiedWaitingList = useMemo(() => {
+        const sortByCreatedAt = (a: VisitWithPatient, b: VisitWithPatient) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+
+        const priorityFirst = [...priorityWaitingList].sort(sortByCreatedAt);
+        const regularSecond = [...regularWaitingList].sort(sortByCreatedAt);
+
+        return [...priorityFirst, ...regularSecond];
+    }, [priorityWaitingList, regularWaitingList]);
 
     const noShowList = departmentQueue.filter(v => v.status === "NO_SHOW");
     const canCallRegular = regularWaitingList.length > 0;
@@ -213,49 +222,31 @@ export default function UserCallerDashboard({
                 <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center shrink-0">
                     <div>
                         <h2 className="text-lg font-bold tracking-tight text-foreground">{department}</h2>
-                        <div className="flex items-center gap-3 mt-1">
-                            <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary" /> {waitingList.length} Waiting
-                            </span>
-                            <span className="w-1 h-1 rounded-full bg-border" />
-                            <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {priorityWaitingList.length} Priority
-                            </span>
-                            <span className="w-1 h-1 rounded-full bg-border" />
-                            <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-                                <span className="w-1.5 h-1.5 rounded-full bg-destructive" /> {noShowList.length} No Shows
-                            </span>
-                        </div>
                     </div>
-                    {/* Status Display */}
-                    <div className="flex items-center gap-2 bg-background px-3 py-1.5 rounded-full border border-border shadow-sm">
-                        <div className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-primary shadow-[0_0_8px_rgba(16,185,129,0.3)]' : 'bg-destructive'}`} />
-                        <span className="text-[10px] font-bold tracking-widest uppercase text-foreground">
-                            {isAvailable ? 'Online' : 'Offline'}
-                        </span>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setActiveTab(activeTab === "reports" ? "waitlist" : "reports")}
+                            className="text-slate-600 border-slate-200 hover:bg-slate-50 rounded-lg"
+                        >
+                            <BarChart2 className="w-4 h-4 mr-2" />
+                            Reports
+                        </Button>
                     </div>
                 </div>
 
                 {/* Tabs */}
                 <div className="flex border-b border-border bg-background">
                     <button
-                        onClick={() => setActiveTab("regular")}
-                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "regular" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        onClick={() => setActiveTab("waitlist")}
+                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "waitlist" ? "text-primary" : "text-muted-foreground hover:text-foreground"
                             }`}
                     >
-                        Regular ({regularWaitingList.length})
-                        {activeTab === "regular" && (
+                        WaitList ({unifiedWaitingList.length})
+                        {activeTab === "waitlist" && (
                             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("priority")}
-                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "priority" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                            }`}
-                    >
-                        Priority ({priorityWaitingList.length})
-                        {activeTab === "priority" && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
                         )}
                     </button>
                     <button
@@ -268,31 +259,22 @@ export default function UserCallerDashboard({
                             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-destructive" />
                         )}
                     </button>
-                    <button
-                        onClick={() => setActiveTab("reports")}
-                        className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "reports" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                            }`}
-                    >
-                        Reports
-                        {activeTab === "reports" && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                        )}
-                    </button>
                 </div>
 
                 {/* List Body */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
-                    {activeTab === "regular" ? (
-                        regularWaitingList.length === 0 ? (
+                    {activeTab === "waitlist" ? (
+                        unifiedWaitingList.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-12 text-center h-full">
                                 <CheckCircle size={48} className="mb-4 text-primary/20" weight="duotone" />
-                                <p className="text-lg font-bold text-foreground">Regular Queue Clear</p>
-                                <p className="text-sm font-medium text-muted-foreground mt-1">No regular patients waiting for this clinic.</p>
+                                <p className="text-lg font-bold text-foreground">WaitList Clear</p>
+                                <p className="text-sm font-medium text-muted-foreground mt-1">No patients waiting for this clinic.</p>
                             </div>
                         ) : (
                             <div className="flex flex-col">
-                                {regularWaitingList.map((visit, index) => {
-                                    const isNext = index === 0 && !inProgressVisit && priorityWaitingList.length === 0;
+                                {unifiedWaitingList.map((visit, index) => {
+                                    const isPriorityVisit = visit.classification === "PRIORITY" || visit.isReferred;
+                                    const isNext = index === 0 && !inProgressVisit;
                                     const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
                                     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
 
@@ -302,12 +284,20 @@ export default function UserCallerDashboard({
                                             className={`p-5 border-b border-border relative transition-all group ${isNext ? "bg-muted/30" : "bg-transparent hover:bg-muted/10"
                                                 }`}
                                         >
-                                            {isNext && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
+                                            {isNext && <div className={`absolute left-0 top-0 bottom-0 w-1 ${isPriorityVisit ? "bg-amber-500" : "bg-primary"}`} />}
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`text-base font-bold ${isNext ? "text-primary" : "text-muted-foreground"}`}>
+                                                    <span className={`text-base font-bold ${isPriorityVisit && isNext ? "text-amber-600" : isNext ? "text-primary" : "text-muted-foreground"}`}>
                                                         {visit.serviceTicket ? `#${visit.serviceTicket}` : '---'}
                                                     </span>
+                                                    <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${isPriorityVisit ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-700 border-slate-200"}`}>
+                                                        {isPriorityVisit ? "Priority" : "Regular"}
+                                                    </span>
+                                                    {visit.isReferred && (
+                                                        <span className="bg-blue-100 text-blue-700 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
+                                                            <ArrowUpRight size={10} weight="bold" /> Referral
+                                                        </span>
+                                                    )}
                                                     {isNext && (
                                                         <span className="bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-primary/20">
                                                             Next
@@ -322,59 +312,6 @@ export default function UserCallerDashboard({
                                             <div className="flex justify-between items-end">
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-sm text-foreground transition-colors group-hover:text-primary">
-                                                        {visit.patient.lastName}, <span className="text-muted-foreground font-medium">{visit.patient.firstName}</span>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )
-                    ) : activeTab === "priority" ? (
-                        priorityWaitingList.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-                                <Users size={48} className="mb-4 text-amber-500/20" weight="duotone" />
-                                <p className="text-lg font-bold text-foreground">Priority Queue Clear</p>
-                                <p className="text-sm font-medium text-muted-foreground mt-1">No priority patients (Senior/PWD/Pregnant) waiting.</p>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col">
-                                {priorityWaitingList.map((visit, index) => {
-                                    const isNext = index === 0 && !inProgressVisit;
-                                    const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
-                                    const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
-
-                                    return (
-                                        <div
-                                            key={visit.id}
-                                            className={`p-5 border-b border-border relative transition-all group ${isNext ? "bg-amber-50/50" : "bg-transparent hover:bg-muted/10"
-                                                }`}
-                                        >
-                                            {isNext && <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />}
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-base font-bold ${isNext ? "text-amber-600" : "text-muted-foreground"}`}>
-                                                        {visit.serviceTicket ? `#${visit.serviceTicket}` : '---'}
-                                                    </span>
-                                                     {visit.isReferred ? (
-                                                         <span className="bg-blue-100 text-blue-700 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
-                                                            <ArrowUpRight size={10} weight="bold" /> Referral
-                                                         </span>
-                                                     ) : isNext && (
-                                                         <span className="bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-amber-200">
-                                                             Priority
-                                                         </span>
-                                                     )}
-                                                </div>
-                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] font-bold border border-border">
-                                                    <Clock size={12} weight="bold" /> {waitStr}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex justify-between items-end">
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-sm text-foreground transition-colors group-hover:text-amber-600">
                                                         {visit.patient.lastName}, <span className="text-muted-foreground font-medium">{visit.patient.firstName}</span>
                                                     </span>
                                                 </div>
@@ -478,21 +415,7 @@ export default function UserCallerDashboard({
                 {/* Main Action Header (Replicating Triage/Window style) */}
                 <header className="px-8 py-6 border-b border-border bg-muted/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 z-20 shadow-sm">
                     <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-xl font-black text-foreground uppercase tracking-widest">{department}</h2>
-                            <div className="bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter border border-emerald-500/20">
-                                Caller Active
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1.5">
-                           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {priorityWaitingList.length} Priority
-                           </span>
-                           <span className="w-1 h-1 rounded-full bg-border" />
-                           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary" /> {regularWaitingList.length} Regular
-                           </span>
-                        </div>
+                        <h2 className="text-xl font-black text-foreground uppercase tracking-widest">{department}</h2>
                     </div>
 
                     <div className="flex items-center gap-4 w-full md:w-auto">

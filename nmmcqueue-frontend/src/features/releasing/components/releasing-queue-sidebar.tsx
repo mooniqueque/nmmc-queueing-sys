@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReportDatePicker } from "@/features/shared/components/operational-report-panel";
+import { VisitWithPatient } from "@/features/triage/types";
 import { Clock } from "@phosphor-icons/react";
+import { BarChart2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { VisitWithPatient } from "@/features/triage/types";
 export type SidebarTab = "ALL" | "NO_SHOW" | "REPORTS";
 
 interface ReleasingQueueSidebarProps {
@@ -81,23 +82,33 @@ export function ReleasingQueueSidebar({
     };
 
     return (
-        <Card className="h-full border-border shadow-sm flex flex-col">
-            <CardHeader className="border-b border-border bg-muted/20 shrink-0">
+        <Card className="h-full bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/70 shrink-0">
                 <div className="flex items-center justify-between">
                     <div>
                         <CardTitle className="text-lg font-extrabold text-foreground tracking-wider uppercase">
-                            Pending Referrals
+                            WaitList
                         </CardTitle>
                     </div>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onTabChange(activeTab === "REPORTS" ? "ALL" : "REPORTS")}
+                        className="text-slate-600 border-slate-200 hover:bg-slate-50 rounded-lg"
+                    >
+                        <BarChart2 className="w-4 h-4 mr-2" />
+                        Reports
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-5 flex-1 overflow-hidden flex flex-col">
                 <Tabs value={activeTab} onValueChange={(val) => onTabChange(val as SidebarTab)} className="w-full flex-1 flex flex-col">
-                    <TabsList className="flex w-full flex-wrap sm:flex-nowrap justify-start sm:justify-between gap-2 bg-transparent h-auto mb-4 shrink-0 px-0">
+                    <TabsList className="w-full flex bg-transparent border-b border-slate-200 h-auto mb-4 shrink-0 px-0 gap-0 rounded-none">
                         <TabsTrigger
                             value="ALL"
                             disabled={isLocked}
-                            className="flex-1 min-w-[30%] flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[12px] font-extrabold uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=inactive]:bg-muted/50 transition-all border border-transparent data-[state=inactive]:border-border"
+                            className="flex-1 flex items-center justify-center gap-2 rounded-none px-3 py-3 text-[11px] font-bold uppercase tracking-wide bg-transparent text-slate-500 shadow-none data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                         >
                             <span>WaitList</span>
                             <span className="rounded-full px-2 py-0.5 text-[10px] font-black data-[state=active]:bg-emerald-700 data-[state=active]:text-emerald-50 data-[state=inactive]:bg-muted-foreground/20 data-[state=inactive]:text-muted-foreground transition-colors">
@@ -107,19 +118,12 @@ export function ReleasingQueueSidebar({
                         <TabsTrigger
                             value="NO_SHOW"
                             disabled={isLocked}
-                            className="flex-1 min-w-[30%] flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[12px] font-extrabold uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-destructive data-[state=active]:text-white data-[state=inactive]:bg-muted/50 transition-all border border-transparent data-[state=inactive]:border-border"
+                            className="flex-1 flex items-center justify-center gap-2 rounded-none px-3 py-3 text-[11px] font-bold uppercase tracking-wide bg-transparent text-slate-500 shadow-none data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                         >
                             <span>No Show</span>
                             <span className="rounded-full px-2 py-0.5 text-[10px] font-black data-[state=active]:bg-destructive-foreground/20 data-[state=active]:text-white data-[state=inactive]:bg-muted-foreground/20 data-[state=inactive]:text-muted-foreground transition-colors">
                                 {counts.NO_SHOW}
                             </span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="REPORTS"
-                            disabled={isLocked && false}
-                            className="flex-1 min-w-[30%] flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[12px] font-extrabold uppercase tracking-widest whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:bg-muted/50 transition-all border border-transparent data-[state=inactive]:border-border"
-                        >
-                            <span>Reports</span>
                         </TabsTrigger>
                     </TabsList>
 
@@ -165,12 +169,12 @@ function QueueCard({
     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
 
     return (
-        <div className="rounded-xl border border-border bg-card p-3 shadow-sm flex flex-col gap-2 relative">
+        <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm flex flex-col gap-2 relative">
              <div className="flex justify-between items-start">   
-                <div className="text-xl font-extrabold text-foreground leading-snug break-words">
+                <div className="text-xl font-extrabold text-foreground leading-snug wrap-anywhere">
                     {visit.patient.lastName}, <span className="font-semibold text-muted-foreground">{visit.patient.firstName}</span>
                 </div>
-                <Badge variant="outline" className={`font-bold uppercase tracking-wider text-[10px] ${visit.classification === 'PRIORITY' ? 'text-destructive border-destructive/30 bg-destructive/5' : 'text-emerald-700 border-emerald-300 bg-emerald-50'}`}>
+                <Badge variant="outline" className={`font-bold uppercase tracking-wider text-[10px] rounded-full ${visit.classification === 'PRIORITY' ? 'text-rose-600 border-rose-200 bg-rose-50/70' : 'text-emerald-700 border-emerald-200 bg-emerald-50'}`}>
                    {visit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}
                 </Badge>
             </div>
@@ -198,8 +202,8 @@ function QueueCard({
 
 function EmptyQueueState({ label }: { label: string }) {
     return (
-        <div className="rounded-lg border border-dashed border-border bg-muted/20 p-6 text-center">
-            <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</div>
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center shadow-sm">
+            <div className="text-xs font-black uppercase tracking-widest text-slate-500">{label}</div>
         </div>
     );
 }

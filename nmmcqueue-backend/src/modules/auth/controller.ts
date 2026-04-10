@@ -127,8 +127,8 @@ class AuthController {
         });
 
         if (!user) throw new AppError('User not found', 404);
-        if (user.role !== 'TRIAGE_NURSE') {
-            throw new AppError('Department access can only be managed for triage nurses.', 400);
+        if (user.role !== 'TRIAGE_NURSE' && user.role !== 'CLINIC_CALLER') {
+            throw new AppError('Department access can only be managed for triage nurses or clinic callers.', 400);
         }
 
         const rawAssignments = Array.isArray(req.body?.assignments) ? req.body.assignments : [];

@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ReportBreakdownCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
+import { getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
 import { useTriageSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 import { notify } from "@/shared/lib/notify";
 import { SessionUser } from "@/shared/types/auth";
 import { Department } from "@/shared/types/models";
 import { Play } from "@phosphor-icons/react";
+import { Building2, Ticket, UserX, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { callNextTriage, callSpecificTriage, markNoShow } from "../actions";
 import { useTriageQueue } from "../hooks";
@@ -128,47 +129,59 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                 <main className="col-span-12 lg:col-span-7 xl:col-span-8 flex-1 bg-slate-50 pb-10">
                     {activeTab === "REPORTS" ? (
                         <div className="p-3 sm:p-4 lg:p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100">
-                                    <CardHeader className="border-b border-slate-100 bg-slate-50/70">
-                                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                            Total Tickets
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="text-2xl font-black text-foreground">
-                                        {snapshotData.totals.totalTicketsGenerated}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                                    <CardContent className="p-0">
+                                        <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+                                            <Ticket size={20} />
+                                        </div>
+                                        <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Total Tickets</p>
+                                        <p className="text-4xl font-black text-slate-900 mt-1">{snapshotData.totals.totalTicketsGenerated}</p>
+                                        <p className="text-sm text-slate-400 mt-1">Total patients processed.</p>
                                     </CardContent>
                                 </Card>
-                                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100">
-                                    <CardHeader className="border-b border-slate-100 bg-slate-50/70">
-                                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                            Priority vs Regular
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="text-2xl font-black text-foreground">
-                                        {snapshotData.totals.priorityCount} / {snapshotData.totals.regularCount}
+                                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                                    <CardContent className="p-0">
+                                        <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
+                                            <Users size={20} />
+                                        </div>
+                                        <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Priority vs Regular</p>
+                                        <p className="text-4xl font-black text-slate-900 mt-1">{snapshotData.totals.priorityCount} / {snapshotData.totals.regularCount}</p>
+                                        <p className="text-sm text-slate-400 mt-1">Ratio of patient types.</p>
                                     </CardContent>
                                 </Card>
-                                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100">
-                                    <CardHeader className="border-b border-slate-100 bg-slate-50/70">
-                                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                            Abandoned
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="text-2xl font-black text-foreground">
-                                        {snapshotData.totals.abandonedBeforeWindow}
+                                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                                    <CardContent className="p-0">
+                                        <div className="h-10 w-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center mb-3">
+                                            <UserX size={20} />
+                                        </div>
+                                        <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Abandoned</p>
+                                        <p className="text-4xl font-black text-slate-900 mt-1">{snapshotData.totals.abandonedBeforeWindow}</p>
+                                        <p className="text-sm text-slate-400 mt-1">Patients who left before triage.</p>
                                     </CardContent>
                                 </Card>
-                                <ReportBreakdownCard
-                                    title="Tickets per Department"
-                                    emptyLabel="No triage tickets were assigned to departments for this date."
-                                    items={snapshotData.ticketsPerDepartment.map((item) => ({
-                                        id: item.departmentId ?? item.departmentName,
-                                        label: item.departmentName,
-                                        value: item.count,
-                                    }))}
-                                />
                             </div>
+
+                            <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                                <CardHeader className="p-0 pb-4">
+                                    <CardTitle className="flex items-center gap-2 text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        <Building2 size={14} />
+                                        Tickets Per Department
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0 space-y-3">
+                                    {snapshotData.ticketsPerDepartment.length === 0 ? (
+                                        <p className="text-sm text-slate-400">No triage tickets were assigned to departments for this date.</p>
+                                    ) : (
+                                        snapshotData.ticketsPerDepartment.map((item) => (
+                                            <div key={item.departmentId ?? item.departmentName} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                                                <span className="text-sm font-semibold text-slate-700">{item.departmentName}</span>
+                                                <span className="text-sm font-black text-slate-900">{item.count}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
                         </div>
                     ) : (
                         <div className="p-3 sm:p-4 lg:p-6">

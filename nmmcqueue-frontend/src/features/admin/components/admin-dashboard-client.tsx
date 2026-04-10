@@ -7,6 +7,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,7 @@ import {
     CheckCircle,
     Funnel,
     MagnifyingGlass,
+    Plus,
     Users,
     XCircle
 } from '@phosphor-icons/react';
@@ -36,6 +38,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react';
 import { toggleUserStatus, updateUserDepartment, updateUserRole, updateUserWorkstation } from "../user-actions";
 import { AddUserDialog } from "./add-user-dialog";
+import { AddWorkstationDialog } from "./add-workstation-dialog";
+import { ManageClinicCallerDepartmentsDrawer } from "./manage-clinic-caller-departments-drawer";
 import { ManageTriageDepartmentsDrawer } from "./manage-triage-departments-drawer";
 import { StatsCard } from "./stats-card";
 
@@ -61,6 +65,11 @@ export default function AdminDashboard({
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
     const [departmentDrawerOpen, setDepartmentDrawerOpen] = useState(false);
     const [selectedDepartmentUser, setSelectedDepartmentUser] = useState<UserData | null>(null);
+    const [clinicCallerDrawerOpen, setClinicCallerDrawerOpen] = useState(false);
+    const [selectedClinicCallerUser, setSelectedClinicCallerUser] = useState<UserData | null>(null);
+    const [addWorkstationDialogOpen, setAddWorkstationDialogOpen] = useState(false);
+    const [selectedWorkstationType, setSelectedWorkstationType] = useState<WorkstationType | null>(null);
+    const [localWorkstations, setLocalWorkstations] = useState<WorkStation[]>(workstations);
     const isMounted = useIsMounted();
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
@@ -175,6 +184,20 @@ export default function AdminDashboard({
         setDepartmentDrawerOpen(true);
     };
 
+    const handleManageClinicCallerDepartments = (user: UserData) => {
+        setSelectedClinicCallerUser(user);
+        setClinicCallerDrawerOpen(true);
+    };
+
+    const handleOpenAddWorkstationDialog = (stationType: WorkstationType) => {
+        setSelectedWorkstationType(stationType);
+        setAddWorkstationDialogOpen(true);
+    };
+
+    const handleWorkstationCreated = (newWorkstation: WorkStation) => {
+        setLocalWorkstations((current) => [...current, newWorkstation]);
+    };
+
     if (!loggedInUser || !isMounted) return null;
 
     return (
@@ -274,7 +297,7 @@ export default function AdminDashboard({
                                                         updatingUserId === user.id && "animate-pulse opacity-50"
                                                     )}
                                                 >
-                                                    {user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' ? (
+                                                    {user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' || user.role === 'CLINIC_CALLER' ? (
                                                         <span className="text-primary">
                                                             {user.workstation ? `${user.workstation.name} (#${user.workstation.stationNo})` : 'No Station'}
                                                         </span>
@@ -287,7 +310,7 @@ export default function AdminDashboard({
                                                 {(user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' || user.role === 'CLINIC_CALLER') && (
                                                     <>
                                                         <div className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase tracking-widest">Stations</div>
-                                                        {workstations
+                                                        {localWorkstations
                                                             .filter(ws => {
                                                                 if (user.role === 'WINDOW_CLERK') return ws.type === WorkstationType.WINDOW;
                                                                 if (user.role === 'TRIAGE_NURSE') return ws.type === WorkstationType.TRIAGE;
@@ -302,20 +325,14 @@ export default function AdminDashboard({
                                                                     {ws.name} ({ws.stationNo})
                                                                 </DropdownMenuItem>
                                                             ))}
-                                                    </>
-                                                )}
-
-                                                {(user.role === 'CLINIC_CALLER' || user.role === 'ADMIN') && (
-                                                    <>
-                                                        <div className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase tracking-widest">Departments</div>
-                                                        {departments.map((dept) => (
-                                                            <DropdownMenuItem
-                                                                key={dept.id}
-                                                                onClick={() => handleUpdateDepartment(user.id, dept.name)}
-                                                            >
-                                                                {dept.name}
-                                                            </DropdownMenuItem>
-                                                        ))}
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleOpenAddWorkstationDialog(user.role === 'WINDOW_CLERK' ? WorkstationType.WINDOW : user.role === 'TRIAGE_NURSE' ? WorkstationType.TRIAGE : WorkstationType.CALLER)}
+                                                            className="text-emerald-600 dark:text-emerald-400 cursor-pointer"
+                                                        >
+                                                            <Plus size={14} className="mr-2" />
+                                                            <span className="text-xs font-semibold">Add Station</span>
+                                                        </DropdownMenuItem>
                                                     </>
                                                 )}
                                             </DropdownMenuContent>
@@ -332,6 +349,17 @@ export default function AdminDashboard({
                                             >
                                                 <span>Manage Departments</span>
                                                 <span className="text-[10px] font-bold text-muted-foreground">Triage Access</span>
+                                            </Button>
+                                        ) : user.role === 'CLINIC_CALLER' ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 w-full justify-between border-dashed text-xs font-semibold uppercase tracking-wider"
+                                                onClick={() => handleManageClinicCallerDepartments(user)}
+                                            >
+                                                <span>Manage Departments</span>
+                                                <span className="text-[10px] font-bold text-muted-foreground">Caller Access</span>
                                             </Button>
                                         ) : (
                                             <span className="text-xs font-medium text-muted-foreground">Not Applicable</span>
@@ -417,6 +445,25 @@ export default function AdminDashboard({
                     user={selectedDepartmentUser}
                     onSaved={() => router.refresh()}
                 />
+
+                <ManageClinicCallerDepartmentsDrawer
+                    open={clinicCallerDrawerOpen}
+                    onOpenChange={setClinicCallerDrawerOpen}
+                    user={selectedClinicCallerUser}
+                    workstations={localWorkstations}
+                    onSaved={() => router.refresh()}
+                />
+
+                {selectedWorkstationType && (
+                    <AddWorkstationDialog
+                        open={addWorkstationDialogOpen}
+                        onOpenChange={setAddWorkstationDialogOpen}
+                        workstations={localWorkstations}
+                        departments={departments}
+                        type={selectedWorkstationType}
+                        onWorkstationCreated={handleWorkstationCreated}
+                    />
+                )}
             </main>
         </div>
     );

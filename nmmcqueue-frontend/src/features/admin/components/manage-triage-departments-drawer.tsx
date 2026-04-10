@@ -190,129 +190,121 @@ export function ManageTriageDepartmentsDrawer({
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
-            <SheetContent className="w-full sm:max-w-2xl">
-                <div className="flex h-full flex-col">
-                    <SheetHeader className="space-y-4 border-b pb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
-                                <Users size={22} weight="fill" />
+            <SheetContent className="flex w-full flex-col p-0 gap-0 sm:max-w-3xl bg-white shadow-2xl">
+                <div className="flex-shrink-0 px-8 pt-6 pb-4">
+                    <SheetHeader className="text-left p-0">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                                <Users size={24} weight="fill" />
                             </div>
                             <div className="min-w-0">
-                                <SheetTitle className="text-xl">Manage Department Access</SheetTitle>
-                                <SheetDescription>
-                                    Control which departments this triage nurse can see and whether each one is active.
+                                <SheetTitle className="text-xl font-bold text-slate-800">Manage Department Access</SheetTitle>
+                                <SheetDescription className="text-sm text-slate-500 font-medium mt-0.5">
+                                    Quickly toggle visibility and status for triage staff.
                                 </SheetDescription>
                             </div>
                         </div>
 
                         {user ? (
-                            <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-2xl border bg-muted/30 p-3">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Selected Staff</p>
-                                    <p className="mt-1 text-sm font-semibold text-foreground">{user.name}</p>
-                                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                            <div className="grid grid-cols-3 gap-4 pt-5">
+                                <div className="rounded-lg border border-slate-200 bg-white p-4 flex flex-col justify-center">
+                                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Staff Member</p>
+                                    <p className="mt-1 text-[15px] font-bold text-slate-800 truncate">{user.name}</p>
+                                    <p className="text-sm text-slate-500 font-medium truncate">{user.email}</p>
                                 </div>
-                                <div className="rounded-2xl border bg-muted/30 p-3">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Role</p>
-                                    <p className="mt-1 text-sm font-semibold text-foreground">{user.role.replace("_", " ")}</p>
+                                <div className="rounded-lg border border-slate-200 bg-white p-4 flex flex-col justify-center">
+                                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Role</p>
+                                    <p className="mt-1 text-[15px] font-bold text-slate-800 uppercase truncate">{user.role.replace("_", " ")}</p>
                                 </div>
-                                <div className="rounded-2xl border bg-muted/30 p-3">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Assigned</p>
-                                    <p className="mt-1 text-sm font-semibold text-foreground">{assignedCount} departments</p>
+                                <div className="rounded-lg border border-slate-200 bg-white p-4 flex flex-col justify-center">
+                                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status</p>
+                                    <p className="mt-1 text-[15px] font-bold text-slate-800">{assignedCount} Departments</p>
                                 </div>
                             </div>
                         ) : null}
                     </SheetHeader>
+                </div>
 
-                    <div className="flex-1 space-y-4 overflow-y-auto py-4 pr-1">
-                        <div className="relative">
-                            <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                            <Input
-                                value={searchQuery}
-                                onChange={(event) => setSearchQuery(event.target.value)}
-                                placeholder="Search department name or code..."
-                                className="pl-9"
-                            />
-                        </div>
+                <div className="flex-shrink-0 px-10 pt-2 pb-2">
+                    <div className="relative">
+                        <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Input
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            placeholder="Search department name or code..."
+                            className="pl-10 h-11 bg-white border-slate-200 text-[15px] shadow-sm rounded-lg placeholder:text-slate-400 focus-visible:ring-emerald-500"
+                        />
+                    </div>
+                </div>
 
-                        <div className="flex items-center justify-between rounded-2xl border bg-muted/20 px-4 py-3 text-sm">
-                            <span className="font-medium text-foreground">Department access list</span>
-                            <Badge variant="outline" className="font-semibold uppercase tracking-wide">
-                                {assignedCount}/{departmentState.length}
-                            </Badge>
-                        </div>
+                <div className="flex-1 overflow-y-auto px-10 pb-4 pt-2 space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                        <span className="text-[13px] font-bold uppercase tracking-widest text-slate-400">Department Access List</span>
+                        <Badge variant="secondary" className="bg-slate-100 hover:bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-full text-[11px] border">
+                            {assignedCount} / {departmentState.length} Selected
+                        </Badge>
+                    </div>
 
-                        <div className="space-y-3">
-                            {isLoading ? (
-                                <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                                    Loading department assignments...
-                                </div>
-                            ) : filteredDepartments.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                                    No departments match your search.
-                                </div>
-                            ) : (
-                                filteredDepartments.map((entry) => (
-                                    <div
-                                        key={entry.departmentId}
-                                        className={cn(
-                                            "rounded-2xl border p-4 transition-colors",
-                                            entry.isAssigned ? "border-emerald-200 bg-emerald-50/50" : "bg-background"
-                                        )}
-                                    >
-                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <p className="truncate text-sm font-semibold text-foreground">{entry.department.name}</p>
-                                                    <Badge variant="outline" className="text-[10px] uppercase tracking-[0.2em]">
-                                                        {entry.department.code}
-                                                    </Badge>
-                                                </div>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    Assign access, then keep the department active or temporarily disabled.
-                                                </p>
+                    <div className="space-y-3 pb-4 border-b border-transparent">
+                        {isLoading ? (
+                            <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+                                Loading department assignments...
+                            </div>
+                        ) : filteredDepartments.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+                                No departments match your search.
+                            </div>
+                        ) : (
+                            filteredDepartments.map((entry) => (
+                                <div
+                                    key={entry.departmentId}
+                                    className="rounded-xl border border-slate-300 bg-white p-4"
+                                >
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-[13px] font-bold text-slate-800 uppercase">{entry.department.name}</p>
+                                            <Badge variant="secondary" className="bg-slate-200 hover:bg-slate-200/60 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded border border-slate-300 px-2 py-0.5">
+                                                {entry.department.code}
+                                            </Badge>
+                                        </div>
+
+                                        <div className="flex items-center gap-8 sm:pr-2">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Assigned</span>
+                                                <Switch
+                                                    checked={entry.isAssigned}
+                                                    onCheckedChange={(checked) => handleAssignedChange(entry.departmentId, checked)}
+                                                    disabled={isSaving}
+                                                    className="data-[state=checked]:bg-emerald-600"
+                                                />
                                             </div>
 
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="text-right">
-                                                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Assigned</p>
-                                                        <p className="text-xs text-muted-foreground">Add or remove</p>
-                                                    </div>
-                                                    <Switch
-                                                        checked={entry.isAssigned}
-                                                        onCheckedChange={(checked) => handleAssignedChange(entry.departmentId, checked)}
-                                                        disabled={isSaving}
-                                                    />
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    <div className="text-right">
-                                                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Enabled</p>
-                                                        <p className="text-xs text-muted-foreground">Toggle access</p>
-                                                    </div>
-                                                    <Switch
-                                                        checked={entry.isAssigned && entry.isEnabled}
-                                                        onCheckedChange={(checked) => handleEnabledChange(entry.departmentId, checked)}
-                                                        disabled={!entry.isAssigned || isSaving}
-                                                    />
-                                                </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Enabled</span>
+                                                <Switch
+                                                    checked={entry.isAssigned && entry.isEnabled}
+                                                    onCheckedChange={(checked) => handleEnabledChange(entry.departmentId, checked)}
+                                                    disabled={!entry.isAssigned || isSaving}
+                                                    className="data-[state=checked]:bg-emerald-600"
+                                                />
                                             </div>
                                         </div>
                                     </div>
-                                ))
-                            )}
-                        </div>
+                                </div>
+                            ))
+                        )}
                     </div>
+                </div>
 
-                    <SheetFooter className="border-t pt-4 sm:justify-end">
-                        <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSaving}>
+                <div className="flex-shrink-0 border-t border-slate-100 px-10 py-6 bg-slate-50/50">
+                    <div className="grid grid-cols-[1fr_2fr] gap-4 w-full">
+                        <Button variant="outline" className="h-12 w-full rounded-xl font-bold text-slate-600 border-slate-200 shadow-sm" onClick={() => handleOpenChange(false)} disabled={isSaving}>
                             Cancel
                         </Button>
-                        <Button onClick={handleSave} disabled={isSaving || isLoading || !user}>
+                        <Button className="h-12 w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm" onClick={handleSave} disabled={isSaving || isLoading || !user}>
                             {isSaving ? "Saving..." : "Save Changes"}
                         </Button>
-                    </SheetFooter>
+                    </div>
                 </div>
             </SheetContent>
         </Sheet>

@@ -1,6 +1,7 @@
 "use client";
 
 import { createDepartment, deleteDepartment } from "@/features/admin/department-actions";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,11 +21,10 @@ import { notify } from "@/shared/lib/notify";
 import { Department } from "@/shared/types/models";
 import { cn } from "@/shared/lib/utils";
 import { Funnel, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
+import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createQueueOption, deleteQueueOption } from "../../queue-option-actions";
-
-
 import { PriorityCategory } from "@/shared/types/models";
 
 type QueueOptionsByDepartment = Record<string, PriorityCategory[]>;
@@ -60,39 +60,6 @@ function flattenCategories(categories: PriorityCategory[]): PriorityCategory[] {
     return flat;
 }
 
-function insertCategory(
-    categories: PriorityCategory[],
-    category: PriorityCategory,
-    parentId?: string
-): PriorityCategory[] {
-    if (!parentId) {
-        return [...categories, category];
-    }
-
-    let matched = false;
-    const next = categories.map((item) => {
-        if (item.id === parentId) {
-            matched = true;
-            return {
-                ...item,
-                children: [...(item.children ?? []), category],
-            };
-        }
-
-        if (Array.isArray(item.children) && item.children.length > 0) {
-            const updatedChildren = insertCategory(item.children, category, parentId);
-            if (updatedChildren !== item.children) {
-                matched = true;
-                return { ...item, children: updatedChildren };
-            }
-        }
-
-        return item;
-    });
-
-    return matched ? next : [...categories, category];
-}
-
 function removeCategory(categories: PriorityCategory[], targetId: string): PriorityCategory[] {
     return categories
         .filter((item) => item.id !== targetId)
@@ -113,7 +80,7 @@ export default function DepartmentSettings({
     const [name, setName] = useState("");
     const [code, setCode] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
-    const [filterMode, setFilterMode] = useState<"ALL" | "PRIORITY" | "WITHOUT_CATEGORIES">("ALL");
+    const [filterMode, setFilterMode] = useState<"ALL" | "PRIORITY" | "WITHOUT_QUEUE_OPTIONS">("ALL");
     const [sortMode, setSortMode] = useState<"NAME_ASC" | "NAME_DESC" | "CODE_ASC" | "STAFF_DESC">("NAME_ASC");
     const [isAddDepartmentOpen, setIsAddDepartmentOpen] = useState(false);
     const [isManageOpen, setIsManageOpen] = useState(false);
@@ -123,24 +90,33 @@ export default function DepartmentSettings({
     const [isPriorityInput, setIsPriorityInput] = useState(false);
     const [selectedDepartmentId, setSelectedDepartmentId] = useState(initialDepartments[0]?.id ?? "");
 
-    const [categoryNameInput, setCategoryNameInput] = useState("");
-    const [categoryCodeInput, setCategoryCodeInput] = useState("");
-    const [categoryParentId, setCategoryParentId] = useState("");
-    const [isCategoryPriority, setIsCategoryPriority] = useState(false);
-
     const [queueOptionsByDepartment, setQueueOptionsByDepartment] = useState(initialQueueOptionsByDepartment);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [queueLoading, setQueueLoading] = useState(false);
     const [queueError, setQueueError] = useState("");
     const [infoDraft, setInfoDraft] = useState({ name: "", code: "" });
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [pendingDeleteDepartmentId, setPendingDeleteDepartmentId] = useState<string | null>(null);
+    const [isDeletingDepartment, setIsDeletingDepartment] = useState(false);
+
+    useEffect(() => {
+        setDepartments(initialDepartments);
+        setQueueOptionsByDepartment(initialQueueOptionsByDepartment);
+        setSelectedDepartmentId((prev) => {
+            if (prev && initialDepartments.some((department) => department.id === prev)) {
+                return prev;
+            }
+            return initialDepartments[0]?.id ?? "";
+        });
+    }, [initialDepartments, initialQueueOptionsByDepartment]);
 
     const selectedDepartment = departments.find((department) => department.id === selectedDepartmentId);
     const selectedDepartmentKey = selectedDepartment ? normalizeDepartmentKey(selectedDepartment.name) : "";
-    const categoryTree = selectedDepartment
+    const queueOptionTree = selectedDepartment
         ? (queueOptionsByDepartment[selectedDepartmentKey] ?? [])
         : [];
-    const categories = flattenCategories(categoryTree);
+    const queueOptions = flattenCategories(queueOptionTree);
 
     const openManageDialog = (departmentId: string) => {
         const department = departments.find((item) => item.id === departmentId);
@@ -162,9 +138,6 @@ export default function DepartmentSettings({
             setName("");
             setCode("");
             setIsAddDepartmentOpen(false);
-            if (result?.data?.id) {
-                setDepartments((prev) => [...prev, result.data as Department]);
-            }
             router.refresh();
         } else {
             setError(result.error || "Failed to create department");
@@ -172,19 +145,13 @@ export default function DepartmentSettings({
         setLoading(false);
     };
 
-    const handleAddQueueOption = async (mode: "QUEUE_OPTION" | "CATEGORY") => {
+    const handleAddQueueOption = async () => {
         if (!selectedDepartment) {
             setQueueError("Select a department first.");
             return;
         }
 
-        const isCategoryMode = mode === "CATEGORY";
-        const nameValue = isCategoryMode ? categoryNameInput : queueNameInput;
-        const codeValue = isCategoryMode ? categoryCodeInput : queueCodeInput;
-        const priorityValue = isCategoryMode ? isCategoryPriority : isPriorityInput;
-        const parentId = isCategoryMode && categoryParentId ? categoryParentId : undefined;
-
-        if (!nameValue || !codeValue) {
+        if (!queueNameInput || !queueCodeInput) {
             setQueueError("Name and Code are required.");
             return;
         }
@@ -193,10 +160,9 @@ export default function DepartmentSettings({
         setQueueError("");
 
         const result = await createQueueOption(selectedDepartment.name, {
-            name: nameValue.trim(),
-            code: codeValue.trim().toUpperCase(),
-            isPriority: priorityValue,
-            parentId
+            name: queueNameInput.trim(),
+            code: queueCodeInput.trim().toUpperCase(),
+            isPriority: isPriorityInput,
         });
 
         if (!result.success) {
@@ -207,23 +173,12 @@ export default function DepartmentSettings({
 
         setQueueOptionsByDepartment((prev) => ({
             ...prev,
-            [selectedDepartmentKey]: insertCategory(
-                prev[selectedDepartmentKey] ?? [],
-                result.data,
-                parentId
-            )
+            [selectedDepartmentKey]: [...(prev[selectedDepartmentKey] ?? []), result.data],
         }));
 
-        if (isCategoryMode) {
-            setCategoryNameInput("");
-            setCategoryCodeInput("");
-            setCategoryParentId("");
-            setIsCategoryPriority(false);
-        } else {
-            setQueueNameInput("");
-            setQueueCodeInput("");
-            setIsPriorityInput(false);
-        }
+        setQueueNameInput("");
+        setQueueCodeInput("");
+        setIsPriorityInput(false);
 
         setQueueLoading(false);
     };
@@ -246,17 +201,30 @@ export default function DepartmentSettings({
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this department?")) return;
-
+        setIsDeletingDepartment(true);
         const result = await deleteDepartment(id);
         if (!result.success) {
             notify.error(result.error || "Failed to delete department");
+            setIsDeletingDepartment(false);
             return;
         }
 
         setDepartments((prev) => prev.filter((item) => item.id !== id));
         setIsManageOpen(false);
+        setIsDeleteConfirmOpen(false);
+        setPendingDeleteDepartmentId(null);
+        setIsDeletingDepartment(false);
         router.refresh();
+    };
+
+    const openDeleteConfirm = (id: string) => {
+        setPendingDeleteDepartmentId(id);
+        setIsDeleteConfirmOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!pendingDeleteDepartmentId) return;
+        await handleDelete(pendingDeleteDepartmentId);
     };
 
     const filteredDepartments = departments
@@ -276,7 +244,7 @@ export default function DepartmentSettings({
             const matchesFilter =
                 filterMode === "ALL" ||
                 (filterMode === "PRIORITY" && hasPriority) ||
-                (filterMode === "WITHOUT_CATEGORIES" && departmentCategories.length === 0);
+                (filterMode === "WITHOUT_QUEUE_OPTIONS" && departmentCategories.length === 0);
 
             return matchesSearch && matchesFilter;
         })
@@ -330,12 +298,12 @@ export default function DepartmentSettings({
                         <Funnel size={14} className="text-muted-foreground" />
                         <select
                             value={filterMode}
-                            onChange={(event) => setFilterMode(event.target.value as "ALL" | "PRIORITY" | "WITHOUT_CATEGORIES")}
+                            onChange={(event) => setFilterMode(event.target.value as "ALL" | "PRIORITY" | "WITHOUT_QUEUE_OPTIONS")}
                             className="h-10 bg-transparent text-sm font-medium outline-none"
                         >
                             <option value="ALL">All</option>
                             <option value="PRIORITY">High Priority</option>
-                            <option value="WITHOUT_CATEGORIES">No Categories</option>
+                            <option value="WITHOUT_QUEUE_OPTIONS">No Queue Options</option>
                         </select>
                     </div>
 
@@ -456,7 +424,12 @@ export default function DepartmentSettings({
                             />
                         </div>
 
-                        {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+                        {error ? (
+                            <Alert variant="error">
+                                <AlertTitle>Unable to create department</AlertTitle>
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        ) : null}
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsAddDepartmentOpen(false)}>
@@ -475,7 +448,7 @@ export default function DepartmentSettings({
                     <DialogHeader>
                         <DialogTitle>{selectedDepartment?.name ?? "Department"}</DialogTitle>
                         <DialogDescription>
-                            Edit department context, queue options, and category structure without crowding the main dashboard.
+                            Edit department details and queue options in one place.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -484,7 +457,6 @@ export default function DepartmentSettings({
                             <TabsList className="w-full justify-start">
                                 <TabsTrigger value="department-info">Department Info</TabsTrigger>
                                 <TabsTrigger value="queue-options">Queue Options</TabsTrigger>
-                                <TabsTrigger value="categories">Categories</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="department-info" className="space-y-4">
@@ -516,18 +488,20 @@ export default function DepartmentSettings({
                                     Department identity fields are currently read-only in this release.
                                 </p>
 
-                                <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">
-                                    <p className="text-sm font-semibold text-destructive">Danger Zone</p>
-                                    <p className="mt-1 text-xs text-destructive/90">Deleting a department removes it from active settings.</p>
-                                    <Button
-                                        variant="destructive"
-                                        className="mt-3"
-                                        onClick={() => handleDelete(selectedDepartment.id)}
-                                    >
-                                        <Trash size={14} className="mr-2" />
-                                        Delete Department
-                                    </Button>
-                                </div>
+                                <Alert variant="warning" className="rounded-xl">
+                                    <AlertCircle className="size-4" />
+                                    <AlertTitle>Danger Zone</AlertTitle>
+                                    <AlertDescription>Deleting a department removes it from active settings.</AlertDescription>
+                                    <div className="col-start-2 mt-3">
+                                        <Button
+                                            variant="destructive"
+                                            onClick={() => openDeleteConfirm(selectedDepartment.id)}
+                                        >
+                                            <Trash size={14} className="mr-2" />
+                                            Delete Department
+                                        </Button>
+                                    </div>
+                                </Alert>
                             </TabsContent>
 
                             <TabsContent value="queue-options" className="space-y-4">
@@ -557,7 +531,7 @@ export default function DepartmentSettings({
                                     <Button
                                         type="button"
                                         className="mt-4"
-                                        onClick={() => handleAddQueueOption("QUEUE_OPTION")}
+                                        onClick={handleAddQueueOption}
                                         disabled={queueLoading}
                                     >
                                         {queueLoading ? "Adding..." : "Add Queue Option"}
@@ -565,95 +539,12 @@ export default function DepartmentSettings({
                                 </div>
 
                                 <div className="space-y-2">
-                                    {categories.length === 0 ? (
+                                    {queueOptions.length === 0 ? (
                                         <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">
                                             No queue options configured.
                                         </p>
                                     ) : (
-                                        categories.map((cat) => (
-                                            <div
-                                                key={cat.id}
-                                                className="flex items-center justify-between rounded-xl border bg-white px-3 py-2"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-sm font-semibold">{cat.name}</p>
-                                                    <Badge variant="outline" className="font-mono text-[10px] uppercase">
-                                                        {cat.code}
-                                                    </Badge>
-                                                    {cat.isPriority ? (
-                                                        <Badge className="bg-amber-100 text-amber-800">Priority</Badge>
-                                                    ) : null}
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleDeleteQueueOption(cat.id)}
-                                                    className="size-8"
-                                                >
-                                                    <Trash size={14} />
-                                                </Button>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent value="categories" className="space-y-4">
-                                <div className="rounded-xl border bg-muted/20 p-4">
-                                    <p className="text-sm font-semibold">Add Category</p>
-                                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                                        <Input
-                                            placeholder="Category Name"
-                                            value={categoryNameInput}
-                                            onChange={(event) => setCategoryNameInput(event.target.value)}
-                                        />
-                                        <Input
-                                            placeholder="Category Code"
-                                            value={categoryCodeInput}
-                                            onChange={(event) => setCategoryCodeInput(event.target.value)}
-                                            className="uppercase"
-                                        />
-                                    </div>
-                                    <div className="mt-3 space-y-2">
-                                        <Label>Parent Category (Optional)</Label>
-                                        <select
-                                            value={categoryParentId}
-                                            onChange={(event) => setCategoryParentId(event.target.value)}
-                                            className="h-10 w-full rounded-lg border bg-background px-3 text-sm"
-                                        >
-                                            <option value="">None (top-level)</option>
-                                            {categories.map((cat) => (
-                                                <option key={cat.id} value={cat.id}>
-                                                    {cat.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="mt-3 flex items-center gap-2">
-                                        <Checkbox
-                                            id="category-priority"
-                                            checked={isCategoryPriority}
-                                            onCheckedChange={(checked) => setIsCategoryPriority(Boolean(checked))}
-                                        />
-                                        <Label htmlFor="category-priority">Priority category</Label>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        className="mt-4"
-                                        onClick={() => handleAddQueueOption("CATEGORY")}
-                                        disabled={queueLoading}
-                                    >
-                                        {queueLoading ? "Adding..." : "Add Category"}
-                                    </Button>
-                                </div>
-
-                                <div className="space-y-2">
-                                    {categories.length === 0 ? (
-                                        <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">
-                                            No categories configured.
-                                        </p>
-                                    ) : (
-                                        categories.map((cat) => (
+                                        queueOptions.map((cat) => (
                                             <div
                                                 key={cat.id}
                                                 className="flex items-center justify-between rounded-xl border bg-white px-3 py-2"
@@ -683,7 +574,60 @@ export default function DepartmentSettings({
                         </Tabs>
                     ) : null}
 
-                    {queueError ? <p className="text-sm font-medium text-destructive">{queueError}</p> : null}
+                    {queueError ? (
+                        <Alert variant="error">
+                            <AlertTitle>Queue option error</AlertTitle>
+                            <AlertDescription>{queueError}</AlertDescription>
+                        </Alert>
+                    ) : null}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={isDeleteConfirmOpen}
+                onOpenChange={(open) => {
+                    if (isDeletingDepartment) return;
+                    setIsDeleteConfirmOpen(open);
+                    if (!open) setPendingDeleteDepartmentId(null);
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Delete Department</DialogTitle>
+                        <DialogDescription>
+                            This action cannot be undone. The department will be removed from active settings.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <Alert variant="warning">
+                        <AlertCircle className="size-4" />
+                        <AlertTitle>Confirm deletion</AlertTitle>
+                        <AlertDescription>
+                            Please confirm if you want to permanently delete this department.
+                        </AlertDescription>
+                    </Alert>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setIsDeleteConfirmOpen(false);
+                                setPendingDeleteDepartmentId(null);
+                            }}
+                            disabled={isDeletingDepartment}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={handleConfirmDelete}
+                            disabled={isDeletingDepartment}
+                        >
+                            {isDeletingDepartment ? "Deleting..." : "Delete Department"}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

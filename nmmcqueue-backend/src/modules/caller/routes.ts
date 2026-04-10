@@ -6,6 +6,7 @@ export const callerRouter = Router();
 
 // Caller needs to see its own pending queue (requires auth)
 callerRouter.get('/pending', requireAuth, callerController.getPendingQueue);
+callerRouter.get('/scope', requireAuth, callerController.getScope);
 callerRouter.get('/departments', requireAuth, callerController.getDepartments);
 
 // Admin-only management routes (mutations)

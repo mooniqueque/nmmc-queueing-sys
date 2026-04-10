@@ -1,8 +1,10 @@
 "use client"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -57,6 +59,7 @@ export function KioskForm() {
     const [countdown, setCountdown] = useState(5);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
     const [isHydrated, setIsHydrated] = useState(false);
     const currentTime = useCurrentTime();
 
@@ -82,7 +85,6 @@ export function KioskForm() {
         getQueueOptions("TRIAGE").then(cats => {
             setAvailableCategories(cats);
         }).catch(err => console.error("Failed to fetch categories", err));
-
         setTimeout(() => setIsHydrated(true), 0);
     }, []);
 
@@ -214,12 +216,15 @@ export function KioskForm() {
     }
 
     const handleClearForm = () => {
-        if (window.confirm("Are you sure you want to clear the form? This will erase all inputted information.")) {
-            localStorage.removeItem('kiosk-registration-draft');
-            setFormData(initialState);
-            setErrors({});
-            setMessage(null);
-        }
+        setIsClearConfirmOpen(true);
+    };
+
+    const confirmClearForm = () => {
+        localStorage.removeItem('kiosk-registration-draft');
+        setFormData(initialState);
+        setErrors({});
+        setMessage(null);
+        setIsClearConfirmOpen(false);
     };
 
     // SSR Guard
@@ -249,12 +254,10 @@ export function KioskForm() {
             {/* CARD CONTENT */}
             <CardContent className="pt-3">
                 {message && (
-                    <div className={`p-3 mb-6 border-l-4 text-sm ${message.type === 'success'
-                        ? 'bg-green-50 border-green-500 text-green-800'
-                        : 'bg-red-50 border-red-500 text-red-800'
-                        }`}>
-                        {message.text}
-                    </div>
+                    <Alert variant={message.type === "success" ? "success" : "error"} className="mb-6">
+                        <AlertTitle>{message.type === "success" ? "Submission Complete" : "Submission Error"}</AlertTitle>
+                        <AlertDescription>{message.text}</AlertDescription>
+                    </Alert>
                 )}
 
                 <form onSubmit={onSubmit} className="space-y-6">
@@ -440,7 +443,7 @@ export function KioskForm() {
                             type="button"
                             variant="outline"
                             onClick={handleClearForm}
-                            className="w-full sm:w-auto sm:min-w-[140px] h-12 text-base font-semibold border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                            className="h-12 w-full text-base font-semibold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 sm:min-w-35 sm:w-auto"
                         >
                             Clear Form
                         </Button>
@@ -498,6 +501,25 @@ export function KioskForm() {
                     </div>
                 </div>
             )}
+
+            <Dialog open={isClearConfirmOpen} onOpenChange={setIsClearConfirmOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Clear form data?</DialogTitle>
+                        <DialogDescription>
+                            This will erase all current input in the intake form.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsClearConfirmOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={confirmClearForm}>
+                            Clear Form
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 }

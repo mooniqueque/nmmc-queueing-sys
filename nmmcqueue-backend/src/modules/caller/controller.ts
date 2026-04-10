@@ -3,6 +3,12 @@ import { AppError, asyncHandler } from '../../middleware/error-handler.js';
 import { callerService } from './service.js';
 
 class CallerController {
+    getScope = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        const data = await callerService.getResolvedScope(userId);
+        res.status(200).json({ success: true, data });
+    });
+
     getDepartments = asyncHandler(async (req: Request, res: Response) => {
         const data = await callerService.getDepartments();
         res.status(200).json({ success: true, data });

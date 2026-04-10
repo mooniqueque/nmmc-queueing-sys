@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ReportBreakdownCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
@@ -31,6 +32,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
     const { activeQueue, noShowQueue, claimedVisit, activeTab, setActiveTab } = useTriageQueue(initialQueue, currentVisit, user?.id);
     const [isPending, startTransition] = useTransition();
     const [reportDate, setReportDate] = useState(getTodayBusinessDay());
+    const [isNoShowDialogOpen, setIsNoShowDialogOpen] = useState(false);
     const { data: snapshotData } = useTriageSnapshot(reportDate);
 
     const activePatient = useMemo(() => claimedVisit ?? selectedPatient, [claimedVisit, selectedPatient]);
@@ -81,7 +83,12 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
 
     const handleNoShow = () => {
         if (!activePatient) return;
-        if (!confirm("Mark this patient as NO SHOW? They will be removed from the active queue.")) return;
+
+        setIsNoShowDialogOpen(true);
+    };
+
+    const handleConfirmNoShow = () => {
+        if (!activePatient) return;
 
         startTransition(async () => {
             const res = await markNoShow(activePatient.id);
@@ -90,6 +97,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                 return;
             }
             setSelectedPatient(null);
+            setIsNoShowDialogOpen(false);
         });
     };
 
@@ -281,6 +289,25 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                             </Card>
                         </div>
                     )}
+
+                    <Dialog open={isNoShowDialogOpen} onOpenChange={setIsNoShowDialogOpen}>
+                        <DialogContent className="max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Confirm No Show</DialogTitle>
+                                <DialogDescription>
+                                    This will remove the patient from the active triage queue.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsNoShowDialogOpen(false)} disabled={isPending}>
+                                    Cancel
+                                </Button>
+                                <Button variant="destructive" onClick={handleConfirmNoShow} disabled={isPending}>
+                                    {isPending ? "Updating..." : "Mark No Show"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </main>
             </div>
         </div>

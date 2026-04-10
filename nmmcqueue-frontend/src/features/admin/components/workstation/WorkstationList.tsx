@@ -3,6 +3,7 @@
 import { WorkStation } from "@/shared/types/models";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { deleteWorkstation, updateWorkstation } from "@/features/admin/workstation-actions";
 import { notify } from "@/shared/lib/notify";
 import { Trash, PencilSimple, Check, X } from "@phosphor-icons/react";
@@ -16,14 +17,28 @@ export function WorkstationList({ workstations }: WorkstationListProps) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this workstation? This action cannot be undone.")) return;
         const result = await deleteWorkstation(id);
         if (!result.success) {
             notify.error(result.error || "Failed to delete workstation");
         } else {
             notify.success("Workstation deleted");
+            setIsDeleteDialogOpen(false);
+            setPendingDeleteId(null);
         }
+    };
+
+    const openDeleteDialog = (id: string) => {
+        setPendingDeleteId(id);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId) return;
+        await handleDelete(pendingDeleteId);
     };
 
     const handleSaveEdit = async (id: string) => {
@@ -89,7 +104,7 @@ export function WorkstationList({ workstations }: WorkstationListProps) {
                                                         type="text" 
                                                         value={editName}
                                                         onChange={(e) => setEditName(e.target.value)}
-                                                        className="h-8 px-2 text-sm font-bold border rounded-md focus:outline-none focus:ring-2 focus:ring-primary w-full max-w-[250px] bg-background text-foreground"
+                                                        className="h-8 w-full max-w-62.5 rounded-md border bg-background px-2 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                                         autoFocus
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') handleSaveEdit(ws.id);
@@ -147,7 +162,7 @@ export function WorkstationList({ workstations }: WorkstationListProps) {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => handleDelete(ws.id)}
+                                                        onClick={() => openDeleteDialog(ws.id)}
                                                         className="size-8 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 transition-all rounded-md"
                                                         title="Delete Workstation"
                                                     >
@@ -163,6 +178,25 @@ export function WorkstationList({ workstations }: WorkstationListProps) {
                     </table>
                 </div>
             </CardContent>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Delete Workstation</DialogTitle>
+                        <DialogDescription>
+                            This action cannot be undone and will permanently remove the workstation.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDelete}>
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 }

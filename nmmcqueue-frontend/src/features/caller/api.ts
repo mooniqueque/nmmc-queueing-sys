@@ -93,6 +93,12 @@ export async function getClinicQueues(
     return res.json();
 }
 
+export async function getCallerScope(options?: RequestInit) {
+    const res = await fetch(`${API_URL}/caller/scope`, { cache: "no-store", ...options });
+    if (!res.ok) return { success: false, data: null };
+    return res.json();
+}
+
 // ─── Operational Actions ──────────────────────────────────────
 
 export async function callPatient(visitId: string, options?: RequestInit) {

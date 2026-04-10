@@ -76,3 +76,23 @@ export async function updateUserDepartment(
     });
     return res.json();
 }
+
+export async function getUserDepartmentAssignments(userId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/users/${userId}/departments`, options);
+    if (!res.ok) throw new Error("Unable to retrieve department assignments.");
+    return res.json();
+}
+
+export async function updateUserDepartmentAssignments(
+    userId: string,
+    assignments: Array<{ departmentId: string; isEnabled: boolean }>,
+    options?: RequestInit
+) {
+    const res = await fetch(`${API_URL}/users/${userId}/departments`, {
+        method: "PUT",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ assignments }),
+    });
+    return res.json();
+}

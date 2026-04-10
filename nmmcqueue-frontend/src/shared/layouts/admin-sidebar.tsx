@@ -41,7 +41,6 @@ export default function AdminSidebar() {
         { label: 'Reset Services', href: '/admin-resetserv' },
         { label: 'Workstation Settings', href: '/admin-workstations' },
         { label: 'Department Settings', href: '/admin-departments' },
-        { label: 'Manage Releasing', href: '/manage-releasing' },
         { label: 'Monitor Settings', href: '/admin-monisetting' },
     ];
 

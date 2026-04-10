@@ -9,6 +9,7 @@ import { ReportBreakdownCard, getTodayBusinessDay } from "@/features/shared/comp
 import { useTriageSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 import { notify } from "@/shared/lib/notify";
 import { SessionUser } from "@/shared/types/auth";
+import { Department } from "@/shared/types/models";
 import { Play } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { callNextTriage, callSpecificTriage, markNoShow } from "../actions";
@@ -22,9 +23,10 @@ interface TriageEntryProps {
     initialQueue: VisitWithPatient[];
     currentVisit: VisitWithPatient | null;
     user?: SessionUser;
+    availableDepartments?: Department[];
 }
 
-export function TriageEntry({ initialQueue, currentVisit, user }: TriageEntryProps) {
+export function TriageEntry({ initialQueue, currentVisit, user, availableDepartments = [] }: TriageEntryProps) {
     const { isManualEntry, selectedPatient, setManualEntry, setSelectedPatient } = useTriageStore();
     const { activeQueue, noShowQueue, claimedVisit, activeTab, setActiveTab } = useTriageQueue(initialQueue, currentVisit, user?.id);
     const [isPending, startTransition] = useTransition();
@@ -271,7 +273,7 @@ export function TriageEntry({ initialQueue, currentVisit, user }: TriageEntryPro
                                             </div>
 
                                             <div id="triage-form" className="scroll-mt-24">
-                                                <TriageForm />
+                                                <TriageForm availableDepartments={availableDepartments} />
                                             </div>
                                         </div>
                                     )}

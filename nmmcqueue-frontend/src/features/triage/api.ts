@@ -87,6 +87,14 @@ export async function getMyCurrentTriageVisit(options?: RequestInit) {
     return res.json();
 }
 
+export async function getMyAccessibleDepartments(options?: RequestInit) {
+    const res = await fetch(`${API_URL}/triage/accessible-departments`, {
+        cache: "no-store",
+        ...options,
+    });
+    return res.json();
+}
+
 export async function callSpecificTriage(visitId: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/triage/${visitId}/call-specific`, {
         method: "POST",

@@ -54,6 +54,50 @@ async function publishWindowMonitorSnapshot() {
 }
 
 class TriageService {
+    async getMyAccessibleDepartments(userId: string) {
+        const assignments = await db.userDepartmentAccess.findMany({
+            where: { userId, isEnabled: true },
+            include: {
+                department: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        videoUrl: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+            },
+        });
+
+        assignments.sort((left, right) => left.department.name.localeCompare(right.department.name));
+
+        const departments = assignments.map((assignment) => assignment.department);
+        if (departments.length > 0) return departments;
+
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            select: { departmentId: true },
+        });
+
+        if (!user?.departmentId) return [];
+
+        const legacyDepartment = await db.department.findUnique({
+            where: { id: user.departmentId },
+            select: {
+                id: true,
+                name: true,
+                code: true,
+                videoUrl: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+
+        return legacyDepartment ? [legacyDepartment] : [];
+    }
+
     async registerKioskPatient(payload: unknown) {
         const rawData = await kioskFormSchema.parseAsync(payload);
         const monthNamesToNum: Record<string, string> = {

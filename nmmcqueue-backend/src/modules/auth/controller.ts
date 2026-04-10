@@ -3,6 +3,11 @@ import { db } from '../../config/database.js';
 import { auth } from './auth.js';
 import { asyncHandler, AppError } from '../../middleware/error-handler.js';
 
+type DepartmentAssignmentInput = {
+    departmentId: string;
+    isEnabled?: boolean;
+};
+
 class AuthController {
     adminCreateUser = asyncHandler(async (req: Request, res: Response) => {
         if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
@@ -62,6 +67,174 @@ class AuthController {
             } 
         });
         res.status(200).json({ success: true });
+    });
+
+    getUserDepartmentAssignments = asyncHandler(async (req: Request, res: Response) => {
+        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+
+        const user = await db.user.findUnique({
+            where: { id: req.params.id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                department: true,
+                departmentId: true,
+            },
+        });
+
+        if (!user) throw new AppError('User not found', 404);
+
+        const assignments = await db.userDepartmentAccess.findMany({
+            where: { userId: req.params.id },
+            include: {
+                department: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        videoUrl: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+            },
+        });
+
+        assignments.sort((left, right) => left.department.name.localeCompare(right.department.name));
+
+        const departments = await db.department.findMany({
+            orderBy: { name: 'asc' },
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                user,
+                departments,
+                assignments,
+            },
+        });
+    });
+
+    updateUserDepartmentAssignments = asyncHandler(async (req: Request, res: Response) => {
+        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+
+        const user = await db.user.findUnique({
+            where: { id: req.params.id },
+            select: { id: true, role: true },
+        });
+
+        if (!user) throw new AppError('User not found', 404);
+        if (user.role !== 'TRIAGE_NURSE') {
+            throw new AppError('Department access can only be managed for triage nurses.', 400);
+        }
+
+        const rawAssignments = Array.isArray(req.body?.assignments) ? req.body.assignments : [];
+        const normalizedAssignments = new Map<string, boolean>();
+
+        for (const item of rawAssignments as DepartmentAssignmentInput[]) {
+            if (!item?.departmentId) continue;
+            normalizedAssignments.set(String(item.departmentId), item.isEnabled !== false);
+        }
+
+        const departmentIds = [...normalizedAssignments.keys()];
+        let validDepartmentIds = new Set<string>();
+
+        if (departmentIds.length > 0) {
+            const departments = await db.department.findMany({
+                where: { id: { in: departmentIds } },
+                select: { id: true },
+            });
+            validDepartmentIds = new Set(departments.map((department) => department.id));
+        }
+
+        const validAssignments = departmentIds
+            .filter((departmentId) => validDepartmentIds.has(departmentId))
+            .map((departmentId) => ({
+                departmentId,
+                isEnabled: normalizedAssignments.get(departmentId) ?? true,
+            }));
+
+        const operations: any[] = [
+            db.userDepartmentAccess.deleteMany({
+                where: { userId: req.params.id },
+            }),
+        ];
+
+        if (validAssignments.length > 0) {
+            operations.push(
+                db.userDepartmentAccess.createMany({
+                    data: validAssignments.map((assignment) => ({
+                        userId: req.params.id,
+                        departmentId: assignment.departmentId,
+                        isEnabled: assignment.isEnabled,
+                    })),
+                })
+            );
+        }
+
+        await db.$transaction(operations);
+
+        res.status(200).json({ success: true });
+    });
+
+    getMyAccessibleDepartments = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) throw new AppError('Unauthorized', 401);
+
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                role: true,
+                departmentId: true,
+            },
+        });
+
+        if (!user) throw new AppError('User not found', 404);
+
+        const assignments = await db.userDepartmentAccess.findMany({
+            where: { userId, isEnabled: true },
+            include: {
+                department: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        videoUrl: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+            },
+        });
+
+        assignments.sort((left, right) => left.department.name.localeCompare(right.department.name));
+
+        const accessibleDepartments = assignments.map((assignment) => assignment.department);
+
+        if (accessibleDepartments.length === 0 && user.departmentId) {
+            const legacyDepartment = await db.department.findUnique({
+                where: { id: user.departmentId },
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    videoUrl: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+            });
+
+            if (legacyDepartment) accessibleDepartments.push(legacyDepartment);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: accessibleDepartments,
+        });
     });
 
     async updateUserWorkstation(req: Request, res: Response) {

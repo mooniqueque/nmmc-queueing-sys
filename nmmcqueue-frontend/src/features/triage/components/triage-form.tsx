@@ -21,7 +21,11 @@ import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
 import { VitalsSection } from "./vitals-section";
 
-export function TriageForm() {
+interface TriageFormProps {
+    availableDepartments?: Department[];
+}
+
+export function TriageForm({ availableDepartments }: TriageFormProps) {
     const {
         isManualEntry,
         selectedPatient,
@@ -31,17 +35,25 @@ export function TriageForm() {
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
-    const [departments, setDepartments] = useState<Department[]>([]);
+    const [departments, setDepartments] = useState<Department[]>(availableDepartments ?? []);
     const [printErrorDialog, setPrintErrorDialog] = useState<{ open: boolean; error: string }>({ open: false, error: "" });
 
     useEffect(() => {
         getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
+    }, []);
+
+    useEffect(() => {
+        if (availableDepartments !== undefined) {
+            setDepartments(availableDepartments);
+            return;
+        }
+
         getDepartments().then(res => {
             if (res.data) {
                 setDepartments(res.data.filter((d: Department) => !d.name.toLowerCase().includes('admin') && !d.name.toLowerCase().includes('triage') && !d.name.toLowerCase().includes('window')));
             }
         });
-    }, []);
+    }, [availableDepartments]);
 
     const methods = useForm<TriageFormInput, unknown, TriageFormValues>({
         resolver: zodResolver(triageFormSchema),
@@ -161,7 +173,7 @@ export function TriageForm() {
 
             <div className="p-8">
                 {(!isManualEntry && !selectedPatient) ? (
-                    <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-[20px] border border-slate-200 border-dashed">
+                    <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-4xl border border-slate-200 border-dashed">
                         <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100 mb-6">
                             <CaretDoubleRight size={32} weight="duotone" className="text-slate-300" />
                         </div>
@@ -228,6 +240,11 @@ export function TriageForm() {
                                         <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
                                             Clinical Department *
                                         </Label>
+                                        {departments.length === 0 && (
+                                            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-600">
+                                                No enabled departments assigned for this user.
+                                            </p>
+                                        )}
                                         <Controller
                                             control={methods.control}
                                             name="departmentId"
@@ -239,7 +256,7 @@ export function TriageForm() {
                                                         onSelect={field.onChange}
                                                         placeholder="Select Department"
                                                         searchPlaceholder="Search department..."
-                                                        emptyMessage="No department found."
+                                                        emptyMessage={departments.length === 0 ? "No enabled department available." : "No department found."}
                                                         className={`h-11 text-lg font-semibold text-gray-900 ${methods.formState.errors.departmentId ? 'border-destructive ring-1 ring-destructive/20 text-destructive' : 'text-slate-800'}`}
                                                     />
                                                     {methods.formState.errors.departmentId && <span className="text-destructive text-[10px] font-bold uppercase tracking-widest mt-1 absolute block">{methods.formState.errors.departmentId.message}</span>}

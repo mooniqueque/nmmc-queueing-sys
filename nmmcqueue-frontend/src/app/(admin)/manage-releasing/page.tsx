@@ -1,13 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-import { LoadingSpinner } from "@/components/ui/page-skeleton";
-import { Suspense } from "react";
-import ManageReleasingData from "@/features/admin/components/manage-releasing-data";
+import { redirect } from "next/navigation";
 
 export default function ManageReleasingPage() {
-    return (
-        <Suspense fallback={<LoadingSpinner />}>
-            <ManageReleasingData />
-        </Suspense>
-    );
+    redirect("/admin-dashboard");
 }

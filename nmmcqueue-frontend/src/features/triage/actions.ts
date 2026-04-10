@@ -65,6 +65,12 @@ export async function getMyCurrentTriageVisit() {
     });
 }
 
+export async function getMyAccessibleDepartments() {
+    return triageApi.getMyAccessibleDepartments({
+        headers: await getServerHeaders(),
+    });
+}
+
 export async function callSpecificTriage(visitId: string) {
     const result = await triageApi.callSpecificTriage(visitId, {
         headers: await getServerHeaders(),

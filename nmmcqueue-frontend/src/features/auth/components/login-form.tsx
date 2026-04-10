@@ -45,17 +45,23 @@ export default function LoginForm() {
 
     async function onSubmit(values: z.infer<typeof loginSchema>) {
         setIsLoading(true);
-        const { error } = await authClient.signIn.username({
-            username: values.username,
-            password: values.password,
-        });
-        if (error) {
-            notify.error(error.message || "Invalid Username or Password");
-            setIsLoading(false);
-        }
-        else {
+        try {
+            const { error } = await authClient.signIn.username({
+                username: values.username,
+                password: values.password,
+            });
+
+            if (error) {
+                notify.error(error.message || "Invalid Username or Password");
+                return;
+            }
+
             router.push("/")
             router.refresh();
+        } catch {
+            notify.error("Unable to reach authentication server. Make sure backend is running and NEXT_PUBLIC_API_URL is correct.");
+        } finally {
+            setIsLoading(false);
         }
 
     }
@@ -140,7 +146,7 @@ export default function LoginForm() {
                         </form>
                     </Form>
                     {/* Right Side: The Image */}
-                    <div className="relative hidden lg:block flex-1 overflow-hidden min-h-[500px] ">
+                    <div className="relative hidden lg:block flex-1 overflow-hidden min-h-125 ">
                         <div className="absolute inset-0 z-10 bg-linear-to-b from-[#0B7035]/80 via-[#31965B]/40 to-[#0B7035]/80" />
                         <Image
                             src="/nmmcpics.png"

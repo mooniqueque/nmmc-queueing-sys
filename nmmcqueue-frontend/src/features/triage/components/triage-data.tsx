@@ -1,9 +1,10 @@
 import { connection } from "next/server";
-import { getPendingQueue, getMyCurrentTriageVisit } from "../actions";
+import { getPendingQueue, getMyCurrentTriageVisit, getMyAccessibleDepartments } from "../actions";
 import { TriageEntry } from "./triage-entry";
 import { getServerHeaders } from "@/lib/api/server";
 import { API_URL } from "@/lib/api";
 import { SessionUser } from "@/shared/types/auth";
+import { Department } from "@/shared/types/models";
 import { VisitWithPatient } from "../types";
 
 export default async function TriageData() {
@@ -14,12 +15,14 @@ export default async function TriageData() {
     let pendingQueue: VisitWithPatient[] = [];
     let currentVisit: VisitWithPatient | null = null;
     let session: { user: SessionUser } | null = null;
+    let accessibleDepartments: Department[] = [];
 
     try {
-        const [queueRes, currentRes, sessionRes] = await Promise.all([
+        const [queueRes, currentRes, sessionRes, departmentsRes] = await Promise.all([
             getPendingQueue(),
             getMyCurrentTriageVisit(),
-            fetch(`${API_URL}/auth/get-session`, { headers })
+            fetch(`${API_URL}/auth/get-session`, { headers }),
+            getMyAccessibleDepartments(),
         ]);
 
         pendingQueue = queueRes.success ? queueRes.data : [];
@@ -27,9 +30,10 @@ export default async function TriageData() {
         if (sessionRes.ok) {
             session = await sessionRes.json();
         }
+        accessibleDepartments = departmentsRes.success ? departmentsRes.data : [];
     } catch (error) {
         console.error("Error loading triage data:", error);
     }
 
-    return <TriageEntry initialQueue={pendingQueue} currentVisit={currentVisit} user={session?.user} />;
+    return <TriageEntry initialQueue={pendingQueue} currentVisit={currentVisit} user={session?.user} availableDepartments={accessibleDepartments} />;
 }

@@ -40,6 +40,23 @@ export async function updateUserDepartment(userId: string, department: string) {
     return result;
 }
 
+export async function getUserDepartmentAssignments(userId: string) {
+    return authApi.getUserDepartmentAssignments(userId, {
+        headers: await getServerHeaders(),
+    });
+}
+
+export async function updateUserDepartmentAssignments(
+    userId: string,
+    assignments: Array<{ departmentId: string; isEnabled: boolean }>
+) {
+    const result = await authApi.updateUserDepartmentAssignments(userId, assignments, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
+}
+
 export async function updateUserWorkstation(userId: string, workstationId: string) {
     const response = await fetch(`${API_URL}/users/${userId}/workstation`, {
         method: "PUT",

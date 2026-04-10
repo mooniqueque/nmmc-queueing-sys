@@ -85,6 +85,13 @@ class TriageController {
         const visit = await triageService.getMyCurrentVisit(userId);
         res.status(200).json({ success: true, data: visit });
     });
+
+    getMyAccessibleDepartments = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        const departments = await triageService.getMyAccessibleDepartments(userId);
+        res.status(200).json({ success: true, data: departments });
+    });
 }
 
 export const triageController = new TriageController();

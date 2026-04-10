@@ -13,6 +13,7 @@ triageRouter.get('/pending', triageController.getPendingQueue);
 triageRouter.post('/call-next', requireCapability('TRIAGE_MUTATE'), triageController.callNextTriage);
 triageRouter.post('/:id/call-specific', requireCapability('TRIAGE_MUTATE'), triageController.callSpecificTriage);
 triageRouter.get('/my-current', triageController.getMyCurrentVisit);
+triageRouter.get('/accessible-departments', triageController.getMyAccessibleDepartments);
 triageRouter.post('/submit', requireCapability('TRIAGE_MUTATE'), validate(triageFormRequestSchema), triageController.submitTriage);
 triageRouter.post('/:id/no-show', requireCapability('TRIAGE_MUTATE'), triageController.markNoShow);
 triageRouter.post('/:id/restore', requireCapability('TRIAGE_MUTATE'), triageController.restoreNoShow);

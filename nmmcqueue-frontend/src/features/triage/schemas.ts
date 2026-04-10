@@ -110,4 +110,5 @@ export const triageFormSchema = z.object({
         }
     });
 
-export type TriageFormValues = z.infer<typeof triageFormSchema>;
+export type TriageFormInput = z.input<typeof triageFormSchema>;
+export type TriageFormValues = z.output<typeof triageFormSchema>;

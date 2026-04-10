@@ -104,11 +104,16 @@ export async function callPatient(visitId: string, options?: RequestInit) {
     return parseApiResponse(res);
 }
 
-export async function callNextPatient(options?: RequestInit) {
+export async function callNextPatient(
+    overrideClassification?: 'PRIORITY' | 'REGULAR',
+    options?: RequestInit
+) {
     const res = await fetch(`${API_URL}/caller/call-next`, {
         method: "POST",
         credentials: "include",
         ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify(overrideClassification ? { overrideClassification } : {}),
     });
     return parseApiResponse(res);
 }

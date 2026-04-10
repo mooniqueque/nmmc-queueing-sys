@@ -6,6 +6,11 @@ const { spawnSync } = require("child_process");
 const rootDir = path.resolve(__dirname, "..");
 const backendDir = path.join(rootDir, "nmmcqueue-backend");
 const backendEnvPath = path.join(backendDir, ".env");
+const frontendDir = path.join(rootDir, "nmmcqueue-frontend");
+const frontendEnvCandidates = [
+  path.join(frontendDir, ".env.local"),
+  path.join(frontendDir, ".env"),
+];
 
 function parseDotenv(filePath) {
   const parsed = {};
@@ -29,6 +34,20 @@ function parseDotenv(filePath) {
   }
 
   return parsed;
+}
+
+function normalizeApiUrl(value) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function readFirstExistingFrontendEnv() {
+  for (const filePath of frontendEnvCandidates) {
+    if (fs.existsSync(filePath)) {
+      return { filePath, env: parseDotenv(filePath) };
+    }
+  }
+
+  return null;
 }
 
 function checkPortOnHost(port, host) {
@@ -112,6 +131,25 @@ async function main() {
 
   if (!Number.isInteger(backendPort) || backendPort <= 0 || backendPort > 65535) {
     console.error(`[predev] Invalid backend PORT value in ${backendEnvPath}.`);
+    process.exit(1);
+  }
+
+  const frontendEnvEntry = readFirstExistingFrontendEnv();
+  const configuredFrontendApiUrl = normalizeApiUrl(frontendEnvEntry?.env?.NEXT_PUBLIC_API_URL || "");
+  const expectedApiUrl = normalizeApiUrl(`http://localhost:${backendPort}/api`);
+
+  if (!configuredFrontendApiUrl) {
+    if (backendPort !== 3001) {
+      console.error("[predev] NEXT_PUBLIC_API_URL is not configured in nmmcqueue-frontend/.env.local.");
+      console.error(`[predev] Backend is configured on port ${backendPort}, so frontend cannot safely use its default API URL.`);
+      console.error(`[predev] Add NEXT_PUBLIC_API_URL=${expectedApiUrl} to nmmcqueue-frontend/.env.local and rerun pnpm dev.`);
+      process.exit(1);
+    }
+  } else if (configuredFrontendApiUrl !== expectedApiUrl) {
+    console.error(`[predev] Frontend API URL mismatch detected in ${frontendEnvEntry.filePath}.`);
+    console.error(`[predev] Found NEXT_PUBLIC_API_URL=${configuredFrontendApiUrl}`);
+    console.error(`[predev] Expected NEXT_PUBLIC_API_URL=${expectedApiUrl} based on backend PORT=${backendPort}.`);
+    console.error("[predev] Update NEXT_PUBLIC_API_URL and rerun pnpm dev.");
     process.exit(1);
   }
 

@@ -39,13 +39,6 @@ export async function getPendingQueue(options?: RequestInit) {
     return res.json();
 }
 
-export async function acknowledgeKioskSubmission(visitId: string, options?: RequestInit) {
-    const res = await fetch(`${API_URL}/triage/${visitId}/acknowledge`, {
-        method: "POST",
-        ...options,
-    });
-    return res.json();
-}
 
 export async function markNoShow(visitId: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/triage/${visitId}/no-show`, {
@@ -88,6 +81,14 @@ export async function callNextTriage(options?: RequestInit) {
 
 export async function getMyCurrentTriageVisit(options?: RequestInit) {
     const res = await fetch(`${API_URL}/triage/my-current`, {
+        cache: "no-store",
+        ...options,
+    });
+    return res.json();
+}
+
+export async function getMyAccessibleDepartments(options?: RequestInit) {
+    const res = await fetch(`${API_URL}/triage/accessible-departments`, {
         cache: "no-store",
         ...options,
     });

@@ -32,7 +32,7 @@ export default function StaffHeader({ title }: { title: string }) {
 
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-            <div className="flex h-16 items-center justify-between px-6">
+            <div className="flex h-20 items-center justify-between px-6">
                 <div className="flex items-center gap-3">
                     <Image
                         src="/nmmc-logo.png"
@@ -43,8 +43,8 @@ export default function StaffHeader({ title }: { title: string }) {
                     />
                     <div className="h-4 w-px bg-border hidden sm:block mx-1" />
                     <div className="flex flex-col">
-                        <h1 className="text-sm font-bold tracking-tight text-emerald-900">{title}</h1>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest -mt-0.5">
+                        <h1 className="text-2xl font-black text-gray-900 tracking-tight">{title}</h1>
+                        <p className="text-sm font-bold text-gray-500 tracking-widest uppercase mt-1">
                             Northern Mindanao Medical Center
                         </p>
                     </div>
@@ -52,10 +52,10 @@ export default function StaffHeader({ title }: { title: string }) {
 
                 <div className="flex items-center gap-4">
                     <div className="hidden sm:flex flex-col items-end">
-                        <span className="text-xs font-bold leading-none text-emerald-950">
+                        <span className="text-base font-bold text-gray-900 leading-none">
                             {loggedInUser?.name || "Staff"}
                         </span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 font-bold">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
                             {loggedInUser?.role || "USER"}
                         </span>
                     </div>

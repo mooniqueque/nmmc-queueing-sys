@@ -1,7 +1,7 @@
 import { db } from '../../config/database.js';
 import { withClaimConflictRetry } from '../../lib/claim-retry.js';
-import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import logger from '../../lib/logger.js';
+import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishDepartmentEvent, publishDepartmentMonitorEvent } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
@@ -231,7 +231,7 @@ class CallerService {
         });
     }
 
-    async callNextPatient(userId?: string) {
+    async callNextPatient(userId?: string, overrideClassification?: 'PRIORITY' | 'REGULAR') {
         const scope = await this.getCallerScope(userId);
         const queueBusinessDay = getQueueBusinessDay();
         const previousMonitorSnapshot = await monitorService.getDepartmentStatus(scope.departmentId);
@@ -249,17 +249,31 @@ class CallerService {
         }
 
         const claimedVisit = await withClaimConflictRetry(() => db.$transaction(async (tx) => {
+            const whereClause: any = {
+                departmentId: scope.departmentId,
+                queueBusinessDay,
+                status: 'WAITING_CLINIC',
+            };
+
+            if (overrideClassification === 'PRIORITY') {
+                whereClause.OR = [
+                    { classification: 'PRIORITY' },
+                    { isReferred: true },
+                ];
+            } else if (overrideClassification === 'REGULAR') {
+                whereClause.classification = 'REGULAR';
+                whereClause.isReferred = false;
+            }
+
             const nextVisit = await tx.visit.findFirst({
-                where: {
-                    departmentId: scope.departmentId,
-                    queueBusinessDay,
-                    status: 'WAITING_CLINIC',
-                },
-                orderBy: [
-                    { isReferred: 'desc' },
-                    { classification: 'desc' },
-                    { createdAt: 'asc' },
-                ],
+                where: whereClause,
+                orderBy: overrideClassification
+                    ? [{ createdAt: 'asc' }]
+                    : [
+                        { isReferred: 'desc' },
+                        { classification: 'desc' },
+                        { createdAt: 'asc' },
+                    ],
                 select: { id: true }
             });
 

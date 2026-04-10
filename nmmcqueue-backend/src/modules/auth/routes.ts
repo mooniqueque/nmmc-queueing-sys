@@ -16,4 +16,6 @@ userRouter.post('/create', authController.adminCreateUser);
 userRouter.put('/:id/role', authController.updateUserRole);
 userRouter.put('/:id/status', authController.toggleUserStatus);
 userRouter.put('/:id/department', authController.updateUserDepartment);
+userRouter.get('/:id/departments', authController.getUserDepartmentAssignments);
+userRouter.put('/:id/departments', authController.updateUserDepartmentAssignments);
 userRouter.put('/:id/workstation', authController.updateUserWorkstation);

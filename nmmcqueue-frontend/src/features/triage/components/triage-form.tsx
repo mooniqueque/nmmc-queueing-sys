@@ -1,30 +1,33 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState, useTransition } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
-import { z } from "zod";
-import { submitTriageForm, markNoShow } from "../actions";
-import { triageFormSchema, TriageFormValues } from "../schemas";
-import { CaretDoubleRight, Printer, WarningCircle, Tag, XCircle } from "@phosphor-icons/react";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getQueueOptions, getDepartments } from "@/features/shared/api";
-import { PriorityCategory, Department } from "@/shared/types/models";
+import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getDepartments, getQueueOptions } from "@/features/shared/api";
+import { notify } from "@/shared/lib/notify";
+import { Department, PriorityCategory, VisitPriorityCategory } from "@/shared/types/models";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CaretDoubleRight, Printer, Tag, WarningCircle, XCircle } from "@phosphor-icons/react";
+import { useEffect, useState, useTransition } from "react";
+import { Controller, FormProvider, useForm } from "react-hook-form";
+import { markNoShow, submitTriageForm } from "../actions";
+import { TriageFormInput, TriageFormValues, triageFormSchema } from "../schemas";
 
+import { useTriageStore } from "../store/use-triage-store";
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
 import { VitalsSection } from "./vitals-section";
-import { useTriageStore } from "../store/use-triage-store";
 
-export function TriageForm() {
+interface TriageFormProps {
+    availableDepartments?: Department[];
+}
+
+export function TriageForm({ availableDepartments }: TriageFormProps) {
     const {
-        isManualEntry, setManualEntry,
+        isManualEntry,
         selectedPatient,
         submitError, setSubmitError,
         resetTriage
@@ -32,20 +35,28 @@ export function TriageForm() {
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
-    const [departments, setDepartments] = useState<Department[]>([]);
+    const [departments, setDepartments] = useState<Department[]>(availableDepartments ?? []);
     const [printErrorDialog, setPrintErrorDialog] = useState<{ open: boolean; error: string }>({ open: false, error: "" });
 
     useEffect(() => {
         getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
+    }, []);
+
+    useEffect(() => {
+        if (availableDepartments !== undefined) {
+            setDepartments(availableDepartments);
+            return;
+        }
+
         getDepartments().then(res => {
             if (res.data) {
                 setDepartments(res.data.filter((d: Department) => !d.name.toLowerCase().includes('admin') && !d.name.toLowerCase().includes('triage') && !d.name.toLowerCase().includes('window')));
             }
         });
-    }, []);
+    }, [availableDepartments]);
 
-    const methods = useForm<z.input<typeof triageFormSchema>, unknown, TriageFormValues>({
-        resolver: zodResolver(triageFormSchema as any),
+    const methods = useForm<TriageFormInput, unknown, TriageFormValues>({
+        resolver: zodResolver(triageFormSchema),
         defaultValues: {
             isManualEntry: false,
             firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Male",
@@ -84,7 +95,7 @@ export function TriageForm() {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: selectedPatient.classification || "REGULAR",
-                categoryIds: selectedPatient.categories?.map((c: any) => c.categoryId) || []
+                categoryIds: selectedPatient.categories?.map((c: VisitPriorityCategory) => c.categoryId) || []
             });
         } else {
             methods.reset();
@@ -109,13 +120,24 @@ export function TriageForm() {
                     setSubmitSuccess(true);
                 }
 
+                notify.success("Patient is Successfully Queued For Window Processing");
+
+                resetTriage();
                 setTimeout(() => {
-                    resetTriage();
                     setSubmitSuccess(false);
                     methods.reset();
                 }, 2000);
             }
         });
+    };
+
+    const handleInvalid = (errors: Record<string, { message?: string }>) => {
+        const bpError = errors.bloodPressure?.message;
+        if (bpError) {
+            notify.error("Invalid BP format", {
+                description: "Use SYSTOLIC/DIASTOLIC, e.g., 120/80.",
+            });
+        }
     };
 
     const handleNoShowClick = () => {
@@ -134,47 +156,33 @@ export function TriageForm() {
     return (
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
             {/* Header Block */}
-            <div className="bg-slate-50 border-b border-slate-200 pt-8 px-8 pb-6 flex justify-between items-end relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-lg blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            {!isManualEntry && (
+                <div className="bg-slate-50 border-b border-slate-200 pt-8 px-8 pb-6 flex justify-between items-end relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-lg blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-m font-bold text-slate-900 uppercase tracking-tight">Triage Assessment Form</h2>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-m font-bold text-slate-900 uppercase tracking-tight">Triage Assessment Form</h2>
+                        </div>
+                        <p className="text-sm font-medium text-slate-400 tracking-widest">
+                            To be filled out by Triage Officer
+                        </p>
                     </div>
-                    <p className="text-sm font-medium text-slate-400 tracking-widest">
-                        To be filled out by Triage Officer
-                    </p>
                 </div>
-
-                <div className="relative z-0 flex items-center space-x-3 bg-white px-2 py-2 rounded-lg shadow-sm border border-slate-200 transition-all hover:shadow-md">
-                    <Switch
-                        id="manual-entry"
-                        checked={isManualEntry}
-                        onCheckedChange={(checked) => {
-                            setSubmitError("");
-                            setSubmitSuccess(false);
-                            setManualEntry(checked);
-                        }}
-                        className="data-[state=checked]:bg-emerald-600 shadow-inner"
-                    />
-                    <Label htmlFor="manual-entry" className="font-bold text-[15px] text-slate-700 cursor-pointer select-none">
-                        Walk-in / Manual Entry
-                    </Label>
-                </div>
-            </div>
+            )}
 
             <div className="p-8">
                 {(!isManualEntry && !selectedPatient) ? (
-                    <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-[20px] border border-slate-200 border-dashed">
+                    <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-4xl border border-slate-200 border-dashed">
                         <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100 mb-6">
                             <CaretDoubleRight size={32} weight="duotone" className="text-slate-300" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-600 mb-2">Select a Patient</h3>
-                        <p className="text-sm font-medium">Click a patient from the Waiting List on the right, or toggle Manual Entry above.</p>
+                        <h3 className="text-xl font-bold text-slate-600 mb-2">Call Next Patient</h3>
+                        <p className="text-sm font-medium">Click <strong>CALL NEXT</strong> to automatically call Waiting List on the right or toggle Manual Entry above.</p>
                     </div>
                 ) : (
                     <FormProvider {...methods}>
-                        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-0 relative">
+                        <form onSubmit={methods.handleSubmit(onSubmit, handleInvalid)} className="space-y-0 relative">
                             {/* The inner sections handle their own top margins for a masonry/stack effect */}
                             <DemographicsSection />
                             <VitalsSection />
@@ -185,7 +193,7 @@ export function TriageForm() {
                             <div className=" mt-8 bg-slate-50/70 p-6 rounded-xl border border-slate-200/60 shadow-sm">
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                     <div className="flex-1">
-                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
+                                        <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
                                             Acuity / Disposition *
                                         </Label>
                                         <Controller
@@ -194,7 +202,7 @@ export function TriageForm() {
                                             render={({ field }) => (
                                                 <div className="relative">
                                                 <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-sm font-bold transition-all border ${methods.formState.errors.disposition ? 'border-destructive ring-1 ring-destructive/20' : field.value === "EMERGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-slate-500/20" : field.value === "URGENT" ? "text-slate-800 border-amber-500/50 ring-2 ring-amber-500/20" : "border-slate-300 text-slate-800"}`}>
+                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-lg font-semibold text-gray-900 transition-all border ${methods.formState.errors.disposition ? 'border-destructive ring-1 ring-destructive/20' : field.value === "EMERGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-slate-500/20" : field.value === "URGENT" ? "text-slate-800 border-amber-500/50 ring-2 ring-amber-500/20" : "border-slate-300 text-slate-800"}`}>
                                                         <SelectValue placeholder="Select Acuity" />
                                                     </SelectTrigger>
                                                     <SelectContent className="rounded-xl shadow-2xl border-slate-300 bg-white">
@@ -209,7 +217,7 @@ export function TriageForm() {
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
+                                        <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
                                             Patient Classification
                                         </Label>
                                         <Controller
@@ -217,7 +225,7 @@ export function TriageForm() {
                                             name="priorityClass"
                                             render={({ field }) => (
                                                 <Select onValueChange={field.onChange} value={field.value}>
-                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-sm font-bold transition-all border border-slate-300 ${field.value === "PRIORITY" ? "text-emerald-600 ring-1 ring-emerald-500/50 border-emerald-500/50" : "text-slate-800"}`}>
+                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-lg font-semibold text-gray-900 transition-all border border-slate-300 ${field.value === "PRIORITY" ? "text-emerald-600 ring-1 ring-emerald-500/50 border-emerald-500/50" : "text-slate-800"}`}>
                                                         <SelectValue placeholder="Select Classification" />
                                                     </SelectTrigger>
                                                     <SelectContent className="rounded-xl shadow-2xl border-slate-300 bg-white">
@@ -229,9 +237,14 @@ export function TriageForm() {
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">
+                                        <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
                                             Clinical Department *
                                         </Label>
+                                        {departments.length === 0 && (
+                                            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-600">
+                                                No enabled departments assigned for this user.
+                                            </p>
+                                        )}
                                         <Controller
                                             control={methods.control}
                                             name="departmentId"
@@ -243,8 +256,8 @@ export function TriageForm() {
                                                         onSelect={field.onChange}
                                                         placeholder="Select Department"
                                                         searchPlaceholder="Search department..."
-                                                        emptyMessage="No department found."
-                                                        className={methods.formState.errors.departmentId ? 'border-destructive ring-1 ring-destructive/20 text-destructive' : 'text-slate-800'}
+                                                        emptyMessage={departments.length === 0 ? "No enabled department available." : "No department found."}
+                                                        className={`h-11 text-lg font-semibold text-gray-900 ${methods.formState.errors.departmentId ? 'border-destructive ring-1 ring-destructive/20 text-destructive' : 'text-slate-800'}`}
                                                     />
                                                     {methods.formState.errors.departmentId && <span className="text-destructive text-[10px] font-bold uppercase tracking-widest mt-1 absolute block">{methods.formState.errors.departmentId.message}</span>}
                                                 </div>

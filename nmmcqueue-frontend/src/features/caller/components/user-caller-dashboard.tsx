@@ -5,8 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { getDepartments } from "@/features/shared/api";
+<<<<<<< HEAD
 import { HistoryTable } from "@/features/shared/components/history-table";
 import { useAnalytics } from "@/features/shared/hooks/use-analytics";
+=======
+import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
+import { useClinicSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
+>>>>>>> origin/improvep2
 import { VisitWithPatient } from "@/features/triage/types";
 import { notify } from "@/shared/lib/notify";
 import { calculateAge } from "@/shared/lib/utils";
@@ -27,8 +32,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CallerApiError, callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
-import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
-import { useClinicSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 
 
 export default function UserCallerDashboard({
@@ -76,6 +79,8 @@ export default function UserCallerDashboard({
     const priorityWaitingList = waitingList.filter(v => v.classification === "PRIORITY" || v.isReferred);
 
     const noShowList = departmentQueue.filter(v => v.status === "NO_SHOW");
+    const canCallRegular = regularWaitingList.length > 0;
+    const canCallPriority = priorityWaitingList.length > 0;
     const currentDepartmentId = allDepartments.find((item) => item.name.toUpperCase() === department.toUpperCase())?.id;
     const { data: snapshotData } = useClinicSnapshot(reportDate, currentDepartmentId, Boolean(currentDepartmentId));
 
@@ -111,16 +116,25 @@ export default function UserCallerDashboard({
     }, [callAgainCooldown]);
 
     // Action Handlers
-    const handleCallNext = async () => {
-        if (waitingList.length === 0) return notify.info("No more patients in the waiting list.");
+    const handleCallQueue = async (classification: 'REGULAR' | 'PRIORITY') => {
+        const targetQueue = classification === 'PRIORITY' ? priorityWaitingList : regularWaitingList;
+
+        if (targetQueue.length === 0) {
+            return notify.info(
+                classification === 'PRIORITY'
+                    ? "No more priority patients in the waiting list."
+                    : "No more regular patients in the waiting list."
+            );
+        }
+
         if (inProgressVisit) return notify.error("Please Mark Served or No Show the current patient first.");
 
         setIsProcessing(true);
         try {
-            const res = await callNextPatient();
+            const res = await callNextPatient(classification);
             notify.success(`Calling service ticket P-${res.data?.serviceTicket?.toString() ?? 'N/A'}`);
         } catch (error) {
-            handleCallerApiError(error, "Failed to call patient.");
+            handleCallerApiError(error, `Failed to call ${classification.toLowerCase()} patient.`);
         } finally {
             setIsProcessing(false);
         }
@@ -196,7 +210,7 @@ export default function UserCallerDashboard({
 
 
     return (
-        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-background p-6 lg:p-8 gap-6">
+        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-50 p-6 lg:p-8 gap-6">
 
             {/* LEFT PANE: Waitlist (35%) */}
             <div className="flex flex-col w-full lg:w-[35%] xl:w-[30%] bg-card rounded-xl border border-border overflow-hidden shrink-0">
@@ -464,7 +478,7 @@ export default function UserCallerDashboard({
             </div>
 
             {/* RIGHT PANE: Active Consultation (65%) */}
-            <div className="flex flex-col flex-1 bg-card rounded-xl border border-border overflow-hidden relative shadow-sm">
+            <div className="flex flex-col h-full min-h-screen flex-1 bg-slate-50 rounded-xl border border-border overflow-hidden relative shadow-sm">
                 
                 {/* Main Action Header (Replicating Triage/Window style) */}
                 <header className="px-8 py-6 border-b border-border bg-muted/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 z-20 shadow-sm">
@@ -487,42 +501,52 @@ export default function UserCallerDashboard({
                     </div>
 
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        {!inProgressVisit ? (
-                            <div className="flex h-12 shadow-md shadow-emerald-500/20 group w-full md:w-auto">
-                                <Button
-                                    onClick={() => handleCallNext()}
-                                    disabled={isProcessing || waitingList.length === 0}
-                                    className="flex-1 md:flex-none h-full px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-widest text-[11px] rounded-l-xl rounded-r-none border-r border-emerald-500/30 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
-                                >
-                                    {isProcessing ? (
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    ) : (
-                                        <SpeakerHigh size={18} weight="bold" />
-                                    )}
-                                    <span>
-                                        Call Next {activeTab === "regular" ? "Regular" : activeTab === "priority" ? "Priority" : ""}
-                                    </span>
-                                </Button>
-                            </div>
-                        ) : (
+                        {inProgressVisit ? (
                            <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 italic font-medium text-xs">
                                 Patient is currently being served...
                            </div>
-                        )}
+                        ) : null}
                     </div>
                 </header>
 
                 <div className="flex-1 overflow-hidden flex flex-col relative w-full bg-background/50">
                     {!inProgressVisit ? (
-                        <div className="flex flex-col items-center justify-center flex-1 p-12 text-center bg-muted/5 animate-in fade-in duration-500">
+                        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/5 animate-in fade-in duration-500">
                             <div className="w-24 h-24 bg-background rounded-full border border-border flex items-center justify-center mb-8 shadow-xl relative group">
                                 <div className="absolute inset-0 rounded-full bg-emerald-500/5 animate-ping opacity-20" />
                                 <Users size={40} className="text-emerald-300 relative z-10" weight="duotone" />
                             </div>
                             <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Ready to Call</h2>
                             <p className="text-muted-foreground text-sm font-medium max-w-sm leading-relaxed">
-                                Use the <strong className="text-foreground">Call Next</strong> button above to start serving patients from the {activeTab === "regular" ? "Regular" : activeTab === "priority" ? "Priority" : "waiting"} queue.
+                                Use the <strong className="text-foreground">Call Regular</strong> or <strong className="text-foreground">Call Priority</strong> buttons below to start serving patients from the selected queue.
                             </p>
+                            <div className="flex items-center gap-4 mt-8">
+                                <Button
+                                    onClick={() => handleCallQueue("REGULAR")}
+                                    disabled={isProcessing || !canCallRegular}
+                                    className="h-14 px-8 w-full sm:w-auto bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm shadow-emerald-500/10 font-black uppercase tracking-[0.18em] text-[11px] rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {isProcessing ? (
+                                        <div className="w-4 h-4 border-2 border-emerald-800/20 border-t-emerald-700 rounded-full animate-spin" />
+                                    ) : (
+                                        <SpeakerHigh size={18} weight="bold" />
+                                    )}
+                                    <span>CALL REGULAR</span>
+                                </Button>
+
+                                <Button
+                                    onClick={() => handleCallQueue("PRIORITY")}
+                                    disabled={isProcessing || !canCallPriority}
+                                    className="h-14 px-8 w-full sm:w-auto bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 shadow-sm shadow-amber-500/10 font-black uppercase tracking-[0.18em] text-[11px] rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {isProcessing ? (
+                                        <div className="w-4 h-4 border-2 border-amber-900/20 border-t-amber-800 rounded-full animate-spin" />
+                                    ) : (
+                                        <SpeakerHigh size={18} weight="bold" />
+                                    )}
+                                    <span>CALL PRIORITY</span>
+                                </Button>
+                            </div>
                         </div>
                     ) : (
                         <>
@@ -637,7 +661,7 @@ export default function UserCallerDashboard({
                                             variant="outline"
                                             onClick={handleCallAgain}
                                             disabled={isProcessing || callAgainCooldown > 0}
-                                            className="h-12 px-6 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all active:scale-95 shadow-sm min-w-[140px]"
+                                            className="h-12 px-6 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all active:scale-95 shadow-sm min-w-35"
                                         >
                                             <SpeakerHigh size={16} weight="bold" className="mr-2" /> 
                                             {callAgainCooldown > 0 ? `Call Again (${callAgainCooldown}s)` : "Call Again"}

@@ -2,12 +2,12 @@
 
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Info, Notepad, WarningCircle } from "@phosphor-icons/react";
 import { Controller, useFormContext } from "react-hook-form";
-import { TriageFormValues } from "../schemas";
-import { WarningCircle, Info, Notepad } from "@phosphor-icons/react";
+import { TriageFormInput } from "../schemas";
 
 export function SymptomsSection() {
-    const { control } = useFormContext<TriageFormValues>();
+    const { control } = useFormContext<TriageFormInput>();
 
     const labels = {
         hasCough: "Cough",
@@ -19,8 +19,8 @@ export function SymptomsSection() {
 
     return (
         <div className="bg-muted/10 p-6 rounded-xl border border-border shadow-sm mt-8">
-            <h3 className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-6 pb-4 border-b border-border">
-                <WarningCircle size={18} className="text-primary" weight="bold" />
+            <h3 className="flex items-center gap-2 text-sm font-extrabold tracking-widest uppercase text-muted-foreground mb-6 pb-4 border-b border-border">
+                <WarningCircle size={20} className="text-primary" weight="bold" />
                 Symptoms & Alerts
             </h3>
 
@@ -43,7 +43,7 @@ export function SymptomsSection() {
                                         onCheckedChange={field.onChange}
                                         className="data-[state=checked]:bg-primary"
                                     />
-                                    <Label htmlFor={symptom} className="flex items-center gap-2 text-[11px] font-bold cursor-pointer text-foreground uppercase tracking-tight">
+                                    <Label htmlFor={symptom} className="flex items-center gap-2 text-base font-bold cursor-pointer text-gray-800 uppercase tracking-wide">
                                         {labels[symptom]}
                                     </Label>
                                 </div>
@@ -57,12 +57,12 @@ export function SymptomsSection() {
 }
 
 export function ClinicalNotesSection() {
-    const { register, formState: { errors } } = useFormContext<TriageFormValues>();
+    const { register, formState: { errors } } = useFormContext<TriageFormInput>();
 
     return (
         <div className="bg-muted/10 p-6 rounded-xl border border-border shadow-sm mt-8">
-            <h3 className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-6 pb-4 border-b border-border">
-                <Notepad size={18} className="text-primary" weight="bold" />
+            <h3 className="flex items-center gap-2 text-sm font-extrabold tracking-widest uppercase text-muted-foreground mb-6 pb-4 border-b border-border">
+                <Notepad size={20} className="text-primary" weight="bold" />
                 Clinical Assessment
             </h3>
 
@@ -70,11 +70,11 @@ export function ClinicalNotesSection() {
 
 
                 <div className="space-y-2 relative">
-                    <Label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
+                    <Label className="flex items-center gap-1.5 text-base font-bold text-gray-800 uppercase tracking-wide pl-1">
                         Chief Complaint *
                     </Label>
                     <textarea
-                        className="w-full flex min-h-[100px] rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium focus-visible:outline-hidden focus:border-primary/50 focus:ring-1 focus:ring-primary/20 shadow-sm custom-scrollbar transition-all placeholder:text-muted-foreground/40"
+                        className="w-full flex min-h-[90px] rounded-lg border border-border bg-background px-4 py-3 text-lg font-semibold text-gray-900 focus-visible:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/50 shadow-sm custom-scrollbar transition-all placeholder:text-muted-foreground/40"
                         placeholder="Detailed description of primary reason for visit..."
                         {...register("chiefComplaint")}
                     />
@@ -83,21 +83,21 @@ export function ClinicalNotesSection() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     <div className="space-y-2">
-                        <Label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
-                            <Info size={14} weight="bold" className="text-muted-foreground/60" /> Medical History <span className="text-[9px] text-muted-foreground/40 font-medium normal-case tracking-normal">(Optional)</span>
+                        <Label className="flex items-center gap-1.5 text-base font-bold text-gray-800 uppercase tracking-wide pl-1">
+                            <Info size={16} weight="bold" className="text-muted-foreground/80" /> Medical History <span className="text-xs text-muted-foreground/60 font-semibold normal-case tracking-normal">(Optional)</span>
                         </Label>
                         <textarea
-                            className="w-full flex min-h-[90px] rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium focus-visible:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/50 shadow-sm custom-scrollbar transition-all placeholder:text-muted-foreground/40"
+                            className="w-full flex min-h-[90px] rounded-lg border border-border bg-background px-4 py-3 text-lg font-semibold text-gray-900 focus-visible:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/50 shadow-sm custom-scrollbar transition-all placeholder:text-muted-foreground/40"
                             placeholder="Known allergies, previous illnesses..."
                             {...register("medicalHistory")}
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
-                            <Notepad size={14} weight="bold" className="text-muted-foreground/60" /> Triage Remarks <span className="text-[9px] text-muted-foreground/40 font-medium normal-case tracking-normal">(Optional)</span>
+                        <Label className="flex items-center gap-1.5 text-base font-bold text-gray-800 uppercase tracking-wide pl-1">
+                            <Notepad size={16} weight="bold" className="text-muted-foreground/80" /> Triage Remarks <span className="text-xs text-muted-foreground/60 font-semibold normal-case tracking-normal">(Optional)</span>
                         </Label>
                         <textarea
-                            className="w-full flex min-h-[90px] rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium focus-visible:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/50 shadow-sm custom-scrollbar transition-all placeholder:text-muted-foreground/40"
+                            className="w-full flex min-h-[90px] rounded-lg border border-border bg-background px-4 py-3 text-lg font-semibold text-gray-900 focus-visible:outline-hidden focus:ring-1 focus:ring-primary/20 focus:border-primary/50 shadow-sm custom-scrollbar transition-all placeholder:text-muted-foreground/40"
                             placeholder="Additional triage notes..."
                             {...register("triageRemarks")}
                         />

@@ -8,12 +8,6 @@ class TriageController {
         res.status(200).json({ success: true, message: 'Successfully queued for Triage.' });
     });
 
-    acknowledgeKiosk = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
-        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
-        await triageService.acknowledgeKioskSubmission(req.params.id, userId);
-        res.status(200).json({ success: true });
-    });
 
     submitTriage = asyncHandler(async (req: Request, res: Response) => {
         const userId = (req as any).user?.id;
@@ -90,6 +84,13 @@ class TriageController {
         if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
         const visit = await triageService.getMyCurrentVisit(userId);
         res.status(200).json({ success: true, data: visit });
+    });
+
+    getMyAccessibleDepartments = asyncHandler(async (req: Request, res: Response) => {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        const departments = await triageService.getMyAccessibleDepartments(userId);
+        res.status(200).json({ success: true, data: departments });
     });
 }
 

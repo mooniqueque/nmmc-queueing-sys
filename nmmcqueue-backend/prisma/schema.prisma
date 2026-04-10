@@ -64,6 +64,7 @@ model User {
   calledVisits    Visit[]   @relation("UserCall")
   triageClaimedVisits  Visit[] @relation("TriageClaim")
   windowClaimedVisits  Visit[] @relation("WindowClaim")
+  departmentAccess UserDepartmentAccess[]
   dept            Department? @relation(fields: [departmentId], references: [id])
   workstationId   String?
   workstation     WorkStation? @relation(fields: [workstationId], references: [id])
@@ -129,10 +130,26 @@ model Department {
   referredVisits Visit[]    @relation("DepartmentReferrals")
   laneOptions LaneOption[]
   users        User[]
+  userAccess   UserDepartmentAccess[]
   workstations WorkStation[]
   priorityCategories PriorityCategory[]
 
   @@map("department")
+}
+
+model UserDepartmentAccess {
+  id           String     @id @default(cuid())
+  userId       String
+  departmentId String
+  isEnabled    Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, departmentId])
+  @@index([departmentId], map: "userDepartmentAccess_departmentId_fkey")
+  @@map("user_department_access")
 }
 
 model WorkStation {

@@ -36,6 +36,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react';
 import { toggleUserStatus, updateUserDepartment, updateUserRole, updateUserWorkstation } from "../user-actions";
 import { AddUserDialog } from "./add-user-dialog";
+import { ManageTriageDepartmentsDrawer } from "./manage-triage-departments-drawer";
 import { StatsCard } from "./stats-card";
 
 /**
@@ -58,9 +59,18 @@ export default function AdminDashboard({
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRole, setFilterRole] = useState('All Users');
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+    const [departmentDrawerOpen, setDepartmentDrawerOpen] = useState(false);
+    const [selectedDepartmentUser, setSelectedDepartmentUser] = useState<UserData | null>(null);
     const isMounted = useIsMounted();
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
+
+    const roleSortOrder: Record<string, number> = {
+        WINDOW_CLERK: 1,
+        TRIAGE_NURSE: 2,
+        CLINIC_CALLER: 3,
+        ADMIN: 4,
+    };
 
     useEffect(() => {
         setCurrentPage(1);
@@ -88,7 +98,13 @@ export default function AdminDashboard({
         const matchesFilter = filterRole === 'All Users' || user.role === filterRole;
         return matchesSearch && matchesFilter;
     }).sort((a, b) => {
-        // Sort alphabetically by name
+        const roleRankA = roleSortOrder[a.role] ?? 99;
+        const roleRankB = roleSortOrder[b.role] ?? 99;
+
+        if (roleRankA !== roleRankB) {
+            return roleRankA - roleRankB;
+        }
+
         return a.name.localeCompare(b.name);
     });
     const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
@@ -152,6 +168,11 @@ export default function AdminDashboard({
         } finally {
             setUpdatingUserId(null);
         }
+    };
+
+    const handleManageDepartments = (user: UserData) => {
+        setSelectedDepartmentUser(user);
+        setDepartmentDrawerOpen(true);
     };
 
     if (!loggedInUser || !isMounted) return null;
@@ -226,8 +247,9 @@ export default function AdminDashboard({
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[300px] font-semibold">Staff Info</TableHead>
+                                <TableHead className="w-75 font-semibold">Staff Info</TableHead>
                                 <TableHead className="font-semibold">Assignment</TableHead>
+                                <TableHead className="font-semibold">Department Access</TableHead>
                                 <TableHead className="font-semibold">System Role</TableHead>
                                 <TableHead className="font-semibold">Status</TableHead>
                             </TableRow>
@@ -298,6 +320,22 @@ export default function AdminDashboard({
                                                 )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
+                                    </TableCell>
+                                    <TableCell>
+                                        {user.role === 'TRIAGE_NURSE' ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 w-full justify-between border-dashed text-xs font-semibold uppercase tracking-wider"
+                                                onClick={() => handleManageDepartments(user)}
+                                            >
+                                                <span>Manage Departments</span>
+                                                <span className="text-[10px] font-bold text-muted-foreground">Triage Access</span>
+                                            </Button>
+                                        ) : (
+                                            <span className="text-xs font-medium text-muted-foreground">Not Applicable</span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <DropdownMenu>
@@ -372,6 +410,13 @@ export default function AdminDashboard({
                         </div>
                     )}
                 </Card>
+
+                <ManageTriageDepartmentsDrawer
+                    open={departmentDrawerOpen}
+                    onOpenChange={setDepartmentDrawerOpen}
+                    user={selectedDepartmentUser}
+                    onSaved={() => router.refresh()}
+                />
             </main>
         </div>
     );

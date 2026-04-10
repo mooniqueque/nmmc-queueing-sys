@@ -65,6 +65,13 @@ export default function AdminDashboard({
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
 
+    const roleSortOrder: Record<string, number> = {
+        WINDOW_CLERK: 1,
+        TRIAGE_NURSE: 2,
+        CLINIC_CALLER: 3,
+        ADMIN: 4,
+    };
+
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, filterRole]);
@@ -91,7 +98,13 @@ export default function AdminDashboard({
         const matchesFilter = filterRole === 'All Users' || user.role === filterRole;
         return matchesSearch && matchesFilter;
     }).sort((a, b) => {
-        // Sort alphabetically by name
+        const roleRankA = roleSortOrder[a.role] ?? 99;
+        const roleRankB = roleSortOrder[b.role] ?? 99;
+
+        if (roleRankA !== roleRankB) {
+            return roleRankA - roleRankB;
+        }
+
         return a.name.localeCompare(b.name);
     });
     const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
@@ -236,6 +249,7 @@ export default function AdminDashboard({
                             <TableRow>
                                 <TableHead className="w-75 font-semibold">Staff Info</TableHead>
                                 <TableHead className="font-semibold">Assignment</TableHead>
+                                <TableHead className="font-semibold">Department Access</TableHead>
                                 <TableHead className="font-semibold">System Role</TableHead>
                                 <TableHead className="font-semibold">Status</TableHead>
                             </TableRow>
@@ -306,20 +320,21 @@ export default function AdminDashboard({
                                                 )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
-
-                                        {user.role === 'TRIAGE_NURSE' && (
-                                            <div className="mt-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 w-full justify-between border-dashed text-xs font-semibold uppercase tracking-wider"
-                                                    onClick={() => handleManageDepartments(user)}
-                                                >
-                                                    <span>Manage Departments</span>
-                                                    <span className="text-[10px] font-bold text-muted-foreground">Triage Access</span>
-                                                </Button>
-                                            </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        {user.role === 'TRIAGE_NURSE' ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 w-full justify-between border-dashed text-xs font-semibold uppercase tracking-wider"
+                                                onClick={() => handleManageDepartments(user)}
+                                            >
+                                                <span>Manage Departments</span>
+                                                <span className="text-[10px] font-bold text-muted-foreground">Triage Access</span>
+                                            </Button>
+                                        ) : (
+                                            <span className="text-xs font-medium text-muted-foreground">Not Applicable</span>
                                         )}
                                     </TableCell>
                                     <TableCell>

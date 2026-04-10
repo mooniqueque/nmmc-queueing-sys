@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { getVerifiedSessionUser, rejectInvalidSession } from '../modules/auth/session-guard.js';
+import { AuthenticatedRequest } from './types.js';
 
 const ROLE_CAPABILITIES: Record<string, string[]> = {
     ADMIN: [
@@ -28,7 +29,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
         if (!user) {
             return res.status(401).json({ success: false, error: 'Authentication Required' });
         }
-        (req as any).user = user;
+        (req as AuthenticatedRequest).user = user;
         next();
     } catch (error) {
         if (error instanceof Error && /inactive|authorized/i.test(error.message)) {
@@ -45,7 +46,7 @@ export const requireRole = (roles: string[]) => {
             if (!user) {
                 return res.status(401).json({ success: false, error: 'Authentication Required' });
             }
-            (req as any).user = user;
+            (req as AuthenticatedRequest).user = user;
             const userRole = user.role;
             if (userRole !== 'ADMIN' && !roles.includes(userRole)) {
                 return res.status(403).json({ success: false, error: `Forbidden: role ${userRole} lacks permission` });
@@ -68,7 +69,7 @@ export const requireCapability = (capability: string) => {
                 return res.status(401).json({ success: false, error: 'Authentication Required' });
             }
 
-            (req as any).user = user;
+            (req as AuthenticatedRequest).user = user;
             if (!hasCapability(user.role, capability)) {
                 return res.status(403).json({
                     success: false,

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '../../config/database.js';
 
 export type AnalyticsScope = 'triage' | 'window' | 'clinic' | 'all';
@@ -46,7 +47,7 @@ export async function getAnalytics(query: AnalyticsQuery) {
     const { scope, departmentId, fromDate, toDate, userId } = query;
     const { from, to } = getDateBounds(fromDate, toDate);
 
-    // Build where clause
+    // Build where clause for standard Prisma queries
     const where: any = {
         createdAt: { gte: from, lt: to },
     };
@@ -67,118 +68,181 @@ export async function getAnalytics(query: AnalyticsQuery) {
         else if (scope === 'clinic') where.calledByUserId = userId;
     }
 
-    // Fetch all matching visits with minimal includes
-    const visits = await db.visit.findMany({
-        where,
-        include: {
-            patient: { select: { firstName: true, lastName: true } },
-            department: { select: { name: true, code: true } },
-            categories: { include: { category: { select: { name: true, code: true, isPriority: true } } } },
-            windowClaimedBy: { select: { name: true } },
-            triagedByUser: { select: { name: true } },
-            calledByUser: { select: { name: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-    });
-
-    // ─── KPIs ──────────────
+    // ─── Parallel Database Aggregations ──────────────────────────
     const waitingStatuses = WAITING_STATUSES[scope];
-    const totalToday = visits.length;
-    const currentlyWaiting = visits.filter(v => waitingStatuses.includes(v.status)).length;
-    const completedToday = visits.filter(v => v.status === 'COMPLETED').length;
-    const noShowCount = visits.filter(v => v.status === 'NO_SHOW').length;
+    const departmentFilterSql = departmentId && departmentId !== 'ALL'
+        ? Prisma.sql`AND departmentId = ${departmentId}`
+        : Prisma.empty;
+    const statusFilterSql = scopeStatuses.length > 0
+        ? Prisma.sql`AND status IN (${Prisma.join(scopeStatuses)})`
+        : Prisma.empty;
 
-    // Avg processing time
-    const processingDurations = visits
-        .filter(v => v.status === 'COMPLETED' && v.updatedAt && v.createdAt)
-        .map(v => (new Date(v.updatedAt).getTime() - new Date(v.createdAt).getTime()) / 60000)
-        .filter(d => d >= 0 && d < 1440); // sanity: < 24h
+    const [
+        totalToday,
+        currentlyWaiting,
+        completedToday,
+        noShowCount,
+        statusGrouped,
+        classGrouped,
+        deptGrouped,
+        deptClassGrouped,
+        staffGrouped,
+        recentHistory,
+        durations,
+        hourlyGrouped
+    ] = await Promise.all([
+        // KPI Counters
+        db.visit.count({ where }),
+        db.visit.count({ where: { ...where, status: { in: waitingStatuses } } }),
+        db.visit.count({ where: { ...where, status: 'COMPLETED' } }),
+        db.visit.count({ where: { ...where, status: 'NO_SHOW' } }),
 
-    const avgProcessingMinutes = processingDurations.length > 0
-        ? averageMinutes(processingDurations)
-        : 0;
+        // Distributions (GroupBy)
+        db.visit.groupBy({
+            by: ['status'],
+            _count: { _all: true },
+            where,
+        }),
+        db.visit.groupBy({
+            by: ['classification'],
+            _count: { _all: true },
+            where,
+        }),
+        db.visit.groupBy({
+            by: ['departmentId'],
+            where,
+            _count: { _all: true },
+        }),
+        db.visit.groupBy({
+            by: ['departmentId', 'classification'],
+            where,
+            _count: { _all: true },
+        }),
+        // Staff grouping depends on scope
+        scope === 'all' 
+            ? Promise.resolve([]) 
+            : db.visit.groupBy({
+                by: [
+                    scope === 'triage' ? 'triagedByUserId' : 
+                    scope === 'window' ? 'windowClaimedById' : 'calledByUserId'
+                ] as any,
+                where: {
+                    ...where,
+                    [scope === 'triage' ? 'triagedByUserId' : 
+                     scope === 'window' ? 'windowClaimedById' : 'calledByUserId']: { not: null }
+                },
+                _count: { _all: true },
+              }),
 
-    const kioskToWindowDurations = visits
-        .filter(v => v.triageStartedAt && v.windowStartedAt)
-        .map(v => (new Date(v.windowStartedAt!).getTime() - new Date(v.triageStartedAt!).getTime()) / 60000)
-        .filter(d => d >= 0 && d < 1440);
+        // Recent History (Still fine as findMany but limited)
+        db.visit.findMany({
+            where,
+            include: {
+                patient: { select: { firstName: true, lastName: true } },
+                department: { select: { name: true } },
+            },
+            orderBy: { updatedAt: 'desc' },
+            take: 50,
+        }),
 
-    const windowToClinicDurations = visits
-        .filter(v => v.windowStartedAt && v.calledAt)
-        .map(v => (new Date(v.calledAt!).getTime() - new Date(v.windowStartedAt!).getTime()) / 60000)
-        .filter(d => d >= 0 && d < 1440);
+        // ─── Direct SQL for Durations (Prisma aggregate doesn't support date diff avg) ───
+        db.$queryRaw<any[]>`
+            SELECT 
+                AVG(TIMESTAMPDIFF(SECOND, createdAt, updatedAt)) / 60 as avgProcessing,
+                AVG(TIMESTAMPDIFF(SECOND, triageStartedAt, windowStartedAt)) / 60 as avgKioskToWindow,
+                AVG(TIMESTAMPDIFF(SECOND, windowStartedAt, calledAt)) / 60 as avgWindowToClinic
+            FROM visit
+            WHERE createdAt >= ${from} AND createdAt < ${to}
+            ${departmentFilterSql}
+            ${statusFilterSql}
+        `.catch(() => [{ avgProcessing: 0, avgKioskToWindow: 0, avgWindowToClinic: 0 }]),
 
-    // ─── Hourly Volume ──────────────
+        // ─── Direct SQL for Hourly Volume ───
+        db.$queryRaw<any[]>`
+            SELECT HOUR(createdAt) as hour, COUNT(*) as count
+            FROM visit
+            WHERE createdAt >= ${from} AND createdAt < ${to}
+            ${departmentFilterSql}
+            GROUP BY HOUR(createdAt)
+            ORDER BY hour ASC
+        `.catch(() => [])
+    ]);
+
+    // ─── Post-Processing ──────────────────────────────────────────
+
+    // 1. Durations
+    const stats = durations[0] || {};
+    const avgProcessingMinutes = Math.round((Number(stats.avgProcessing) || 0) * 10) / 10;
+    const avgKioskToWindowMinutes = Math.round((Number(stats.avgKioskToWindow) || 0) * 10) / 10;
+    const avgWindowToClinicMinutes = Math.round((Number(stats.avgWindowToClinic) || 0) * 10) / 10;
+
+    // 2. Map Status/Class Distributions
+    const statusDistribution = statusGrouped.map(g => ({
+        status: g.status,
+        count: g._count._all
+    })).sort((a, b) => b.count - a.count);
+
+    const classificationBreakdown = classGrouped.map(g => ({
+        name: g.classification || 'REGULAR',
+        count: g._count._all
+    })).sort((a, b) => b.count - a.count);
+
+    // 3. Hourly Volume
     const hourCounts = new Map<number, number>();
     for (let h = 0; h < 24; h++) hourCounts.set(h, 0);
-    for (const v of visits) {
-        const h = new Date(v.createdAt).getHours();
-        hourCounts.set(h, (hourCounts.get(h) ?? 0) + 1);
+    for (const hg of hourlyGrouped) {
+        hourCounts.set(Number(hg.hour), Number(hg.count));
     }
     const hourlyVolume = Array.from(hourCounts.entries()).map(([hour, count]) => ({
         hour: hour.toString().padStart(2, '0'),
         patients: count,
     }));
 
-    // Peak hour
     const peakEntry = hourlyVolume.reduce((best, cur) =>
         cur.patients > best.patients ? cur : best, { hour: '--', patients: 0 });
     const peakHourLabel = peakEntry.patients > 0 ? `${peakEntry.hour}:00` : '—';
 
-    // ─── Classification Breakdown ──────────────
-    const classMap = new Map<string, number>();
-    for (const v of visits) {
-        const cls = v.classification || 'REGULAR';
-        classMap.set(cls, (classMap.get(cls) ?? 0) + 1);
-    }
-    const classificationBreakdown = Array.from(classMap.entries())
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
+    // 4. Department Breakdown (Need names)
+    const departments = await db.department.findMany({
+        where: { id: { in: deptGrouped.map(d => d.departmentId).filter(Boolean) as string[] } },
+        select: { id: true, name: true }
+    });
+    const departmentBreakdown = deptGrouped.map(g => {
+        const d = departments.find(dept => dept.id === g.departmentId);
+        return { department: d?.name || 'UNASSIGNED', patients: g._count._all };
+    }).sort((a, b) => b.patients - a.patients);
 
-    // ─── Department Breakdown ──────────────
-    const deptMap = new Map<string, number>();
-    for (const v of visits) {
-        const deptName = v.department?.name ?? 'UNASSIGNED';
-        deptMap.set(deptName, (deptMap.get(deptName) ?? 0) + 1);
-    }
-    const departmentBreakdown = Array.from(deptMap.entries())
-        .map(([department, patients]) => ({ department, patients }))
-        .sort((a, b) => b.patients - a.patients);
+    const departmentPriorityBreakdown = deptClassGrouped.map(g => {
+        const d = departments.find(dept => dept.id === g.departmentId);
+        return {
+            departmentId: g.departmentId || null,
+            department: d?.name || 'UNASSIGNED',
+            classification: g.classification || 'REGULAR',
+            patients: g._count._all,
+        };
+    }).sort((a, b) => {
+        if (a.department === b.department) {
+            return a.classification.localeCompare(b.classification);
+        }
+        return a.department.localeCompare(b.department);
+    });
 
-    // ─── Staff Breakdown ──────────────
-    const staffMap = new Map<string, number>();
-    for (const v of (visits as any)) {
-        let staffName = 'UNASSIGNED';
-        if (scope === 'window') staffName = v.windowClaimedBy?.name || 'UNASSIGNED';
-        else if (scope === 'triage') staffName = v.triagedByUser?.name || 'UNASSIGNED';
-        else if (scope === 'clinic') staffName = v.calledByUser?.name || 'UNASSIGNED';
-
-        staffMap.set(staffName, (staffMap.get(staffName) ?? 0) + 1);
-    }
-    const staffBreakdown = Array.from(staffMap.entries())
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
-
-    // ─── Status Distribution ──────────────
-    const statusMap = new Map<string, number>();
-    for (const v of visits) {
-        statusMap.set(v.status, (statusMap.get(v.status) ?? 0) + 1);
-    }
-    const statusDistribution = Array.from(statusMap.entries())
-        .map(([status, count]) => ({ status, count }))
-        .sort((a, b) => b.count - a.count);
-
-    // ─── Recent History (last 50) ──────────────
-    const recentHistory = visits.slice(0, 50).map(v => ({
-        id: v.id,
-        triageTicket: v.triageTicket ?? null,
-        serviceTicket: v.serviceTicket ?? null,
-        patientName: `${v.patient.lastName}, ${v.patient.firstName}`,
-        status: v.status,
-        timestamp: v.updatedAt.toISOString(),
-        classification: v.classification,
-        department: v.department?.name ?? 'UNASSIGNED',
-    }));
+    // 5. Staff Breakdown (Need names)
+    const staffIds = staffGrouped.map((g: any) => 
+        g.triagedByUserId || g.windowClaimedById || g.calledByUserId
+    ).filter(Boolean);
+    const users = staffIds.length > 0 
+        ? await db.user.findMany({
+            where: { id: { in: staffIds } },
+            select: { id: true, name: true }
+          })
+        : [];
+    
+    const staffBreakdown = staffGrouped.map((g: any) => {
+        const id = g.triagedByUserId || g.windowClaimedById || g.calledByUserId;
+        const u = users.find(user => user.id === id);
+        return { name: u?.name || 'UNASSIGNED', count: g._count._all };
+    }).sort((a, b) => b.count - a.count);
 
     return {
         kpis: {
@@ -188,11 +252,12 @@ export async function getAnalytics(query: AnalyticsQuery) {
             completedToday,
             noShowCount,
             peakHourLabel,
-            avgKioskToWindowMinutes: averageMinutes(kioskToWindowDurations),
-            avgWindowToClinicMinutes: averageMinutes(windowToClinicDurations),
+            avgKioskToWindowMinutes,
+            avgWindowToClinicMinutes,
         },
         hourlyVolume,
         classificationBreakdown,
+        departmentPriorityBreakdown,
         departmentBreakdown,
         staffBreakdown,
         statusDistribution,

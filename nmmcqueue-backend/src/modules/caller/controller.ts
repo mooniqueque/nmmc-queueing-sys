@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AppError, asyncHandler } from '../../middleware/error-handler.js';
+import { AuthenticatedRequest } from '../../middleware/types.js';
 import { callerService } from './service.js';
 
 class CallerController {
@@ -8,8 +9,8 @@ class CallerController {
         res.status(200).json({ success: true, data });
     });
 
-    getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
+    getPendingQueue = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const departmentName = req.query.departmentName as string;
         const data = await callerService.getPendingQueue(departmentName, userId);
         res.status(200).json({ success: true, data });
@@ -54,36 +55,36 @@ class CallerController {
         res.status(200).json({ success: true });
     });
 
-    callPatient = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
+    callPatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const visitId = req.params.visitId;
         const data = await callerService.callPatient(visitId, userId);
         res.status(200).json({ success: true, data });
     });
 
-    callNextPatient = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
+    callNextPatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const overrideClassification = req.body?.overrideClassification as 'PRIORITY' | 'REGULAR' | undefined;
         const data = await callerService.callNextPatient(userId, overrideClassification);
         res.status(200).json({ success: true, data });
     });
 
-    servePatient = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
+    servePatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const visitId = req.params.visitId;
         const data = await callerService.servePatient(visitId, userId);
         res.status(200).json({ success: true, data });
     });
 
-    noShowPatient = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
+    noShowPatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const visitId = req.params.visitId;
         const data = await callerService.noShowPatient(visitId, userId);
         res.status(200).json({ success: true, data });
     });
 
-    transferPatient = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
+    transferPatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const visitId = req.params.visitId;
         const { targetDepartmentId } = req.body;
         if (!targetDepartmentId) throw new AppError('targetDepartmentId is required', 400);
@@ -97,15 +98,15 @@ class CallerController {
         res.status(200).json({ success: true, data });
     });
 
-    restorePatient = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
+    restorePatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const visitId = req.params.visitId;
         const data = await callerService.restorePatient(visitId, userId);
         res.status(200).json({ success: true, data });
     });
 
-    forceRemoveVisit = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
+    forceRemoveVisit = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const visitId = req.params.visitId;
         const data = await callerService.forceRemoveVisit(visitId, userId);
         res.status(200).json({ success: true, data });

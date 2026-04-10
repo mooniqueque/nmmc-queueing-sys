@@ -131,11 +131,12 @@ export const setupSSEConnection = async (req: Request, res: Response) => {
     res.on('error', cleanup);
 };
 
-const departmentAliasCache = new Map<string, string[]>();
+const ALIAS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const departmentAliasCache = new Map<string, { aliases: string[], expiresAt: number }>();
 
 export async function getDepartmentTopicAliases(departmentId: string): Promise<string[]> {
     const cached = departmentAliasCache.get(departmentId);
-    if (cached) return cached;
+    if (cached && Date.now() < cached.expiresAt) return cached.aliases;
 
     const department = await db.department.findUnique({
         where: { id: departmentId },
@@ -148,9 +149,13 @@ export async function getDepartmentTopicAliases(departmentId: string): Promise<s
         department.id,
         department.slug,
         department.name.trim().toUpperCase(),
-    ].filter(Boolean)));
+    ].filter(Boolean) as string[]));
 
-    departmentAliasCache.set(departmentId, aliases);
+    departmentAliasCache.set(departmentId, {
+        aliases,
+        expiresAt: Date.now() + ALIAS_CACHE_TTL_MS
+    });
+
     return aliases;
 }
 

@@ -236,19 +236,19 @@ model Visit {
   isReferred      Boolean     @default(false)
   referredFromId  String?
   categories      VisitPriorityCategory[]
-  referredFrom    Department? @relation("DepartmentReferrals", fields: [referredFromId], references: [id])
-  department      Department? @relation(fields: [departmentId], references: [id])
-  patient         Patient     @relation(fields: [patientId], references: [id])
-  triagedByUser   User?       @relation("UserTriage", fields: [triagedByUserId], references: [id])
-  calledByUser    User?       @relation("UserCall", fields: [calledByUserId], references: [id])
-  triageClaimedBy User?       @relation("TriageClaim", fields: [triageClaimedById], references: [id])
-  windowClaimedBy User?       @relation("WindowClaim", fields: [windowClaimedById], references: [id])
-  calledAtStation WorkStation? @relation("CalledAtStation", fields: [calledAtStationId], references: [id])
+  referredFrom    Department? @relation("DepartmentReferrals", fields: [referredFromId], references: [id], onDelete: SetNull)
+  department      Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  patient         Patient     @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  triagedByUser   User?       @relation("UserTriage", fields: [triagedByUserId], references: [id], onDelete: SetNull)
+  calledByUser    User?       @relation("UserCall", fields: [calledByUserId], references: [id], onDelete: SetNull)
+  triageClaimedBy User?       @relation("TriageClaim", fields: [triageClaimedById], references: [id], onDelete: SetNull)
+  windowClaimedBy User?       @relation("WindowClaim", fields: [windowClaimedById], references: [id], onDelete: SetNull)
+  calledAtStation WorkStation? @relation("CalledAtStation", fields: [calledAtStationId], references: [id], onDelete: SetNull)
   
   originStationId String?
   triageStationId String?
-  originStation   WorkStation? @relation("KioskVisits", fields: [originStationId], references: [id])
-  triageStation   WorkStation? @relation("TriageVisits", fields: [triageStationId], references: [id])
+  originStation   WorkStation? @relation("KioskVisits", fields: [originStationId], references: [id], onDelete: SetNull)
+  triageStation   WorkStation? @relation("TriageVisits", fields: [triageStationId], references: [id], onDelete: SetNull)
 
   statusHistory   VisitStatusHistory[]
 
@@ -279,9 +279,9 @@ model PriorityCategory {
   code         String
   isPriority   Boolean            @default(false)
   departmentId String?
-  department   Department?        @relation(fields: [departmentId], references: [id])
+  department   Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   parentId     String?
-  parent       PriorityCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  parent       PriorityCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children     PriorityCategory[] @relation("CategoryHierarchy")
   visits       VisitPriorityCategory[]
 

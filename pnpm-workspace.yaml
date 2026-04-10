@@ -1,3 +1,4 @@
 packages:
   - nmmcqueue-backend
   - nmmcqueue-frontend
+  - packages/shared-types

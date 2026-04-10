@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-<<<<<<< HEAD
+
 import { LoadingSpinner } from "@/components/ui/page-skeleton";
 import { Suspense } from "react";
 import ManageReleasingData from "@/features/admin/components/admin-settings/manage-releasing-data";

@@ -12,6 +12,9 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 export type SidebarTab = "ALL" | "NO_SHOW" | "REPORTS";
 
+const isWindowScopedNoShow = (visit: VisitWithPatient) =>
+    visit.status === "NO_SHOW" && Boolean(visit.sequenceKey?.startsWith("WINDOW_"));
+
 interface ReleasingQueueSidebarProps {
     items: VisitWithPatient[];
     counts: { ALL: number; NO_SHOW: number; [key: string]: number };
@@ -47,7 +50,7 @@ export function ReleasingQueueSidebar({
 
         const filteredItems = items.filter(v => {
             if (filterTab === "ALL") return v.status !== "NO_SHOW";
-            if (filterTab === "NO_SHOW") return v.status === "NO_SHOW";
+            if (filterTab === "NO_SHOW") return isWindowScopedNoShow(v);
             return v.classification === filterTab && v.status !== "NO_SHOW";
         });
 

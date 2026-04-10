@@ -82,7 +82,9 @@ export default function UserCallerDashboard({
         return [...priorityFirst, ...regularSecond];
     }, [priorityWaitingList, regularWaitingList]);
 
-    const noShowList = departmentQueue.filter(v => v.status === "NO_SHOW");
+    const noShowList = departmentQueue.filter(
+        v => v.status === "NO_SHOW" && Boolean(v.sequenceKey?.startsWith("DEPT_"))
+    );
     const canCallRegular = regularWaitingList.length > 0;
     const canCallPriority = priorityWaitingList.length > 0;
     const currentDepartmentId = allDepartments.find((item) => item.name.toUpperCase() === department.toUpperCase())?.id;

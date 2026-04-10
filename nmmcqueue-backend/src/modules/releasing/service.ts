@@ -1,7 +1,7 @@
 import { db } from '../../config/database.js';
 import { withClaimConflictRetry } from '../../lib/claim-retry.js';
-import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import logger from '../../lib/logger.js';
+import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishDepartmentEvent, publishDepartmentMonitorEvent, publishSseEvent, SSE_TOPICS } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
@@ -67,7 +67,14 @@ class ReleasingService {
         return db.visit.findMany({
             where: {
                 queueBusinessDay,
-                status: { in: ['WAITING_WINDOW', 'IN_WINDOW', 'NO_SHOW'] },
+                OR: [
+                    { status: 'WAITING_WINDOW' },
+                    { status: 'IN_WINDOW' },
+                    {
+                        status: 'NO_SHOW',
+                        sequenceKey: { startsWith: 'WINDOW_' },
+                    },
+                ],
             },
             include: {
                 patient: true,
@@ -232,7 +239,8 @@ class ReleasingService {
             where: {
                 id: visitId,
                 OR: [
-                    { status: { in: ['WAITING_WINDOW', 'NO_SHOW'] } },
+                    { status: 'WAITING_WINDOW' },
+                    { status: 'NO_SHOW', sequenceKey: { startsWith: 'WINDOW_' } },
                     { status: 'IN_WINDOW', windowClaimedById: userId }
                 ]
             },

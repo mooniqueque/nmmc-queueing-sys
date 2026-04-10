@@ -6,7 +6,7 @@ import { connection } from "next/server";
 import { auth } from "@/lib/database/auth";
 import { headers } from "next/headers";
 import { SessionUser } from "@/types/auth";
-import { AdminHeader } from "@/components/layouts/admin-header";
+import { AdminHeader } from "@/shared/layouts";
 
 export default async function WorkstationsData() {
     await connection();

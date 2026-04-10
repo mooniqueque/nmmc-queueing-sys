@@ -1,5 +1,5 @@
 import ResetServices from "@/features/admin/components/admin-settings/reset-services";
-import { AdminHeader } from "@/components/layouts/admin-header";
+import { AdminHeader } from "@/shared/layouts";
 import { auth } from "@/lib/database/auth";
 import { headers } from "next/headers";
 import { SessionUser } from "@/types/auth";

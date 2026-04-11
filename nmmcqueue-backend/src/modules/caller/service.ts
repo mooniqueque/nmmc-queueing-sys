@@ -242,13 +242,14 @@ class CallerService {
     async getPendingQueue(departmentName?: string, userId?: string) {
         const scope = await this.getCallerScope(userId);
         const queueBusinessDay = getQueueBusinessDay();
+        const departmentSequenceKey = `DEPT_${scope.departmentId}`;
 
         const whereClause: any = {
             queueBusinessDay,
             departmentId: scope.departmentId,
             OR: [
                 { status: 'WAITING_CLINIC' },
-                { status: 'NO_SHOW' },
+                { status: 'NO_SHOW', sequenceKey: { startsWith: departmentSequenceKey } },
                 { status: 'IN_PROGRESS', calledByUserId: scope.userId },
             ],
         };
@@ -510,9 +511,10 @@ class CallerService {
 
     async noShowPatient(visitId: string, userId?: string) {
         const scope = await this.getCallerScope(userId);
+        const departmentSequenceKey = `DEPT_${scope.departmentId}`;
         const visit = await db.visit.findUnique({
             where: { id: visitId },
-            select: { id: true, status: true, departmentId: true, calledByUserId: true }
+            select: { id: true, status: true, departmentId: true, calledByUserId: true, sequenceKey: true }
         });
         if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
         this.assertVisitScope(visit.departmentId, scope.departmentId);
@@ -523,11 +525,15 @@ class CallerService {
         if (!['WAITING_CLINIC', 'IN_PROGRESS', 'NO_SHOW'].includes(visit.status)) {
             throw new AppError('Patient cannot be marked no-show in current status.', 400, 'CLAIM_INVALID_STATE');
         }
+        if (visit.status === 'NO_SHOW' && !visit.sequenceKey?.startsWith(departmentSequenceKey)) {
+            throw new AppError('Patient cannot be marked no-show in current status.', 400, 'CLAIM_INVALID_STATE');
+        }
 
         const updated = await db.visit.update({
             where: { id: visitId },
             data: { 
                 status: 'NO_SHOW',
+                sequenceKey: departmentSequenceKey,
                 statusHistory: { create: { status: 'NO_SHOW', changedBy: scope.userId } }
             }
         });
@@ -599,15 +605,19 @@ class CallerService {
     }
     async restorePatient(visitId: string, userId?: string) {
         const scope = await this.getCallerScope(userId);
+        const departmentSequenceKey = `DEPT_${scope.departmentId}`;
         const visit = await db.visit.findUnique({
             where: { id: visitId },
-            select: { id: true, status: true, departmentId: true }
+            select: { id: true, status: true, departmentId: true, sequenceKey: true }
         });
         if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
         this.assertVisitScope(visit.departmentId, scope.departmentId);
 
         if (visit.status !== 'NO_SHOW') {
             throw new AppError('Only no-show patients can be restored.', 400, 'CLAIM_INVALID_STATE');
+        }
+        if (!visit.sequenceKey?.startsWith(departmentSequenceKey)) {
+            throw new AppError('Only clinic no-show patients can be restored.', 400, 'CLAIM_INVALID_STATE');
         }
 
         const updated = await db.visit.update({

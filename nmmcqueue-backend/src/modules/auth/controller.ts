@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db } from '../../config/database.js';
+import { AppError, asyncHandler } from '../../middleware/error-handler.js';
+import { AuthenticatedRequest } from '../../middleware/types.js';
 import { auth } from './auth.js';
-import { asyncHandler, AppError } from '../../middleware/error-handler.js';
 
 type DepartmentAssignmentInput = {
     departmentId: string;
@@ -9,8 +10,8 @@ type DepartmentAssignmentInput = {
 };
 
 class AuthController {
-    adminCreateUser = asyncHandler(async (req: Request, res: Response) => {
-        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+    adminCreateUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
         const { email, name, employeeID, role, department, workstationId } = req.body;
         const firstName = name.split(' ')[0];
         const lastName = name.split(' ').slice(1).join(' ');
@@ -37,20 +38,20 @@ class AuthController {
         res.status(200).json({ success: true });
     });
 
-    updateUserRole = asyncHandler(async (req: Request, res: Response) => {
-        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+    updateUserRole = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
         await db.user.update({ where: { id: req.params.id }, data: { role: req.body.role as any } });
         res.status(200).json({ success: true });
     });
 
-    toggleUserStatus = asyncHandler(async (req: Request, res: Response) => {
-        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+    toggleUserStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
         await db.user.update({ where: { id: req.params.id }, data: { isActive: req.body.status } });
         res.status(200).json({ success: true });
     });
 
-    updateUserDepartment = asyncHandler(async (req: Request, res: Response) => {
-        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+    updateUserDepartment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
         const { department, departmentId } = req.body;
         
         let finalDeptId = departmentId;
@@ -69,8 +70,8 @@ class AuthController {
         res.status(200).json({ success: true });
     });
 
-    getUserDepartmentAssignments = asyncHandler(async (req: Request, res: Response) => {
-        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+    getUserDepartmentAssignments = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
 
         const user = await db.user.findUnique({
             where: { id: req.params.id },
@@ -118,8 +119,8 @@ class AuthController {
         });
     });
 
-    updateUserDepartmentAssignments = asyncHandler(async (req: Request, res: Response) => {
-        if ((req as any).user?.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+    updateUserDepartmentAssignments = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
 
         const user = await db.user.findUnique({
             where: { id: req.params.id },
@@ -180,9 +181,8 @@ class AuthController {
         res.status(200).json({ success: true });
     });
 
-    getMyAccessibleDepartments = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
-        if (!userId) throw new AppError('Unauthorized', 401);
+    getMyAccessibleDepartments = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
 
         const user = await db.user.findUnique({
             where: { id: userId },
@@ -237,34 +237,26 @@ class AuthController {
         });
     });
 
-    async updateUserWorkstation(req: Request, res: Response) {
-        try {
-            if ((req as any).user?.role !== 'ADMIN') return res.status(401).json({ success: false, error: 'Unauthorized' });
-            await db.user.update({ 
-                where: { id: req.params.id }, 
-                data: { workstationId: req.body.workstationId } 
-            });
-            res.status(200).json({ success: true });
-        } catch {
-            res.status(500).json({ success: false, error: 'Unable to update workstation' });
-        }
-    }
+    updateUserWorkstation = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+        await db.user.update({ 
+            where: { id: req.params.id }, 
+            data: { workstationId: req.body.workstationId } 
+        });
+        res.status(200).json({ success: true });
+    });
 
-    async getAllUsers(req: Request, res: Response) {
-        try {
-            if ((req as any).user?.role !== 'ADMIN') return res.status(401).json({ success: false, error: 'Unauthorized' });
-            const users = await db.user.findMany({ 
-                orderBy: { createdAt: 'desc' },
-                include: {
-                    workstation: true,
-                    dept: true
-                }
-            });
-            res.status(200).json({ success: true, data: users });
-        } catch {
-            res.status(500).json({ success: false, error: 'Unable to retrieve user list' });
-        }
-    }
+    getAllUsers = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+        const users = await db.user.findMany({ 
+            orderBy: { createdAt: 'desc' },
+            include: {
+                workstation: true,
+                dept: true
+            }
+        });
+        res.status(200).json({ success: true, data: users });
+    });
 }
 
 export const authController = new AuthController();

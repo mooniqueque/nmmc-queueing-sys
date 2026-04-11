@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import logger from '../lib/logger.js';
+import type { AuthenticatedRequest } from './types.js';
 
 export class AppError extends Error {
     public readonly statusCode: number;
@@ -15,10 +16,16 @@ export class AppError extends Error {
     }
 }
 
+function getRequestUserId(req: Request) {
+    const authReq = req as Partial<AuthenticatedRequest>;
+    return authReq.user?.id;
+}
+
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
     const statusCode = err.statusCode || 500;
     const status = statusCode >= 400 && statusCode < 500 ? 'fail' : 'error';
     const isDevelopment = process.env.NODE_ENV === 'development';
+    const userId = getRequestUserId(req);
 
     // Log error for internal monitoring using Winston
     if (statusCode >= 500) {
@@ -27,14 +34,14 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
             path: req.path,
             statusCode,
             stack: err.stack,
-            userId: (req as any).user?.id
+            userId,
         });
     } else if (statusCode >= 400) {
         logger.warn(`Operational Error: ${err.message}`, {
             method: req.method,
             path: req.path,
             statusCode,
-            userId: (req as any).user?.id
+            userId,
         });
     }
 

@@ -41,7 +41,7 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
 
     useEffect(() => {
         if (availableDepartments !== undefined) {
-            setDepartments(availableDepartments);
+            queueMicrotask(() => setDepartments(availableDepartments));
             return;
         }
 
@@ -208,10 +208,10 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative">
             {/* Header Block */}
             {!isManualEntry && (
-                <div className="bg-slate-50 border-b border-slate-200 pt-8 px-8 pb-6 flex justify-between items-end relative overflow-hidden">
+                <div className="bg-slate-50 border-b border-slate-100 pt-8 px-8 pb-6 flex justify-between items-end relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-lg blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
                     <div className="relative z-10">
@@ -228,11 +228,11 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
             <div className="p-8">
                 {(!isManualEntry && !selectedPatient) ? (
                     <div className="h-[60vh] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-4xl border border-slate-200 border-dashed">
-                        <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100 mb-6">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mb-6">
                             <CaretDoubleRight size={32} weight="duotone" className="text-slate-300" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-600 mb-2">Call Next Patient</h3>
-                        <p className="text-sm font-medium">Click <strong>CALL NEXT</strong> to automatically call Waiting List on the right or toggle Manual Entry above.</p>
+                        <h3 className="text-xl font-black tracking-tight text-slate-800 mb-2">Call Next Patient</h3>
+                        <p className="text-sm font-medium text-slate-500">Click <strong>CALL NEXT</strong> to automatically call Waiting List on the right or toggle Manual Entry above.</p>
                     </div>
                 ) : (
                     <FormProvider {...methods}>
@@ -244,7 +244,7 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                             <ClinicalNotesSection />
 
                                 {/* Submission Footer */}
-                            <div className=" mt-8 bg-slate-50/70 p-6 rounded-xl border border-slate-200/60 shadow-sm">
+                            <div className=" mt-8 bg-slate-50/70 p-6 rounded-2xl border border-slate-200/60 shadow-sm">
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                     <div className="flex-1">
                                         <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
@@ -369,8 +369,8 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                                             type="submit"
                                             disabled={isPending || submitSuccess}
                                             className={`h-12 px-6 mt-6 w-full sm:w-auto text-[15px] tracking-widest shadow-xl uppercase font-black transition-all rounded-xl ${isPending || submitSuccess
-                                                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                                                : "bg-emerald-500 hover:bg-emerald-400 text-white hover:-translate-y-1 hover:shadow-emerald-500/25"
+                                                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                                : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 hover:-translate-y-1 hover:shadow-emerald-500/10"
                                                 }`}
                                         >
                                             {isPending ? "Submitting..." : (

@@ -1,6 +1,6 @@
-import { getQueueOptionsByDepartment } from "@/features/admin/queue-option-actions";
 import DepartmentSettings from "@/features/admin/components/admin-settings/departments";
 import { getDepartments } from "@/features/admin/department-actions";
+import { getQueueOptionsByDepartment } from "@/features/admin/queue-option-actions";
 import { getAllUsers } from "@/features/admin/user-actions";
 import { Department } from "@/shared/types/models";
 import { connection } from "next/server";

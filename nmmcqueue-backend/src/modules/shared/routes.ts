@@ -1,6 +1,7 @@
-import { Request, Response, Router } from 'express';
+import { Response, Router } from 'express';
 import logger from '../../lib/logger.js';
 import { requireAuth } from '../../middleware/rbac.js';
+import type { AuthenticatedRequest } from '../../middleware/types.js';
 import { callerController } from '../caller/controller.js';
 import { AnalyticsScope, getAnalytics } from './analytics.js';
 
@@ -15,7 +16,7 @@ sharedRouter.get('/queue-options', callerController.getQueueOptions);
 sharedRouter.post('/queue-options/batch', callerController.getQueueOptionsByDepartment);
 
 // ─── Analytics ─────────────────────────────────────────────────
-sharedRouter.get('/analytics', requireAuth, async (req: Request, res: Response) => {
+sharedRouter.get('/analytics', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const scope = (req.query.scope as AnalyticsScope) || 'all';
         const departmentId = req.query.departmentId as string | undefined;
@@ -29,7 +30,7 @@ sharedRouter.get('/analytics', requireAuth, async (req: Request, res: Response) 
         logger.error('Failed to load analytics', {
             path: req.path,
             scope: req.query.scope,
-            userId: (req as any).user?.id,
+            userId: req.user?.id,
             error: error instanceof Error ? error.message : String(error),
         });
         res.status(500).json({ success: false, error: 'Failed to load analytics' });

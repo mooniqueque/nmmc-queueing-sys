@@ -1,7 +1,5 @@
 "use client";
 
-import { createDepartment, deleteDepartment } from "@/features/admin/department-actions";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,9 +15,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { createDepartment, deleteDepartment } from "@/features/admin/department-actions";
 import { notify } from "@/shared/lib/notify";
-import { Department } from "@/shared/types/models";
 import { cn } from "@/shared/lib/utils";
+import { Department } from "@/shared/types/models";
 import { Funnel, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";

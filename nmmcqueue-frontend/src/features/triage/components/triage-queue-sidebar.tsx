@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReportDatePicker } from "@/features/shared/components/operational-report-panel";
 import { Clock } from "@phosphor-icons/react";
+import { BarChart2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { TabType } from "../hooks";
@@ -42,48 +43,48 @@ export function TriageQueueSidebar({
     }, []);
 
     return (
-        <Card className="h-full border-border shadow-sm">
-            <CardHeader className="border-b border-border bg-muted/20">
+        <Card className="h-full bg-white rounded-2xl shadow-sm border border-slate-100">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/70">
                 <div className="flex items-center justify-between">
                     <div>
                         <CardTitle className="text-lg font-extrabold text-gray-800 tracking-wider uppercase">
-                            Upcoming Queue
+                            WaitList
                         </CardTitle>
                     </div>
-                    <Badge variant="outline" className="text-primary border-primary/30">
-                        Triage
-                    </Badge>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActiveTab(activeTab === "REPORTS" ? "ACTIVE" : "REPORTS")}
+                        className="text-slate-600 border-slate-200 hover:bg-slate-50 rounded-lg"
+                    >
+                        <BarChart2 className="w-4 h-4 mr-2" />
+                        Reports
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-5">
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabType)} className="w-full">
-                    <TabsList className="flex w-full flex-nowrap justify-between gap-1 rounded-lg bg-muted/50 border border-border p-1 h-auto">
+                    <TabsList className="w-full flex bg-transparent border-b border-slate-200 h-auto p-0 gap-0 rounded-none">
                         <TabsTrigger
                             value="ACTIVE"
                             disabled={isLocked}
-                            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-base font-bold uppercase tracking-wide whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-primary"
+                            className="flex-1 flex items-center justify-center gap-1 rounded-none px-2 py-3 text-[11px] font-bold uppercase tracking-wide bg-transparent text-slate-500 shadow-none data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                         >
                             <span className="truncate">Active Queue</span>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-sm font-bold text-gray-600 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">
                                 {activeQueue.length}
                             </span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="NO_SHOW"
                             disabled={isLocked}
-                            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-base font-bold uppercase tracking-wide whitespace-nowrap data-[state=active]:bg-background data-[state=active]:text-emerald-600"
+                            className="flex-1 flex items-center justify-center gap-1 rounded-none px-2 py-3 text-[11px] font-bold uppercase tracking-wide bg-transparent text-slate-500 shadow-none data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                         >
                             <span className="truncate">No Show</span>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-sm font-bold text-gray-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">
                                 {noShowQueue.length}
                             </span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="REPORTS"
-                            disabled={isLocked}
-                            className="rounded-md px-2 py-1.5 text-base font-bold uppercase tracking-wide whitespace-nowrap data-[state=active]:bg-background"
-                        >
-                            Reports
                         </TabsTrigger>
                     </TabsList>
 
@@ -154,17 +155,17 @@ function QueueCard({
     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
 
     return (
-        <div className="rounded-lg border border-border/50 bg-background p-3 shadow-sm flex items-start justify-between gap-3 transition-colors hover:bg-muted/30 cursor-pointer">
+        <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm flex items-start justify-between gap-3 transition-colors hover:bg-slate-50 cursor-pointer">
             <div className="min-w-0">
                 <div className="text-sm font-medium uppercase tracking-wider text-gray-700">
                     {visit.triageTicket ? `#${visit.triageTicket}` : "#"}
                 </div>
-                <div className="text-lg font-extrabold text-gray-900 leading-snug break-words">
+                <div className="text-lg font-extrabold text-gray-900 leading-snug break-all">
                     {visit.patient.lastName}, {visit.patient.firstName}
                 </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-                <Badge variant="outline" className="text-sm font-medium text-gray-700 bg-muted/40 border-border/60 px-2 py-0.5 whitespace-nowrap">
+                <Badge variant="outline" className="text-sm font-medium text-slate-600 bg-slate-50 border-slate-200 px-2 py-0.5 whitespace-nowrap rounded-full">
                     <Clock size={12} weight="bold" /> {waitStr}
                 </Badge>
                 {action}
@@ -175,8 +176,8 @@ function QueueCard({
 
 function EmptyQueueState({ label }: { label: string }) {
     return (
-        <div className="rounded-lg border border-dashed border-border bg-muted/20 p-6 text-center">
-            <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</div>
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center shadow-sm">
+            <div className="text-xs font-black uppercase tracking-widest text-slate-500">{label}</div>
         </div>
     );
 }

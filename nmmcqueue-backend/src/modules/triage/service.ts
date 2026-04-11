@@ -331,7 +331,13 @@ class TriageService {
         return db.visit.findMany({
             where: {
                 queueBusinessDay,
-                status: { in: ['WAITING_TRIAGE', 'NO_SHOW'] },
+                OR: [
+                    { status: 'WAITING_TRIAGE' },
+                    {
+                        status: 'NO_SHOW',
+                        sequenceKey: null,
+                    },
+                ],
             },
             include: {
                 patient: true,
@@ -358,6 +364,7 @@ class TriageService {
             },
             data: {
                 status: 'NO_SHOW',
+                sequenceKey: null,
                 triageClaimedById: null,
                 triageStartedAt: null,
             }
@@ -371,12 +378,21 @@ class TriageService {
         publishTriageVisitUpsert(await getTriageVisitPayload(visitId));
     }
     async restoreNoShow(visitId: string, userId?: string) { 
-        await db.visit.update({ 
-            where: { id: visitId }, 
+        const updated = await db.visit.updateMany({
+            where: {
+                id: visitId,
+                status: 'NO_SHOW',
+                sequenceKey: null,
+            },
             data: { 
                 status: 'WAITING_TRIAGE',
-                statusHistory: { create: { status: 'WAITING_TRIAGE', changedBy: userId } }
             } 
+        });
+        if (updated.count === 0) {
+            throw new AppError('Only triage no-show visits can be restored to triage queue.', 409, 'TRIAGE_CLAIM_REQUIRED');
+        }
+        await db.visitStatusHistory.create({
+            data: { visitId, status: 'WAITING_TRIAGE', changedBy: userId }
         });
         publishTriageVisitUpsert(await getTriageVisitPayload(visitId));
     }
@@ -466,10 +482,11 @@ class TriageService {
         return withClaimConflictRetry(() => db.$transaction(async (tx) => {
             const visitToCall = await tx.visit.findUnique({
                 where: { id: visitId },
-                include: { patient: true }
+                include: { patient: true },
             });
 
-            if (!visitToCall || (visitToCall.status !== 'NO_SHOW' && visitToCall.status !== 'WAITING_TRIAGE')) {
+            const isTriageNoShow = visitToCall?.status === 'NO_SHOW' && visitToCall.sequenceKey === null;
+            if (!visitToCall || (!isTriageNoShow && visitToCall.status !== 'WAITING_TRIAGE')) {
                 throw new AppError('Patient is not waiting or no-show.', 400);
             }
 

@@ -20,7 +20,7 @@ import { createDepartment, deleteDepartment } from "@/features/admin/department-
 import { notify } from "@/shared/lib/notify";
 import { cn } from "@/shared/lib/utils";
 import { Department, PriorityCategory } from "@/shared/types/models";
-import { Funnel, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
+import { Funnel, MagnifyingGlass, Plus, Trash, Gear } from "@phosphor-icons/react";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -265,38 +265,19 @@ export default function DepartmentSettings({
 
     return (
         <div className="space-y-6">
-            <section className="rounded-2xl border border-border/60 bg-linear-to-r from-emerald-50 via-white to-teal-50 px-5 py-6 shadow-sm">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-black tracking-tight text-emerald-950">Departmental Hub</h1>
-                        <p className="max-w-2xl text-sm text-emerald-900/70">
-                            Manage hierarchies, operational codes, and queue configuration through focused department workspaces.
-                        </p>
-                    </div>
-                    <Button
-                        className="h-11 rounded-xl bg-emerald-900 px-5 font-bold hover:bg-emerald-800"
-                        onClick={() => {
-                            setError("");
-                            setIsAddDepartmentOpen(true);
-                        }}
-                    >
-                        <Plus size={16} className="mr-2" />
-                        Add New Department
-                    </Button>
-                </div>
-
-                <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto]">
+            <section className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
                     <div className="relative">
                         <MagnifyingGlass size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={searchQuery}
                             onChange={(event) => setSearchQuery(event.target.value)}
-                            placeholder="Search by name, code, or lead officer..."
-                            className="h-10 rounded-xl bg-white pl-9"
+                            placeholder="Search departments, clinics or services....."
+                            className="h-10 rounded-lg bg-white pl-9"
                         />
                     </div>
 
-                    <div className="flex items-center gap-2 rounded-xl border bg-white px-3">
+                    <div className="flex items-center gap-2 rounded-lg border bg-white px-3">
                         <Funnel size={14} className="text-muted-foreground" />
                         <select
                             value={filterMode}
@@ -309,7 +290,7 @@ export default function DepartmentSettings({
                         </select>
                     </div>
 
-                    <div className="flex items-center gap-2 rounded-xl border bg-white px-3">
+                    <div className="flex items-center gap-2 rounded-lg border bg-white px-3">
                         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sort</span>
                         <select
                             value={sortMode}
@@ -324,10 +305,23 @@ export default function DepartmentSettings({
                             <option value="STAFF_DESC">Most Staff</option>
                         </select>
                     </div>
+
+                    <Button
+                        className="h-10 rounded-lg bg-emerald-900 px-5 font-bold hover:bg-emerald-800"
+                        onClick={() => {
+                            setError("");
+                            setIsAddDepartmentOpen(true);
+                        }}
+                    >
+                        <Plus size={16} className="mr-2" />
+                        Add New Department
+                    </Button>
                 </div>
+
+                <h2 className="text-xl font-bold tracking-tight text-emerald-900 mt-2">All Departments</h2>
             </section>
 
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
                 {hasDepartments ? (
                     filteredDepartments.map((department) => {
                         const insight = initialDepartmentInsights[department.id] ?? {
@@ -340,48 +334,29 @@ export default function DepartmentSettings({
                         const hasPriority = departmentCategories.some((category) => category.isPriority);
 
                         return (
-                            <Card
-                                key={department.id}
-                                className="group rounded-2xl border border-border/70 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                            <div 
+                                key={department.id} 
+                                className="group relative flex items-center bg-white rounded-xl shadow-sm border border-border/60 p-4 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer max-w-full"
+                                onClick={() => openManageDialog(department.id)}
                             >
-                                <CardContent className="space-y-4 p-5">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="space-y-1">
-                                            <p className="text-lg font-black tracking-tight text-foreground">{department.name}</p>
-                                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Code: {department.code}</p>
-                                        </div>
-                                        <Badge
-                                            variant={hasPriority ? "default" : "secondary"}
-                                            className={cn(
-                                                "text-[10px] font-black uppercase tracking-widest",
-                                                hasPriority ? "bg-emerald-700 text-white" : ""
-                                            )}
-                                        >
-                                            {hasPriority ? "High Priority" : "Active"}
-                                        </Badge>
-                                    </div>
+                                {/* Left vertical Accent */}
+                                <div className="absolute left-0 top-0 bottom-0 w-2 rounded-l-xl transition-colors bg-emerald-600" />
 
-                                    <div className="space-y-1 text-sm">
-                                        <p className="flex items-center justify-between gap-3 text-muted-foreground">
-                                            <span>Lead Officer</span>
-                                            <span className="font-semibold text-foreground">{insight.leadOfficer}</span>
-                                        </p>
-                                        <p className="flex items-center justify-between gap-3 text-muted-foreground">
-                                            <span>Staff Count</span>
-                                            <span className="font-semibold text-foreground">{insight.staffCount} Members</span>
-                                        </p>
-                                    </div>
+                                {/* Text contents (pushed left) */}
+                                <div className="flex-1 ml-3 mr-4 overflow-hidden">
+                                    <h3 className="text-base sm:text-lg font-bold tracking-tight text-emerald-950 truncate">{department.name}</h3>
+                                    <p className="text-[9px] sm:text-[10px] uppercase font-bold text-muted-foreground tracking-[0.1em] mt-1 truncate">
+                                        CODE: {department.code} • {insight.staffCount} STAFF
+                                    </p>
+                                </div>
 
-                                    <div className="flex items-center gap-2 pt-2">
-                                        <Button
-                                            className="h-9 flex-1 rounded-lg bg-emerald-900 text-xs font-bold uppercase tracking-wider hover:bg-emerald-800"
-                                            onClick={() => openManageDialog(department.id)}
-                                        >
-                                            Manage
-                                        </Button>
+                                {/* Button Area (right side) */}
+                                <div className="shrink-0 flex items-center justify-center">
+                                    <div className="flex size-9 items-center justify-center rounded-full transition-colors bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200">
+                                        <Gear size={20} weight="fill" />
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </div>
                         );
                     })
                 ) : (

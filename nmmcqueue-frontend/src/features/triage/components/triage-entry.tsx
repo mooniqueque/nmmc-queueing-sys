@@ -200,9 +200,9 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                         </Card>
                     </div>
                 ) : (
-                    <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 shrink-0 min-h-[60vh]">
-                        <CardHeader className="border-b border-slate-100 bg-slate-50/70">
-                            <CardTitle className="text-lg font-extrabold text-gray-800 tracking-wider uppercase">
+                    <Card className="bg-card rounded-xl border border-border shrink-0 min-h-[60vh] overflow-hidden">
+                        <CardHeader className="border-b border-border bg-muted/30 px-6 py-6">
+                            <CardTitle className="text-lg font-bold text-foreground tracking-tight uppercase">
                                 Calling Zone
                             </CardTitle>
                         </CardHeader>

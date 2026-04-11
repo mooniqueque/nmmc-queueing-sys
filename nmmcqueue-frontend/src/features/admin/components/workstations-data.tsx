@@ -31,7 +31,7 @@ export default async function WorkstationsData() {
     return (
         <div className="flex flex-1 flex-col">
             {user && <AdminHeader user={user} title="Manage Workstations" />}
-            <main className="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
+            <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
                 <WorkstationSettings 
                     initialWorkstations={workstations} 
                     departments={departments}

@@ -15,7 +15,7 @@ class AuthController {
         const { email, name, employeeID, role, department, workstationId } = req.body;
         const firstName = name.split(' ')[0];
         const lastName = name.split(' ').slice(1).join(' ');
-        
+
         let departmentId = null;
         if (department) {
             const dept = await db.department.findUnique({ where: { name: department.trim().toUpperCase() } });
@@ -24,11 +24,11 @@ class AuthController {
 
         await auth.api.signUpEmail({
             body: {
-                email, 
+                email,
                 username: email.split('@')[0],
                 password: 'password123', name, firstName, lastName,
-                middleName: '', suffix: '', employeeID, 
-                role: role as any, 
+                middleName: '', suffix: '', employeeID,
+                role: role as any,
                 department,
                 departmentId: (departmentId as string) || undefined,
                 workstationId: workstationId || undefined,
@@ -53,19 +53,19 @@ class AuthController {
     updateUserDepartment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
         const { department, departmentId } = req.body;
-        
+
         let finalDeptId = departmentId;
         if (!finalDeptId && department) {
             const dept = await db.department.findUnique({ where: { name: department.trim().toUpperCase() } });
             finalDeptId = dept?.id;
         }
 
-        await db.user.update({ 
-            where: { id: req.params.id }, 
-            data: { 
+        await db.user.update({
+            where: { id: req.params.id },
+            data: {
                 department: department,
-                departmentId: finalDeptId 
-            } 
+                departmentId: finalDeptId
+            }
         });
         res.status(200).json({ success: true });
     });
@@ -239,16 +239,16 @@ class AuthController {
 
     updateUserWorkstation = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
-        await db.user.update({ 
-            where: { id: req.params.id }, 
-            data: { workstationId: req.body.workstationId } 
+        await db.user.update({
+            where: { id: req.params.id },
+            data: { workstationId: req.body.workstationId }
         });
         res.status(200).json({ success: true });
     });
 
     getAllUsers = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
-        const users = await db.user.findMany({ 
+        const users = await db.user.findMany({
             orderBy: { createdAt: 'desc' },
             include: {
                 workstation: true,
@@ -260,3 +260,5 @@ class AuthController {
 }
 
 export const authController = new AuthController();
+
+

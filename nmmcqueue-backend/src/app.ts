@@ -1,8 +1,12 @@
 import cors from 'cors';
+import 'dotenv/config';
 import express from 'express';
+import helmet from 'helmet';
+import { db } from './config/database.js';
 import { errorHandler } from './middleware/error-handler.js';
-import { authRouter, userRouter } from './modules/auth/routes.js';
+import { apiLimiter, authLimiter } from './middleware/rate-limit.js';
 import { analyticsRouter } from './modules/analytics/routes.js';
+import { authRouter, userRouter } from './modules/auth/routes.js';
 import { callerRouter } from './modules/caller/routes.js';
 import { monitorRouter } from './modules/monitor/routes.js';
 import { releasingRouter } from './modules/releasing/routes.js';
@@ -10,10 +14,6 @@ import { sharedRouter } from './modules/shared/routes.js';
 import { ticketRouter } from './modules/tickets/routes.js';
 import { triageRouter } from './modules/triage/routes.js';
 import { workstationRouter } from './modules/workstation/routes.js';
-
-import helmet from 'helmet';
-import { db } from './config/database.js';
-import { apiLimiter, authLimiter } from './middleware/rate-limit.js';
 
 import path from 'path';
 
@@ -31,7 +31,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'cookie'],
 }));
 app.use(express.json());
-app.set('trust proxy', true);
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1); 
+} else {
+  app.set('trust proxy', false);
+}
 
 // Global API rate limiter (applied to all /api routes)
 app.use('/api', apiLimiter);

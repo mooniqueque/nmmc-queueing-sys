@@ -1,0 +1,21 @@
+# Role & Context
+Act as a Senior QA Engineer specializing in Vitest and TypeScript. We are pivoting away from Playwright E2E testing in favor of a robust Vitest Unit/Integration testing suite for the NMMC Queueing System.
+
+# Objective
+Set up Vitest in the `nmmcqueue-backend` workspace and write unit tests for our most critical business logic to address the "Production Readiness" concerns.
+
+# Task 1: Environment Setup
+1. Provide the commands to install `vitest`, `@vitest/ui`, and `msw` (for mocking) in the backend workspace.
+2. Configure a `vitest.config.ts` file that works with our monorepo structure.
+3. Add a `"test": "vitest"` script to the backend `package.json`.
+
+# Task 2: Critical Logic Tests
+Write test suites for the following three areas:
+- **Priority Sorting:** Given a list of mixed Priority and Regular tickets, verify the sorting function correctly puts Priority first, then sorts by time.
+- **Zod Validations (CB-4):** Create a test for our Triage Assessment Zod schema. Verify it correctly rejects invalid Vitals (e.g., negative Blood Pressure) and accepts valid ones.
+- **Business Day Logic:** Verify that our utility for generating the `queueBusinessDay` handles the Asia/Manila timezone correctly, especially around midnight.
+
+# Task 3: Mocking Prisma
+Show me how to use `vitest-mock-prisma` or a similar pattern so we can test our Service functions without needing a real MariaDB instance running.
+
+Provide the file structure and the initial test code for these logic gates.

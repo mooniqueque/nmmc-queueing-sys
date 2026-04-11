@@ -11,6 +11,14 @@ export interface ApiResponse<T = unknown> {
     errors?: unknown;
 }
 
+// ─── Reference Data ─────────────────────────────────────────
+
+export interface DepartmentSummary {
+    id: string;
+    name: string;
+    code?: string;
+}
+
 // ─── Session / Auth ──────────────────────────────────────────
 
 export interface SessionUser {

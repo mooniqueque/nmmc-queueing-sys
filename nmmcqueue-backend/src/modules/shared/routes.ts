@@ -1,10 +1,11 @@
+import type { AnalyticsScope } from '@nmmc/types';
 import { Request, Response, Router } from 'express';
 import logger from '../../lib/logger.js';
 import { asyncHandler } from '../../middleware/error-handler.js';
 import { requireAuth } from '../../middleware/rbac.js';
 import type { AuthenticatedRequest } from '../../middleware/types.js';
 import { callerController } from '../caller/controller.js';
-import { AnalyticsScope, getAnalytics } from './analytics.js';
+import { getAnalytics } from './analytics.js';
 
 export const sharedRouter = Router();
 

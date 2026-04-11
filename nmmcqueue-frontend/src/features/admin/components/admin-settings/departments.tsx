@@ -1,10 +1,10 @@
 "use client";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
     Dialog,
     DialogContent,
@@ -19,13 +19,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createDepartment, deleteDepartment } from "@/features/admin/department-actions";
 import { notify } from "@/shared/lib/notify";
 import { cn } from "@/shared/lib/utils";
-import { Department } from "@/shared/types/models";
+import { Department, PriorityCategory } from "@/shared/types/models";
 import { Funnel, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createQueueOption, deleteQueueOption } from "../../queue-option-actions";
-import { PriorityCategory } from "@/shared/types/models";
 
 type QueueOptionsByDepartment = Record<string, PriorityCategory[]>;
 
@@ -173,7 +172,10 @@ export default function DepartmentSettings({
 
         setQueueOptionsByDepartment((prev) => ({
             ...prev,
-            [selectedDepartmentKey]: [...(prev[selectedDepartmentKey] ?? []), result.data],
+            [selectedDepartmentKey]: [
+                ...(prev[selectedDepartmentKey] ?? []),
+                ...(result.data ? [result.data] : []),
+            ],
         }));
 
         setQueueNameInput("");

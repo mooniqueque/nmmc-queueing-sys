@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../middleware/error-handler.js';
 import { AuthenticatedRequest } from '../../middleware/types.js';
+import { ticketPrintingService } from '../../services/ticket-printing-service.js';
 import { triageService } from './service';
 
 class TriageController {
@@ -16,24 +17,17 @@ class TriageController {
         
         let printError: string | null = null;
         if (result?.triageTicket) {
-            const prefix1 = result.classification === 'PRIORITY' ? 'PRIO' : 'REG';
-            const formattedTicket = `${prefix1}-${result.triageTicket.toString().padStart(2, '0')}`;
-            const windowAssignment = result.classification === 'PRIORITY' ? 'Proceed to Window 1' : 'Proceed to Window 4';
-
             try {
-                const { printTicket } = await import('../../lib/printer.js');
-                await printTicket({
-                    station: "Triage Station",
-                    label: "Triage Ticket",
-                    displayNumber: formattedTicket,
-                    date: new Date().toLocaleString(),
-                    windowAssignment: windowAssignment,
-                    footer: "This ticket is valid for today only."
+                await ticketPrintingService.print({
+                    type: 'triage',
+                    triageTicket: result.triageTicket,
+                    classification: result.classification,
                 });
-            } catch (err: any) {
-                console.error("Printer util failed:", err);
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown printer error occurred';
+                console.error('Printer util failed:', message);
                 // Store error but don't block submission
-                printError = err.message || 'Unknown printer error occurred';
+                printError = message;
             }
         }
 

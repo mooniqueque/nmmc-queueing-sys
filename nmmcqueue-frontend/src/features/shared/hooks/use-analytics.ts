@@ -1,44 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { API_URL } from "@/lib/api";
+import { apiClient } from "@/lib/api";
+import type { AnalyticsResponse, AnalyticsScope } from "@nmmc/types";
+import { useCallback, useEffect, useState } from "react";
 
-export type AnalyticsScope = "triage" | "window" | "clinic" | "all";
-
-export interface AnalyticsKPIs {
-    totalToday: number;
-    currentlyWaiting: number;
-    avgProcessingMinutes: number;
-    completedToday: number;
-    noShowCount: number;
-    peakHourLabel: string;
-    avgKioskToWindowMinutes: number;
-    avgWindowToClinicMinutes: number;
-}
-
-export interface HistoryItem {
-    id: string;
-    triageTicket: number | null;
-    serviceTicket: number | null;
-    patientName: string;
-    status: string;
-    timestamp: string;
-    classification: string;
-    department: string;
-}
-
-export interface AnalyticsData {
-    kpis: AnalyticsKPIs;
-    hourlyVolume: { hour: string; patients: number }[];
-    classificationBreakdown: { name: string; count: number }[];
-    departmentBreakdown: { department: string; patients: number }[];
-    staffBreakdown: { name: string; count: number }[];
-    statusDistribution: { status: string; count: number }[];
-    recentHistory: HistoryItem[];
-    generatedAt: string;
-}
-
-const EMPTY_DATA: AnalyticsData = {
+const EMPTY_DATA: AnalyticsResponse = {
     kpis: {
         totalToday: 0,
         currentlyWaiting: 0,
@@ -51,6 +17,7 @@ const EMPTY_DATA: AnalyticsData = {
     },
     hourlyVolume: [],
     classificationBreakdown: [],
+    departmentPriorityBreakdown: [],
     departmentBreakdown: [],
     staffBreakdown: [],
     statusDistribution: [],
@@ -59,7 +26,7 @@ const EMPTY_DATA: AnalyticsData = {
 };
 
 export function useAnalytics(scope: AnalyticsScope, departmentId?: string, userId?: string) {
-    const [data, setData] = useState<AnalyticsData>(EMPTY_DATA);
+    const [data, setData] = useState<AnalyticsResponse>(EMPTY_DATA);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchData = useCallback(async (signal?: AbortSignal) => {
@@ -68,14 +35,15 @@ export function useAnalytics(scope: AnalyticsScope, departmentId?: string, userI
             if (departmentId && departmentId !== "ALL") params.set("departmentId", departmentId);
             if (userId) params.set("userId", userId);
 
-            const res = await fetch(`${API_URL}/shared/analytics?${params.toString()}`, {
-                credentials: "include",
-                signal,
-            });
-            if (!res.ok) return;
-            const json = await res.json();
-            if (json.success && json.data) {
-                setData(json.data);
+            const response = await apiClient<AnalyticsResponse>(
+                `/shared/analytics?${params.toString()}`,
+                {
+                    credentials: "include",
+                    signal,
+                }
+            );
+            if (response.data) {
+                setData(response.data);
             }
         } catch {
             // Silently ignore abort errors

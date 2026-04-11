@@ -22,7 +22,7 @@ export default async function CallerData() {
         }
 
         if (pendingRes.success) {
-            initialQueueData = pendingRes.data;
+            initialQueueData = pendingRes.data ?? [];
         }
 
         if (!userDepartment && initialQueueData.length > 0) {

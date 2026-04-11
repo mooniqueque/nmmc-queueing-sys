@@ -1,15 +1,14 @@
+import type {
+    AnalyticsDurationRow,
+    AnalyticsHourlyRow,
+    AnalyticsQueryDto,
+    AnalyticsResponse,
+    AnalyticsScope,
+    AnalyticsStaffGroupRow,
+    VisitStatus,
+} from '@nmmc/types';
 import { Prisma } from '@prisma/client';
 import { db } from '../../config/database.js';
-
-export type AnalyticsScope = 'triage' | 'window' | 'clinic' | 'all';
-
-interface AnalyticsQuery {
-    scope: AnalyticsScope;
-    departmentId?: string;
-    fromDate?: string;
-    toDate?: string;
-    userId?: string;
-}
 
 function averageMinutes(values: number[]) {
     if (values.length === 0) return 0;
@@ -17,7 +16,7 @@ function averageMinutes(values: number[]) {
 }
 
 // Status sets per scope
-const SCOPE_STATUSES: Record<AnalyticsScope, string[]> = {
+const SCOPE_STATUSES: Record<AnalyticsScope, VisitStatus[]> = {
     triage: ['WAITING_TRIAGE', 'IN_TRIAGE', 'WAITING_WINDOW', 'IN_WINDOW', 'WAITING_CLINIC', 'IN_PROGRESS', 'COMPLETED', 'NO_SHOW'],
     window: ['WAITING_WINDOW', 'IN_WINDOW', 'WAITING_CLINIC', 'IN_PROGRESS', 'COMPLETED', 'NO_SHOW'],
     clinic: ['WAITING_CLINIC', 'IN_PROGRESS', 'COMPLETED', 'NO_SHOW'],
@@ -25,7 +24,7 @@ const SCOPE_STATUSES: Record<AnalyticsScope, string[]> = {
 };
 
 // Which statuses mean "currently waiting" per scope
-const WAITING_STATUSES: Record<AnalyticsScope, string[]> = {
+const WAITING_STATUSES: Record<AnalyticsScope, VisitStatus[]> = {
     triage: ['WAITING_TRIAGE'],
     window: ['WAITING_WINDOW'],
     clinic: ['WAITING_CLINIC'],
@@ -43,12 +42,12 @@ function getDateBounds(fromDate?: string, toDate?: string) {
     return { from, to };
 }
 
-export async function getAnalytics(query: AnalyticsQuery) {
+export async function getAnalytics(query: AnalyticsQueryDto): Promise<AnalyticsResponse> {
     const { scope, departmentId, fromDate, toDate, userId } = query;
     const { from, to } = getDateBounds(fromDate, toDate);
 
     // Build where clause for standard Prisma queries
-    const where: any = {
+    const where: Prisma.VisitWhereInput = {
         createdAt: { gte: from, lt: to },
     };
 
@@ -77,6 +76,23 @@ export async function getAnalytics(query: AnalyticsQuery) {
         ? Prisma.sql`AND status IN (${Prisma.join(scopeStatuses)})`
         : Prisma.empty;
 
+    const staffGroupByField = scope === 'triage'
+        ? 'triagedByUserId'
+        : scope === 'window'
+            ? 'windowClaimedById'
+            : 'calledByUserId';
+
+    const staffGrouped = scope === 'all'
+        ? []
+        : await db.visit.groupBy({
+            by: [staffGroupByField],
+            where: {
+                ...where,
+                [staffGroupByField]: { not: null },
+            },
+            _count: { _all: true },
+        });
+
     const [
         totalToday,
         currentlyWaiting,
@@ -86,7 +102,6 @@ export async function getAnalytics(query: AnalyticsQuery) {
         classGrouped,
         deptGrouped,
         deptClassGrouped,
-        staffGrouped,
         recentHistory,
         durations,
         hourlyGrouped
@@ -119,21 +134,6 @@ export async function getAnalytics(query: AnalyticsQuery) {
             _count: { _all: true },
         }),
         // Staff grouping depends on scope
-        scope === 'all' 
-            ? Promise.resolve([]) 
-            : db.visit.groupBy({
-                by: [
-                    scope === 'triage' ? 'triagedByUserId' : 
-                    scope === 'window' ? 'windowClaimedById' : 'calledByUserId'
-                ] as any,
-                where: {
-                    ...where,
-                    [scope === 'triage' ? 'triagedByUserId' : 
-                     scope === 'window' ? 'windowClaimedById' : 'calledByUserId']: { not: null }
-                },
-                _count: { _all: true },
-              }),
-
         // Recent History (Still fine as findMany but limited)
         db.visit.findMany({
             where,
@@ -146,7 +146,7 @@ export async function getAnalytics(query: AnalyticsQuery) {
         }),
 
         // ─── Direct SQL for Durations (Prisma aggregate doesn't support date diff avg) ───
-        db.$queryRaw<any[]>`
+        db.$queryRaw<AnalyticsDurationRow[]>`
             SELECT 
                 AVG(TIMESTAMPDIFF(SECOND, createdAt, updatedAt)) / 60 as avgProcessing,
                 AVG(TIMESTAMPDIFF(SECOND, triageStartedAt, windowStartedAt)) / 60 as avgKioskToWindow,
@@ -158,7 +158,7 @@ export async function getAnalytics(query: AnalyticsQuery) {
         `.catch(() => [{ avgProcessing: 0, avgKioskToWindow: 0, avgWindowToClinic: 0 }]),
 
         // ─── Direct SQL for Hourly Volume ───
-        db.$queryRaw<any[]>`
+        db.$queryRaw<AnalyticsHourlyRow[]>`
             SELECT HOUR(createdAt) as hour, COUNT(*) as count
             FROM visit
             WHERE createdAt >= ${from} AND createdAt < ${to}
@@ -228,9 +228,10 @@ export async function getAnalytics(query: AnalyticsQuery) {
     });
 
     // 5. Staff Breakdown (Need names)
-    const staffIds = staffGrouped.map((g: any) => 
-        g.triagedByUserId || g.windowClaimedById || g.calledByUserId
-    ).filter(Boolean);
+    const staffGroupedRows = staffGrouped as AnalyticsStaffGroupRow[];
+    const staffIds = staffGroupedRows
+        .map((g) => g.triagedByUserId || g.windowClaimedById || g.calledByUserId)
+        .filter(Boolean) as string[];
     const users = staffIds.length > 0 
         ? await db.user.findMany({
             where: { id: { in: staffIds } },
@@ -238,7 +239,7 @@ export async function getAnalytics(query: AnalyticsQuery) {
           })
         : [];
     
-    const staffBreakdown = staffGrouped.map((g: any) => {
+    const staffBreakdown = staffGroupedRows.map((g) => {
         const id = g.triagedByUserId || g.windowClaimedById || g.calledByUserId;
         const u = users.find(user => user.id === id);
         return { name: u?.name || 'UNASSIGNED', count: g._count._all };
@@ -261,7 +262,16 @@ export async function getAnalytics(query: AnalyticsQuery) {
         departmentBreakdown,
         staffBreakdown,
         statusDistribution,
-        recentHistory,
+        recentHistory: recentHistory.map((visit) => ({
+            id: visit.id,
+            triageTicket: visit.triageTicket,
+            serviceTicket: visit.serviceTicket,
+            patientName: `${visit.patient.firstName} ${visit.patient.lastName}`.trim(),
+            status: visit.status,
+            timestamp: visit.updatedAt.toISOString(),
+            classification: visit.classification ?? 'REGULAR',
+            department: visit.department?.name || 'UNASSIGNED',
+        })),
         generatedAt: new Date().toISOString(),
     };
 }

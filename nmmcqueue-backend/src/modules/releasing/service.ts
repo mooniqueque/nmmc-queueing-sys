@@ -8,18 +8,6 @@ import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
 import { assignTicketSchema } from './schema.js';
 
-async function getWindowVisitPayload(visitId: string) {
-    const visit = await db.visit.findUnique({
-        where: { id: visitId },
-        include: {
-            patient: true,
-            department: true,
-            categories: { include: { category: true } }
-        }
-    });
-    return visit;
-}
-
 async function publishWindowMonitorDiff(previousSnapshot?: Awaited<ReturnType<typeof monitorService.getWindowStatus>>) {
     const snapshot = await monitorService.getWindowStatus();
     const previousByStation = new Map((previousSnapshot?.active ?? []).map((window) => [window.stationNo, window]));

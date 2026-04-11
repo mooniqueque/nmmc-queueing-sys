@@ -11,7 +11,6 @@ export const UserRole = {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const VisitStatus = {
-    KIOSK_SUBMITTED: 'KIOSK_SUBMITTED',
     WAITING_TRIAGE: 'WAITING_TRIAGE',
     IN_TRIAGE: 'IN_TRIAGE',
     WAITING_WINDOW: 'WAITING_WINDOW',
@@ -33,6 +32,5 @@ export const WorkstationType = {
     WINDOW: 'WINDOW',
     TRIAGE: 'TRIAGE',
     CALLER: 'CALLER',
-    KIOSK: 'KIOSK',
 } as const;
 export type WorkstationType = (typeof WorkstationType)[keyof typeof WorkstationType];

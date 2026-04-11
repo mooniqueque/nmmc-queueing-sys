@@ -14,7 +14,6 @@ enum UserRole {
 }
 
 enum VisitStatus {
-  KIOSK_SUBMITTED
   WAITING_TRIAGE
   IN_TRIAGE
   WAITING_WINDOW
@@ -34,7 +33,6 @@ enum WorkstationType {
   WINDOW
   TRIAGE
   CALLER
-  KIOSK
 }
 
 model User {
@@ -128,7 +126,6 @@ model Department {
   updatedAt    DateTime     @updatedAt
   visits       Visit[]
   referredVisits Visit[]    @relation("DepartmentReferrals")
-  laneOptions LaneOption[]
   users        User[]
   userAccess   UserDepartmentAccess[]
   workstations WorkStation[]
@@ -203,7 +200,7 @@ model Visit {
   sequenceKey         String?
   queueBusinessDay    String      @db.VarChar(10)
   kioskRegistrationType String?     @default("UNREGISTERED")
-  status              VisitStatus @default(KIOSK_SUBMITTED)
+  status              VisitStatus @default(WAITING_TRIAGE)
   bloodPressure   String?
   heartRate       Int?
   respiratoryRate Int?
@@ -320,15 +317,4 @@ model Sequence {
   updatedAt   DateTime @updatedAt
 
   @@map("sequence")
-}
-
-model LaneOption {
-  id           String     @id @default(cuid())
-  departmentId String
-  option       String
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-
-  @@unique([departmentId, option])
-  @@index([departmentId], map: "laneOption_departmentId_fkey")
-  @@map("lane_option")
 }

@@ -2,7 +2,7 @@ import ResetServices from "@/features/admin/components/admin-settings/reset-serv
 import { AdminHeader } from "@/shared/layouts";
 import { auth } from "@/lib/database/auth";
 import { headers } from "next/headers";
-import { SessionUser } from "@/types/auth";
+import { SessionUser } from "@/shared/types/auth";
 
 export const metadata = {
     title: "Reset Services | NMMC Queue",

@@ -214,10 +214,10 @@ export default function UserCallerDashboard({
 
 
     return (
-        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-50 p-6 lg:p-8 gap-6">
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-65px)] w-full overflow-hidden bg-slate-50 p-4 lg:p-6 gap-6">
 
             {/* LEFT PANE: Waitlist (35%) */}
-            <div className="flex flex-col w-full lg:w-[35%] xl:w-[30%] bg-card rounded-xl border border-border overflow-hidden shrink-0">
+            <div className="flex flex-col w-full lg:w-[35%] xl:w-[30%] bg-card rounded-xl border border-border overflow-hidden shrink-0 h-full">
                 {/* Header */}
                 <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center shrink-0">
                     <div>
@@ -229,7 +229,7 @@ export default function UserCallerDashboard({
                             variant="outline"
                             size="sm"
                             onClick={() => setActiveTab(activeTab === "reports" ? "waitlist" : "reports")}
-                            className="text-slate-600 border-slate-200 hover:bg-slate-50 rounded-lg"
+                            className="text-slate-800 font-bold border-orange-200 bg-yellow-100 hover:bg-yellow-50 rounded-lg"
                         >
                             <BarChart2 className="w-4 h-4 mr-2" />
                             Reports

@@ -14,7 +14,7 @@ export type SidebarTab = "ALL" | "NO_SHOW" | "REPORTS";
 
 interface ReleasingQueueSidebarProps {
     items: VisitWithPatient[];
-    counts: { ALL: number; NO_SHOW: number; [key: string]: number };
+    counts: { ALL: number; NO_SHOW: number;[key: string]: number };
     activeTab: SidebarTab;
     onTabChange: (tab: SidebarTab) => void;
     isLocked: boolean;
@@ -71,7 +71,7 @@ export function ReleasingQueueSidebar({
                                 onCallNoShow(visit.id);
                             }}
                             disabled={isLocked}
-                            className="h-7 px-3 text-[10px] font-bold uppercase tracking-widest text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                            className="h-7 px-3 text-[10px] font-bold uppercase tracking-widest text-emerald-600 border-xl border-emerald-200 hover:bg-emerald-50"
                         >
                             Call No-Show
                         </Button>
@@ -82,76 +82,74 @@ export function ReleasingQueueSidebar({
     };
 
     return (
-        <Card className="h-full bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/70 shrink-0">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <CardTitle className="text-lg font-extrabold text-foreground tracking-wider uppercase">
-                            WaitList
-                        </CardTitle>
-                    </div>
+        <div className="flex flex-col h-full w-full bg-card rounded-xl border border-border overflow-hidden shrink-0">
+            {/* Header */}
+            <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center shrink-0">
+                <div>
+                    <h2 className="text-lg font-bold tracking-tight text-foreground uppercase">WaitList</h2>
+                </div>
+                <div className="flex items-center gap-2">
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => onTabChange(activeTab === "REPORTS" ? "ALL" : "REPORTS")}
-                        className="text-slate-600 border-slate-200 hover:bg-slate-50 rounded-lg"
+                        className="text-slate-800 font-bold border-orange-200 bg-yellow-100 hover:bg-yellow-50 rounded-lg"
                     >
                         <BarChart2 className="w-4 h-4 mr-2" />
                         Reports
                     </Button>
                 </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5 flex-1 overflow-hidden flex flex-col">
-                <Tabs value={activeTab} onValueChange={(val) => onTabChange(val as SidebarTab)} className="w-full flex-1 flex flex-col">
-                    <TabsList className="w-full flex bg-transparent border-b border-slate-200 h-auto mb-4 shrink-0 px-0 gap-0 rounded-none">
-                        <TabsTrigger
-                            value="ALL"
-                            disabled={isLocked}
-                            className="flex-1 flex items-center justify-center gap-2 rounded-none px-3 py-3 text-[11px] font-bold uppercase tracking-wide bg-transparent text-slate-500 shadow-none data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-                        >
-                            <span>WaitList</span>
-                            <span className="rounded-full px-2 py-0.5 text-[10px] font-black data-[state=active]:bg-emerald-700 data-[state=active]:text-emerald-50 data-[state=inactive]:bg-muted-foreground/20 data-[state=inactive]:text-muted-foreground transition-colors">
-                                {counts.ALL}
-                            </span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="NO_SHOW"
-                            disabled={isLocked}
-                            className="flex-1 flex items-center justify-center gap-2 rounded-none px-3 py-3 text-[11px] font-bold uppercase tracking-wide bg-transparent text-slate-500 shadow-none data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-                        >
-                            <span>No Show</span>
-                            <span className="rounded-full px-2 py-0.5 text-[10px] font-black data-[state=active]:bg-destructive-foreground/20 data-[state=active]:text-white data-[state=inactive]:bg-muted-foreground/20 data-[state=inactive]:text-muted-foreground transition-colors">
-                                {counts.NO_SHOW}
-                            </span>
-                        </TabsTrigger>
-                    </TabsList>
+            </div>
 
-                    <TabsContent value="ALL" className="flex-1 focus-visible:outline-none overflow-y-auto min-h-0">
-                        <div className="space-y-3 pr-1 custom-scrollbar">
-                            {renderList("ALL")}
+            {/* Tabs */}
+            <div className="flex border-b border-border bg-background">
+                <button
+                    onClick={() => onTabChange("ALL")}
+                    disabled={isLocked}
+                    className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-all relative ${activeTab === "ALL" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                >
+                    WaitList ({counts.ALL})
+                    {activeTab === "ALL" && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                    )}
+                </button>
+                <button
+                    onClick={() => onTabChange("NO_SHOW")}
+                    disabled={isLocked}
+                    className={`flex-1 py-3 text-[10px] text-red-800 font-bold uppercase tracking-widest transition-all relative ${activeTab === "NO_SHOW" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                >
+                    No Shows ({counts.NO_SHOW})
+                    {activeTab === "NO_SHOW" && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-destructive" />
+                    )}
+                </button>
+            </div>
+
+            {/* List Body */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
+                {activeTab === "ALL" && (
+                    <div className="p-4 sm:p-5 space-y-3">
+                        {renderList("ALL")}
+                    </div>
+                )}
+                {activeTab === "NO_SHOW" && (
+                    <div className="p-4 sm:p-5 space-y-3">
+                        {renderList("NO_SHOW")}
+                    </div>
+                )}
+                {activeTab === "REPORTS" && (
+                    <div className="p-4 sm:p-5 space-y-4">
+                        <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                            Reports Filter
                         </div>
-                    </TabsContent>
-
-
-
-                    <TabsContent value="NO_SHOW" className="flex-1 focus-visible:outline-none overflow-y-auto min-h-0">
-                        <div className="space-y-3 pr-1 custom-scrollbar">
-                            {renderList("NO_SHOW")}
-                        </div>
-                    </TabsContent>
-
-                    <TabsContent value="REPORTS" className="flex-1 focus-visible:outline-none overflow-y-auto min-h-0">
-                        <div className="space-y-4">
-                            <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                                Reports Filter
-                            </div>
-                            <ReportDatePicker value={reportDate} onChange={setReportDate} />
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
-        </Card>
+                        <ReportDatePicker value={reportDate} onChange={setReportDate} />
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -170,20 +168,20 @@ function QueueCard({
 
     return (
         <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm flex flex-col gap-2 relative">
-             <div className="flex justify-between items-start">   
+            <div className="flex justify-between items-start">
                 <div className="text-xl font-extrabold text-foreground leading-snug wrap-anywhere">
                     {visit.patient.lastName}, <span className="font-semibold text-muted-foreground">{visit.patient.firstName}</span>
                 </div>
                 <Badge variant="outline" className={`font-bold uppercase tracking-wider text-[10px] rounded-full ${visit.classification === 'PRIORITY' ? 'text-rose-600 border-rose-200 bg-rose-50/70' : 'text-emerald-700 border-emerald-200 bg-emerald-50'}`}>
-                   {visit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}
+                    {visit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}
                 </Badge>
             </div>
             <div className="flex items-center justify-between mt-1">
                 <div className="text-sm font-bold text-muted-foreground tracking-wider flex items-center gap-1.5">
                     <div className="w-5 h-5 bg-muted rounded flex items-center justify-center text-foreground font-black text-xs">
-                         #
-                     </div>
-                     {visit.triageTicket || "—"}
+                        #
+                    </div>
+                    {visit.triageTicket || "—"}
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground">

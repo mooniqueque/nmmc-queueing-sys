@@ -4,6 +4,10 @@ import { getQueueOptionsByDepartment } from "@/features/admin/queue-option-actio
 import { getAllUsers } from "@/features/admin/user-actions";
 import { Department } from "@/shared/types/models";
 import { connection } from "next/server";
+import { auth } from "@/lib/database/auth";
+import { headers } from "next/headers";
+import { SessionUser } from "@/shared/types/auth";
+import { AdminHeader } from "@/shared/layouts";
 
 type AdminUserRow = {
     name?: string;
@@ -38,7 +42,12 @@ export default async function DepartmentsData() {
     let queueOptionsByDepartment = {};
     let users: AdminUserRow[] = [];
 
+    let user: SessionUser | undefined;
+
     try {
+        const session = await auth.api.getSession({ headers: await headers() });
+        user = session?.user as unknown as SessionUser;
+
         const [response, allUsers] = await Promise.all([
             getDepartments(),
             getAllUsers(),
@@ -72,12 +81,15 @@ export default async function DepartmentsData() {
     );
 
     return (
-        <div className="mx-auto mt-4 max-w-7xl p-6">
-            <DepartmentSettings
-                initialDepartments={departments as Department[]}
-                initialQueueOptionsByDepartment={queueOptionsByDepartment}
-                initialDepartmentInsights={initialDepartmentInsights}
-            />
+        <div className="flex flex-1 flex-col">
+            {user && <AdminHeader user={user} title="Manage Departments" />}
+            <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
+                <DepartmentSettings
+                    initialDepartments={departments as Department[]}
+                    initialQueueOptionsByDepartment={queueOptionsByDepartment}
+                    initialDepartmentInsights={initialDepartmentInsights}
+                />
+            </main>
         </div>
     );
 }

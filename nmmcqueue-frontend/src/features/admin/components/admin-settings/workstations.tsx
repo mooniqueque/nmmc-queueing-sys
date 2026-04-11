@@ -16,7 +16,7 @@ export default function WorkstationSettings({
 }: WorkstationSettingsProps) {
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 w-full relative">
+        <div className="flex flex-col lg:flex-row gap-12 w-full relative">
             {/* Left Sidebar Track */}
             <div className="w-full lg:w-[350px] xl:w-[400px] shrink-0 relative">
                 <div className="sticky top-24 z-10 w-full mb-8">

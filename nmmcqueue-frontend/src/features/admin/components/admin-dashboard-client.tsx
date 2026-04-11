@@ -208,10 +208,10 @@ export default function AdminDashboard({
                 title="Admin Dashboard" 
             />
 
-            <main className="flex-1 p-6 lg:p-10 space-y-8 max-w-7xl mx-auto w-full">
+            <main className="flex-1 p-6 lg:p-10 space-y-8 max-w-[1600px] mx-auto w-full">
 
                 {/* ANALYTICS */}
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
                     <StatsCard
                         label="Total System User"
                         value={analytics.total.toString().padStart(2, '0')}
@@ -270,16 +270,16 @@ export default function AdminDashboard({
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-75 font-semibold">Staff Info</TableHead>
-                                <TableHead className="font-semibold">Assignment</TableHead>
-                                <TableHead className="font-semibold">Department Access</TableHead>
-                                <TableHead className="font-semibold">System Role</TableHead>
-                                <TableHead className="font-semibold">Status</TableHead>
+                                <TableHead className="w-75 font-semibold py-4">Staff Info</TableHead>
+                                <TableHead className="font-semibold py-4">Assignment</TableHead>
+                                <TableHead className="font-semibold py-4">Department Access</TableHead>
+                                <TableHead className="font-semibold py-4">System Role</TableHead>
+                                <TableHead className="font-semibold py-4 text-center w-[150px]">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {paginatedUsers.map((user) => (
-                                <TableRow key={user.id}>
+                                <TableRow key={user.id} className="h-16">
                                     <TableCell>
                                         <div className="flex flex-col py-0.5">
                                             <span className="font-semibold text-foreground tracking-tight">{user.name}</span>
@@ -396,11 +396,11 @@ export default function AdminDashboard({
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="sm" className="h-8 px-2">
-                                                    <Badge variant={user.isActive ? "default" : "secondary"} className="text-[10px] font-bold uppercase tracking-wider h-6">
+                                                <Button variant="ghost" size="sm" className="h-8 px-2 ">
+                                                    <Badge variant={user.isActive ? "default" : "secondary"} className="text-[10px] font-bold uppercase tracking-wider h-6 mx-auto">
                                                         {user.isActive ? "ACTIVE" : "INACTIVE"}
                                                     </Badge>
                                                 </Button>

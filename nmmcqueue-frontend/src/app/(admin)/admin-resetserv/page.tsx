@@ -16,14 +16,7 @@ export default async function AdminResetServicesPage() {
     return (
         <div className="flex flex-1 flex-col">
             {user && <AdminHeader user={user} title="Reset Services" />}
-            <main className="flex-1 p-6 lg:p-10 container mx-auto max-w-2xl w-full">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-semibold tracking-tight">System Reset</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Reset global ticket counters for the start of the day.
-                    </p>
-                </div>
-                
+            <main className="flex-1 p-6 lg:p-10 container mx-auto max-w-4xl w-full py-12">
                 <ResetServices />
             </main>
         </div>

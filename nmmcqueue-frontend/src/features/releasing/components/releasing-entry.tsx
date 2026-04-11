@@ -255,10 +255,10 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                         />
                     </div>
                 ) : (
-                    <Card className="bg-white rounded-2xl shadow-sm border border-slate-200 min-h-[60vh] shrink-0">
-                        <CardHeader className="border-b border-slate-100 bg-slate-50/70">
+                    <Card className="bg-card rounded-xl border border-border shrink-0 min-h-[60vh] overflow-hidden">
+                        <CardHeader className="border-b border-border bg-muted/30 px-6 py-6">
                             <div className="flex items-center justify-between">
-                                <CardTitle className="text-lg font-extrabold text-gray-800 tracking-wider uppercase">
+                                <CardTitle className="text-lg font-bold text-foreground tracking-tight uppercase">
                                     Calling Zone
                                 </CardTitle>
                             </div>

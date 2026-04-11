@@ -35,23 +35,26 @@ export function DemographicsStep({ formData, errors, onChange }: DemographicsSte
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="address">Complete Address *</Label>
-                <Input id="address" name="address" className="bg-white" value={formData.address} onChange={onChange} />
-                {errors.address && <p className="text-xs text-red-500">{errors.address}</p>}
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="address">Complete Address *</Label>
+                    <Input id="address" name="address" className="bg-white" value={formData.address} onChange={onChange} />
+                    {errors.address && <p className="text-xs text-red-500">{errors.address}</p>}
+                </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="contactNo">Mobile / Contact Number</Label>
-                <Input
-                    id="contactNo"
-                    name="contactNo"
-                    placeholder="e.g. 09123456789"
-                    className="bg-white"
-                    value={formData.contactNo || ""}
-                    onChange={onChange}
-                />
-                {errors.contactNo && <p className="text-xs text-red-500">{errors.contactNo}</p>}
+                <div className="space-y-2 md:col-span-1">
+                    <Label htmlFor="contactNo">Mobile / Contact Number</Label>
+                    <Input
+                        id="contactNo"
+                        name="contactNo"
+                        placeholder="e.g. 09123456789"
+                        className="bg-white"
+                        value={formData.contactNo || ""}
+                        onChange={onChange}
+                        maxLength={11}
+                    />
+                    {errors.contactNo && <p className="text-xs text-red-500">{errors.contactNo}</p>}
+                </div>
             </div>
         </div>
     );

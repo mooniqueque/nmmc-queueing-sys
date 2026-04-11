@@ -11,11 +11,12 @@ import { notify } from "@/shared/lib/notify";
 import { Department, PriorityCategory, VisitPriorityCategory } from "@/shared/types/models";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CaretDoubleRight, Printer, WarningCircle, XCircle } from "@phosphor-icons/react";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { markNoShow, submitTriageForm } from "../actions";
 import { TriageFormInput, TriageFormValues, triageFormSchema } from "../schemas";
 
+import { useTriageDraftStore } from "../store/use-triage-draft-store";
 import { useTriageStore } from "../store/use-triage-store";
 import { ClinicalNotesSection, SymptomsSection } from "./clinical-sections";
 import { DemographicsSection } from "./demographics-section";
@@ -32,12 +33,13 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
         submitError, setSubmitError,
         resetTriage
     } = useTriageStore();
+    const { saveDraft, clearDraft, getDraft } = useTriageDraftStore();
     const [isPending, startTransition] = useTransition();
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
     const [departments, setDepartments] = useState<Department[]>(availableDepartments ?? []);
     const [printErrorDialog, setPrintErrorDialog] = useState<{ open: boolean; error: string }>({ open: false, error: "" });
-    const [noShowDialogOpen, setNoShowDialogOpen] = useState(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (availableDepartments !== undefined) {
@@ -58,10 +60,17 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
             isManualEntry: false,
             firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Male",
             address: "", birthPlace: "", religion: "", civilStatus: "Single", hasAppointment: false,
-            bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
+            bloodPressure: "", bloodPressureNA: false,
+            heartRate: "", heartRateNA: false,
+            respiratoryRate: "", respiratoryRateNA: false,
+            temperature: "", temperatureNA: false,
+            oxygenSat: "", oxygenSatNA: false,
+            chiefComplaint: "", medicalHistory: "", triageRemarks: "",
             hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
             priorityClass: "REGULAR",
             queueOptionId: "",
+            departmentId: "",
+            disposition: "",
             categoryIds: []
         }
     });
@@ -71,18 +80,28 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
 
     useEffect(() => {
         if (isManualEntry) {
-            methods.reset({
+            const walkInDefaults: TriageFormInput = {
                 isManualEntry: true,
                 firstName: "", middleName: "", lastName: "", dateOfBirth: "", gender: "Male",
                 address: "", birthPlace: "", religion: "", civilStatus: "Single", hasAppointment: false,
-                bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
+                bloodPressure: "", bloodPressureNA: false,
+                heartRate: "", heartRateNA: false,
+                respiratoryRate: "", respiratoryRateNA: false,
+                temperature: "", temperatureNA: false,
+                oxygenSat: "", oxygenSatNA: false,
+                chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: "REGULAR",
                 queueOptionId: "",
+                departmentId: "",
+                disposition: "", // Will be validated on submit
                 categoryIds: []
-            });
+            };
+            // Restore draft if one exists for this walk-in session
+            const draft = getDraft(null);
+            methods.reset(draft ? { ...walkInDefaults, ...draft } : walkInDefaults);
         } else if (selectedPatient) {
-            methods.reset({
+            const patientDefaults: TriageFormInput = {
                 isManualEntry: false,
                 firstName: selectedPatient.patient.firstName,
                 middleName: selectedPatient.patient.middleName || "",
@@ -94,16 +113,41 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                 religion: selectedPatient.patient.religion || "",
                 civilStatus: selectedPatient.patient.civilStatus || "Single",
                 hasAppointment: selectedPatient.hasAppointment || false,
-                bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
+                bloodPressure: "", bloodPressureNA: false,
+                heartRate: "", heartRateNA: false,
+                respiratoryRate: "", respiratoryRateNA: false,
+                temperature: "", temperatureNA: false,
+                oxygenSat: "", oxygenSatNA: false,
+                chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: selectedPatient.classification || "REGULAR",
                 queueOptionId: selectedPatient.categories?.[0]?.categoryId || "",
+                departmentId: "",
+                disposition: "",
                 categoryIds: selectedPatient.categories?.map((c: VisitPriorityCategory) => c.categoryId) || []
-            });
+            };
+            // Restore draft if one exists for this specific patient
+            const draft = getDraft(selectedPatient.id);
+            methods.reset(draft ? { ...patientDefaults, ...draft } : patientDefaults);
         } else {
             methods.reset();
         }
-    }, [isManualEntry, selectedPatient, methods]);
+    }, [isManualEntry, selectedPatient, methods, getDraft]);
+
+    // Auto-save form state to localStorage (debounced)
+    useEffect(() => {
+        const subscription = methods.watch((values) => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            debounceRef.current = setTimeout(() => {
+                const currentVisitId = selectedPatient?.id ?? null;
+                saveDraft(values as Partial<TriageFormInput>, currentVisitId);
+            }, 500);
+        });
+        return () => {
+            subscription.unsubscribe();
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    }, [methods, selectedPatient, saveDraft]);
 
     useEffect(() => {
         if (!selectedDepartmentId) {
@@ -171,6 +215,7 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
 
                 notify.success("Patient is Successfully Queued For Window Processing");
 
+                clearDraft();
                 resetTriage();
                 setTimeout(() => {
                     setSubmitSuccess(false);
@@ -187,24 +232,6 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                 description: "Use SYSTOLIC/DIASTOLIC, e.g., 120/80.",
             });
         }
-    };
-
-    const handleNoShowClick = () => {
-        if (!selectedPatient) return;
-        setNoShowDialogOpen(true);
-    };
-
-    const handleConfirmNoShow = () => {
-        if (!selectedPatient) return;
-
-        startTransition(async () => {
-            const res = await markNoShow(selectedPatient.id);
-            if (!res.error) {
-                resetTriage();
-                methods.reset();
-                setNoShowDialogOpen(false);
-            }
-        });
     };
 
     return (
@@ -351,20 +378,8 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                                         </span>
                                     )}
 
-                                    <div className="flex flex-col sm:flex-row items-center gap-3">
-                                        {!isManualEntry && selectedPatient && (
-                                            <Button
-                                                type="button"
-                                                disabled={isPending}
-                                                onClick={handleNoShowClick}
-                                                variant="outline"
-                                                className="h-12 px-6 mt-6 w-full sm:w-auto text-[15px] tracking-widest uppercase font-black transition-all border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 rounded-xl bg-rose-50/50 hover:border-rose-300"
-                                            >
-                                                <span className="flex items-center gap-2">
-                                                    Mark No Show <XCircle size={22} weight="fill" />
-                                                </span>
-                                            </Button>
-                                        )}
+                                    <div className="flex flex-col sm:flex-row items-center gap-3 justify-end">
+
                                         <Button
                                             type="submit"
                                             disabled={isPending || submitSuccess}
@@ -412,34 +427,6 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                             className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                         >
                             Continue
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={noShowDialogOpen} onOpenChange={setNoShowDialogOpen}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Confirm No Show</DialogTitle>
-                        <DialogDescription>
-                            Marking this patient as no show will remove them from the active queue.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Alert variant="warning" className="my-2">
-                        <WarningCircle size={14} weight="bold" />
-                        <AlertTitle>Proceed carefully</AlertTitle>
-                        <AlertDescription>
-                            {selectedPatient
-                                ? `${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName} will be marked as NO SHOW.`
-                                : "Selected patient will be marked as NO SHOW."}
-                        </AlertDescription>
-                    </Alert>
-                    <DialogFooter className="flex gap-2">
-                        <Button variant="outline" onClick={() => setNoShowDialogOpen(false)} disabled={isPending}>
-                            Cancel
-                        </Button>
-                        <Button variant="destructive" onClick={handleConfirmNoShow} disabled={isPending}>
-                            {isPending ? "Updating..." : "Mark No Show"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

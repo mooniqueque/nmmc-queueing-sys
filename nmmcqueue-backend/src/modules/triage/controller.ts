@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../middleware/error-handler.js';
+import { AuthenticatedRequest } from '../../middleware/types.js';
+import { ticketPrintingService } from '../../services/ticket-printing-service.js';
 import { triageService } from './service';
 
 class TriageController {
@@ -9,39 +11,31 @@ class TriageController {
     });
 
 
-    submitTriage = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
-        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    submitTriage = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const result = await triageService.submitTriageForm(req.body.values, req.body.visitId, userId);
         
         let printError: string | null = null;
         if (result?.triageTicket) {
-            const prefix1 = result.classification === 'PRIORITY' ? 'PRIO' : 'REG';
-            const formattedTicket = `${prefix1}-${result.triageTicket.toString().padStart(2, '0')}`;
-            const windowAssignment = result.classification === 'PRIORITY' ? 'Proceed to Window 1' : 'Proceed to Window 4';
-
             try {
-                const { printTicket } = await import('../../lib/printer.js');
-                await printTicket({
-                    station: "Triage Station",
-                    label: "Triage Ticket",
-                    displayNumber: formattedTicket,
-                    date: new Date().toLocaleString(),
-                    windowAssignment: windowAssignment,
-                    footer: "This ticket is valid for today only."
+                await ticketPrintingService.print({
+                    type: 'triage',
+                    triageTicket: result.triageTicket,
+                    classification: result.classification,
                 });
-            } catch (err: any) {
-                console.error("Printer util failed:", err);
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown printer error occurred';
+                console.error('Printer util failed:', message);
                 // Store error but don't block submission
-                printError = err.message || 'Unknown printer error occurred';
+                printError = message;
             }
         }
 
         res.status(200).json({ success: true, data: result, printError });
     });
 
-    markNoShow = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
+    markNoShow = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         await triageService.markNoShow(req.params.id, userId);
         res.status(200).json({ success: true });
     });
@@ -61,9 +55,8 @@ class TriageController {
         res.status(200).json({ success: true, data: queue });
     });
 
-    callNextTriage = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
-        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    callNextTriage = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const visit = await triageService.callNextTriage(userId);
         if (!visit) {
             return res.status(200).json({ success: true, data: null, message: 'No patients waiting in triage queue.' });
@@ -71,24 +64,21 @@ class TriageController {
         res.status(200).json({ success: true, data: visit });
     });
 
-    callSpecificTriage = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
-        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    callSpecificTriage = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const visitId = req.params.id;
         const visit = await triageService.callSpecificTriage(visitId, userId);
         res.status(200).json({ success: true, data: visit });
     });
 
-    getMyCurrentVisit = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
-        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    getMyCurrentVisit = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const visit = await triageService.getMyCurrentVisit(userId);
         res.status(200).json({ success: true, data: visit });
     });
 
-    getMyAccessibleDepartments = asyncHandler(async (req: Request, res: Response) => {
-        const userId = (req as any).user?.id;
-        if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    getMyAccessibleDepartments = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
         const departments = await triageService.getMyAccessibleDepartments(userId);
         res.status(200).json({ success: true, data: departments });
     });

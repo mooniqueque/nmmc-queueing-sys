@@ -4,24 +4,7 @@ import type { Request, Response } from 'express';
 import { db } from '../../config/database.js';
 import { auth } from './auth.js';
 
-type SessionUser = {
-    id: string;
-    role: string;
-    isActive: boolean;
-    firstName: string;
-    lastName: string;
-    middleName: string | null;
-    suffix: string | null;
-    email: string;
-    employeeID: string;
-    department: string | null;
-    departmentId: string | null;
-    workstationId: string | null;
-    image: string | null;
-    name: string;
-    username: string | null;
-    displayUsername: string | null;
-};
+import { SessionUser, UserRole } from '@nmmc/types';
 
 function clearSessionCookies(req: Request, res: Response) {
     res.setHeader('Clear-Site-Data', '"cookies"');
@@ -79,7 +62,10 @@ export async function getVerifiedSessionUser(req: Request): Promise<SessionUser 
         throw new Error('Account is inactive or no longer authorized');
     }
 
-    return user;
+    return {
+        ...user,
+        role: user.role as UserRole,
+    };
 }
 
 export function rejectInvalidSession(req: Request, res: Response) {

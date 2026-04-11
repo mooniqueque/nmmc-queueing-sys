@@ -1,7 +1,7 @@
 "use client";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -10,7 +10,7 @@ import { getDepartments, getQueueOptions } from "@/features/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { Department, PriorityCategory, VisitPriorityCategory } from "@/shared/types/models";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CaretDoubleRight, Printer, Tag, WarningCircle, XCircle } from "@phosphor-icons/react";
+import { CaretDoubleRight, Printer, WarningCircle, XCircle } from "@phosphor-icons/react";
 import { useEffect, useState, useTransition } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { markNoShow, submitTriageForm } from "../actions";
@@ -37,10 +37,7 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
     const [availableCategories, setAvailableCategories] = useState<PriorityCategory[]>([]);
     const [departments, setDepartments] = useState<Department[]>(availableDepartments ?? []);
     const [printErrorDialog, setPrintErrorDialog] = useState<{ open: boolean; error: string }>({ open: false, error: "" });
-
-    useEffect(() => {
-        getQueueOptions("TRIAGE").then(cats => setAvailableCategories(cats));
-    }, []);
+    const [noShowDialogOpen, setNoShowDialogOpen] = useState(false);
 
     useEffect(() => {
         if (availableDepartments !== undefined) {
@@ -64,9 +61,13 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
             bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
             hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
             priorityClass: "REGULAR",
+            queueOptionId: "",
             categoryIds: []
         }
     });
+
+    const selectedDepartmentId = methods.watch("departmentId");
+    const selectedQueueOptionId = methods.watch("queueOptionId");
 
     useEffect(() => {
         if (isManualEntry) {
@@ -77,6 +78,7 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: "REGULAR",
+                queueOptionId: "",
                 categoryIds: []
             });
         } else if (selectedPatient) {
@@ -95,6 +97,7 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                 bloodPressure: "", chiefComplaint: "", medicalHistory: "", triageRemarks: "",
                 hasColds: false, hasCough: false, hasFever: false, hasRashes: false, isInfectious: false,
                 priorityClass: selectedPatient.classification || "REGULAR",
+                queueOptionId: selectedPatient.categories?.[0]?.categoryId || "",
                 categoryIds: selectedPatient.categories?.map((c: VisitPriorityCategory) => c.categoryId) || []
             });
         } else {
@@ -102,12 +105,58 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
         }
     }, [isManualEntry, selectedPatient, methods]);
 
+    useEffect(() => {
+        if (!selectedDepartmentId) {
+            setAvailableCategories([]);
+            methods.setValue("queueOptionId", "");
+            methods.setValue("categoryIds", []);
+            methods.setValue("priorityClass", "REGULAR");
+            return;
+        }
+
+        const selectedDepartment = departments.find((department) => department.id === selectedDepartmentId);
+        if (!selectedDepartment) return;
+
+        getQueueOptions(selectedDepartment.name)
+            .then((cats) => {
+                const queueOptions = Array.isArray(cats) ? cats : [];
+                setAvailableCategories(queueOptions);
+            })
+            .catch(() => {
+                setAvailableCategories([]);
+            });
+    }, [selectedDepartmentId, departments, methods]);
+
+    useEffect(() => {
+        if (availableCategories.length === 0) return;
+
+        const activeOption = availableCategories.find((category) => category.id === selectedQueueOptionId);
+        if (activeOption) {
+            methods.setValue("priorityClass", activeOption.isPriority ? "PRIORITY" : "REGULAR");
+            methods.setValue("categoryIds", [activeOption.id]);
+            return;
+        }
+
+        const regularOption = availableCategories.find((category) => category.code.trim().toUpperCase() === "REGULAR");
+        const defaultOption = regularOption ?? availableCategories[0];
+        methods.setValue("queueOptionId", defaultOption.id);
+        methods.setValue("priorityClass", defaultOption.isPriority ? "PRIORITY" : "REGULAR");
+        methods.setValue("categoryIds", [defaultOption.id]);
+    }, [availableCategories, selectedQueueOptionId, methods]);
+
     const onSubmit = (values: TriageFormValues) => {
         setSubmitError("");
         setSubmitSuccess(false);
 
+        const selectedOption = availableCategories.find((category) => category.id === values.queueOptionId);
+        const payload: TriageFormValues = {
+            ...values,
+            priorityClass: selectedOption ? (selectedOption.isPriority ? "PRIORITY" : "REGULAR") : values.priorityClass,
+            categoryIds: selectedOption ? [selectedOption.id] : [],
+        };
+
         startTransition(async () => {
-            const res = await submitTriageForm(values, selectedPatient?.id);
+            const res = await submitTriageForm(payload, selectedPatient?.id);
             if (res?.error) {
                 setSubmitError(res.error as string);
             } else {
@@ -142,15 +191,20 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
 
     const handleNoShowClick = () => {
         if (!selectedPatient) return;
-        if (window.confirm(`Are you sure you want to mark ${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName} as NO SHOW? They will be removed from the active queue.`)) {
-            startTransition(async () => {
-                const res = await markNoShow(selectedPatient.id);
-                if (!res.error) {
-                    resetTriage();
-                    methods.reset();
-                }
-            });
-        }
+        setNoShowDialogOpen(true);
+    };
+
+    const handleConfirmNoShow = () => {
+        if (!selectedPatient) return;
+
+        startTransition(async () => {
+            const res = await markNoShow(selectedPatient.id);
+            if (!res.error) {
+                resetTriage();
+                methods.reset();
+                setNoShowDialogOpen(false);
+            }
+        });
     };
 
     return (
@@ -218,26 +272,6 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                                     </div>
                                     <div className="flex-1">
                                         <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
-                                            Patient Classification
-                                        </Label>
-                                        <Controller
-                                            control={methods.control}
-                                            name="priorityClass"
-                                            render={({ field }) => (
-                                                <Select onValueChange={field.onChange} value={field.value}>
-                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-lg font-semibold text-gray-900 transition-all border border-slate-300 ${field.value === "PRIORITY" ? "text-emerald-600 ring-1 ring-emerald-500/50 border-emerald-500/50" : "text-slate-800"}`}>
-                                                        <SelectValue placeholder="Select Classification" />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-300 bg-white">
-                                                        <SelectItem value="REGULAR" className="font-bold py-2 focus:bg-slate-100 text-slate-800">Regular</SelectItem>
-                                                        <SelectItem value="PRIORITY" className="font-bold py-2 focus:bg-slate-100 text-emerald-600">Priority</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="flex-1">
-                                        <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
                                             Clinical Department *
                                         </Label>
                                         {departments.length === 0 && (
@@ -264,42 +298,46 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                                             )}
                                         />
                                     </div>
-                                </div>
+                                    <div className="flex-1">
+                                        <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
+                                            Patient Classification *
+                                        </Label>
+                                        <Controller
+                                            control={methods.control}
+                                            name="queueOptionId"
+                                            render={({ field }) => {
+                                                const selectedOption = availableCategories.find((category) => category.id === field.value);
 
-                                {availableCategories.length > 0 && (
-                                    <div className="mt-4 p-4 bg-slate-700/30 rounded-xl border border-slate-600/50">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <Tag size={18} weight="duotone" className="text-emerald-400" />
-                                            <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">Priority Tags / Categories</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {availableCategories.map(cat => (
-                                                <div key={cat.id} className="flex items-center space-x-2 bg-slate-700/50 p-2 rounded-lg border border-slate-600/50 hover:border-emerald-500/50 transition-colors">
-                                                    <Controller
-                                                        control={methods.control}
-                                                        name="categoryIds"
-                                                        render={({ field }) => (
-                                                            <Checkbox
-                                                                id={`triage-cat-${cat.id}`}
-                                                                checked={field.value?.includes(cat.id)}
-                                                                onCheckedChange={(checked: boolean) => {
-                                                                    const current = field.value || [];
-                                                                    const next = checked
-                                                                        ? [...current, cat.id]
-                                                                        : current.filter(id => id !== cat.id);
-                                                                    field.onChange(next);
-                                                                }}
-                                                            />
-                                                        )}
-                                                    />
-                                                    <label htmlFor={`triage-cat-${cat.id}`} className="text-xs font-bold text-slate-200 cursor-pointer">
-                                                        {cat.name}
-                                                    </label>
-                                                </div>
-                                            ))}
-                                        </div>
+                                                return (
+                                                <Select
+                                                    onValueChange={(value) => {
+                                                        const option = availableCategories.find((category) => category.id === value);
+                                                        field.onChange(value);
+                                                        methods.setValue("priorityClass", option?.isPriority ? "PRIORITY" : "REGULAR", { shouldValidate: true });
+                                                        methods.setValue("categoryIds", option ? [option.id] : [], { shouldValidate: true });
+                                                    }}
+                                                    value={field.value}
+                                                    disabled={!methods.watch("departmentId") || availableCategories.length === 0}
+                                                >
+                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-lg font-semibold text-gray-900 transition-all border border-slate-300 ${selectedOption?.isPriority ? "text-emerald-600 ring-1 ring-emerald-500/50 border-emerald-500/50" : "text-slate-800"}`}>
+                                                        <SelectValue placeholder={methods.watch("departmentId") ? "Select Classification" : "Select Department First"} />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-300 bg-white">
+                                                        {availableCategories.map((category) => (
+                                                            <SelectItem
+                                                                key={category.id}
+                                                                value={category.id}
+                                                                className={`font-bold py-2 focus:bg-slate-100 ${category.isPriority ? "text-emerald-600" : "text-slate-800"}`}
+                                                            >
+                                                                {category.code}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}}
+                                        />
                                     </div>
-                                )}
+                                </div>
 
                                 <div className="flex flex-col items-end justify-center">
                                     {submitError && (
@@ -374,6 +412,34 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                             className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                         >
                             Continue
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={noShowDialogOpen} onOpenChange={setNoShowDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Confirm No Show</DialogTitle>
+                        <DialogDescription>
+                            Marking this patient as no show will remove them from the active queue.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Alert variant="warning" className="my-2">
+                        <WarningCircle size={14} weight="bold" />
+                        <AlertTitle>Proceed carefully</AlertTitle>
+                        <AlertDescription>
+                            {selectedPatient
+                                ? `${selectedPatient.patient.firstName} ${selectedPatient.patient.lastName} will be marked as NO SHOW.`
+                                : "Selected patient will be marked as NO SHOW."}
+                        </AlertDescription>
+                    </Alert>
+                    <DialogFooter className="flex gap-2">
+                        <Button variant="outline" onClick={() => setNoShowDialogOpen(false)} disabled={isPending}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleConfirmNoShow} disabled={isPending}>
+                            {isPending ? "Updating..." : "Mark No Show"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -1,13 +1,9 @@
-import { getQueueOptionsByDepartment } from "@/features/admin/queue-option-actions";
 import DepartmentSettings from "@/features/admin/components/admin-settings/departments";
 import { getDepartments } from "@/features/admin/department-actions";
+import { getQueueOptionsByDepartment } from "@/features/admin/queue-option-actions";
 import { getAllUsers } from "@/features/admin/user-actions";
 import { Department } from "@/shared/types/models";
 import { connection } from "next/server";
-import { auth } from "@/lib/database/auth";
-import { headers } from "next/headers";
-import { SessionUser } from "@/types/auth";
-import { AdminHeader } from "@/shared/layouts";
 
 type AdminUserRow = {
     name?: string;
@@ -40,7 +36,6 @@ export default async function DepartmentsData() {
 
     let departments: Department[] = [];
     let queueOptionsByDepartment = {};
-<<<<<<< HEAD
     let users: AdminUserRow[] = [];
 
     try {
@@ -49,15 +44,6 @@ export default async function DepartmentsData() {
             getAllUsers(),
         ]);
 
-=======
-    let user: SessionUser | undefined;
-
-    try {
-        const session = await auth.api.getSession({ headers: await headers() });
-        user = session?.user as unknown as SessionUser;
-
-        const response = await getDepartments();
->>>>>>> origin/frontandback_styling
         departments = response.success && response.data ? response.data : [];
         users = Array.isArray(allUsers) ? (allUsers as AdminUserRow[]) : [];
 
@@ -86,20 +72,12 @@ export default async function DepartmentsData() {
     );
 
     return (
-<<<<<<< HEAD
         <div className="mx-auto mt-4 max-w-7xl p-6">
             <DepartmentSettings
                 initialDepartments={departments as Department[]}
                 initialQueueOptionsByDepartment={queueOptionsByDepartment}
                 initialDepartmentInsights={initialDepartmentInsights}
             />
-=======
-        <div className="flex flex-1 flex-col">
-            {user && <AdminHeader user={user} title="Manage Departments" />}
-            <main className="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
-                <DepartmentSettings initialDepartments={departments as Department[]} initialQueueOptionsByDepartment={queueOptionsByDepartment} />
-            </main>
->>>>>>> origin/frontandback_styling
         </div>
     );
 }

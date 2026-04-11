@@ -1,39 +1,35 @@
 import { VisitWithPatient } from "@/features/triage/types";
-import { auth } from "@/lib/database/auth";
-
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { getServerHeaders } from "@/lib/api/server";
 import { connection } from "next/server";
 import UserCallerDashboard from './user-caller-dashboard';
+import { getCallerScope, getClinicQueues } from "../api";
 
 export default async function CallerData() {
     await connection();
 
-    let session = null;
     let initialQueueData: VisitWithPatient[] = [];
-    let userDepartment = ""; // Fallback
+    let userDepartment = "";
 
     try {
-        session = await auth.api.getSession({ headers: await headers() });
+        const headers = await getServerHeaders();
+        const [scopeRes, pendingRes] = await Promise.all([
+            getCallerScope({ headers }),
+            getClinicQueues(undefined, { headers }),
+        ]);
 
-        if (!session?.user) {
-            redirect("/login");
+        if (scopeRes.success) {
+            userDepartment = scopeRes.data?.department?.name ?? "";
         }
 
-        userDepartment = session.user.department as string;
-        if (!userDepartment) {
-            redirect("/login");
-        }
-
-        const { getClinicQueues } = await import('@/features/admin/clinic-queue-actions');
-        // Fetch only for the specific user's department
-        const pendingRes = await getClinicQueues(userDepartment);
         if (pendingRes.success) {
-            initialQueueData = pendingRes.data;
+            initialQueueData = pendingRes.data ?? [];
+        }
+
+        if (!userDepartment && initialQueueData.length > 0) {
+            userDepartment = initialQueueData[0]?.department?.name ?? "";
         }
 
     } catch (error) {
-        // Build-time handle or runtime error
         console.error("Failed to load Caller data:", error);
     }
 

@@ -67,7 +67,8 @@ export const triageFormSchema = z.object({
     medicalHistory: z.string().optional(),
     triageRemarks: z.string().optional(),
     disposition: z.enum(["EMERGENT", "URGENT", "NON-URGENT"], { message: "Acuity is required" }),
-    priorityClass: z.string().default("REGNEW"),
+    priorityClass: z.string().default("REGULAR"),
+    queueOptionId: z.string().optional(),
     departmentId: z.string({ message: "Clinical department is required" }).min(1, "Clinical department is required"),
     categoryIds: z.array(z.string()).default([]),
 })

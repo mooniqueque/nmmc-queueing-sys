@@ -5,7 +5,7 @@ import { WorkStation, Department } from "@/shared/types/models";
 import { connection } from "next/server";
 import { auth } from "@/lib/database/auth";
 import { headers } from "next/headers";
-import { SessionUser } from "@/types/auth";
+import { SessionUser } from "@/shared/types/auth";
 import { AdminHeader } from "@/shared/layouts";
 
 export default async function WorkstationsData() {

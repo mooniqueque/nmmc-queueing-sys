@@ -8,6 +8,7 @@ import { getDepartments } from "@/features/shared/api";
 import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
 import { useClinicSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 import { VisitWithPatient } from "@/features/triage/types";
+import { ApiClientError } from "@/lib/api";
 import { notify } from "@/shared/lib/notify";
 import { calculateAge } from "@/shared/lib/utils";
 import {
@@ -26,7 +27,7 @@ import {
 import { BarChart2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { CallerApiError, callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
+import { callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
 
 
@@ -50,7 +51,7 @@ export default function UserCallerDashboard({
 
     useEffect(() => {
         getDepartments().then(res => {
-            if (res.success) setDepartments(res.data);
+            if (res.success) setDepartments(res.data ?? []);
         });
     }, [setDepartments]);
 
@@ -82,14 +83,16 @@ export default function UserCallerDashboard({
         return [...priorityFirst, ...regularSecond];
     }, [priorityWaitingList, regularWaitingList]);
 
-    const noShowList = departmentQueue.filter(v => v.status === "NO_SHOW");
+    const noShowList = departmentQueue.filter(
+        v => v.status === "NO_SHOW" && Boolean(v.sequenceKey?.startsWith("DEPT_"))
+    );
     const canCallRegular = regularWaitingList.length > 0;
     const canCallPriority = priorityWaitingList.length > 0;
     const currentDepartmentId = allDepartments.find((item) => item.name.toUpperCase() === department.toUpperCase())?.id;
     const { data: snapshotData } = useClinicSnapshot(reportDate, currentDepartmentId, Boolean(currentDepartmentId));
 
     const handleCallerApiError = (error: unknown, fallbackMessage: string) => {
-        if (error instanceof CallerApiError) {
+        if (error instanceof ApiClientError) {
             if (error.code === "CLAIM_CONFLICT") {
                 notify.error("Patient already claimed by another caller.", {
                     description: "Queue refreshed to show latest ownership.",

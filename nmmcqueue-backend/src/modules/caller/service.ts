@@ -9,7 +9,48 @@ import { monitorService } from '../monitor/service.js';
 const normalizeOption = (v: string) => v.trim().toUpperCase();
 const normalizeDepartmentKey = (v: string) => v.trim().toUpperCase();
 
+const DEFAULT_QUEUE_OPTIONS: Array<{ name: string; code: string; isPriority: boolean }> = [
+    { name: 'REGULAR', code: 'REGULAR', isPriority: false },
+    { name: 'CHILD', code: 'CHILD', isPriority: true },
+    { name: 'FT', code: 'FT', isPriority: true },
+    { name: 'ER-REF', code: 'ER-REF', isPriority: true },
+];
+
 class CallerService {
+    async getResolvedScope(userId?: string) {
+        const scope = await this.getCallerScope(userId);
+        const department = await db.department.findUnique({
+            where: { id: scope.departmentId },
+            select: { id: true, name: true, code: true, slug: true },
+        });
+
+        if (!department) {
+            throw new AppError('Assigned department not found.', 404, 'DEPARTMENT_NOT_FOUND');
+        }
+
+        return {
+            ...scope,
+            department,
+        };
+    }
+
+    private sortQueueOptions<T extends { code: string; name: string }>(options: T[]): T[] {
+        const orderMap = new Map(DEFAULT_QUEUE_OPTIONS.map((option, index) => [option.code, index]));
+
+        return [...options].sort((a, b) => {
+            const aCode = normalizeOption(a.code);
+            const bCode = normalizeOption(b.code);
+            const aIndex = orderMap.has(aCode) ? orderMap.get(aCode)! : Number.POSITIVE_INFINITY;
+            const bIndex = orderMap.has(bCode) ? orderMap.get(bCode)! : Number.POSITIVE_INFINITY;
+
+            if (aIndex !== bIndex) {
+                return aIndex - bIndex;
+            }
+
+            return a.name.localeCompare(b.name);
+        });
+    }
+
     private normalizeDepartmentMonitorSnapshot(
         snapshot: Awaited<ReturnType<typeof monitorService.getDepartmentStatus>>
     ) {
@@ -129,7 +170,8 @@ class CallerService {
             throw new AppError('User not found', 404, 'USER_NOT_FOUND');
         }
 
-        let departmentId = user.departmentId ?? user.workstation?.departmentId ?? null;
+        // For clinic callers, workstation-linked department is the source of truth.
+        let departmentId = user.workstation?.departmentId ?? user.departmentId ?? null;
 
         if (!departmentId && user.department) {
             const dept = await db.department.findFirst({
@@ -165,16 +207,29 @@ class CallerService {
     }
 
     async getDepartments() { return await db.department.findMany({ orderBy: { name: 'asc' } }); }
-    async createDepartment(name: string, code: string) { 
+    async createDepartment(name: string, code: string) {
         const trimmedName = name.trim().toUpperCase();
         const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-        return await db.department.create({ 
-            data: { 
-                name: trimmedName, 
-                code: code.trim().toUpperCase(),
-                slug
-            } 
-        }); 
+
+        return await db.$transaction(async (tx) => {
+            const department = await tx.department.create({
+                data: {
+                    name: trimmedName,
+                    code: code.trim().toUpperCase(),
+                    slug
+                }
+            });
+
+            await tx.priorityCategory.createMany({
+                data: DEFAULT_QUEUE_OPTIONS.map((option) => ({
+                    ...option,
+                    departmentId: department.id,
+                })),
+                skipDuplicates: true,
+            });
+
+            return department;
+        });
     }
     async deleteDepartment(id: string) { await db.department.delete({ where: { id } }); }
     async getQueueOptions(departmentName: string) {
@@ -182,18 +237,19 @@ class CallerService {
             where: { name: departmentName.trim().toUpperCase() }, 
             select: { priorityCategories: { select: { id: true, name: true, code: true, isPriority: true, parentId: true } } } 
         });
-        return dept ? dept.priorityCategories : [];
+        return dept ? this.sortQueueOptions(dept.priorityCategories) : [];
     }
     async getPendingQueue(departmentName?: string, userId?: string) {
         const scope = await this.getCallerScope(userId);
         const queueBusinessDay = getQueueBusinessDay();
+        const departmentSequenceKey = `DEPT_${scope.departmentId}`;
 
         const whereClause: any = {
             queueBusinessDay,
             departmentId: scope.departmentId,
             OR: [
                 { status: 'WAITING_CLINIC' },
-                { status: 'NO_SHOW' },
+                { status: 'NO_SHOW', sequenceKey: { startsWith: departmentSequenceKey } },
                 { status: 'IN_PROGRESS', calledByUserId: scope.userId },
             ],
         };
@@ -329,7 +385,9 @@ class CallerService {
             where: { name: { in: trimmed } }, 
             select: { name: true, priorityCategories: { select: { id: true, name: true, code: true, isPriority: true, parentId: true } } } 
         });
-        const byKey = Object.fromEntries(depts.map(d => [normalizeDepartmentKey(d.name), d.priorityCategories]));
+        const byKey = Object.fromEntries(
+            depts.map((d) => [normalizeDepartmentKey(d.name), this.sortQueueOptions(d.priorityCategories)])
+        );
         return Object.fromEntries(trimmed.map(n => { const k = normalizeDepartmentKey(n); return [k, byKey[k] ?? []]; }));
     }
     async createQueueOption(departmentName: string, data: { name: string, code: string, isPriority: boolean, parentId?: string }) {
@@ -453,9 +511,10 @@ class CallerService {
 
     async noShowPatient(visitId: string, userId?: string) {
         const scope = await this.getCallerScope(userId);
+        const departmentSequenceKey = `DEPT_${scope.departmentId}`;
         const visit = await db.visit.findUnique({
             where: { id: visitId },
-            select: { id: true, status: true, departmentId: true, calledByUserId: true }
+            select: { id: true, status: true, departmentId: true, calledByUserId: true, sequenceKey: true }
         });
         if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
         this.assertVisitScope(visit.departmentId, scope.departmentId);
@@ -466,11 +525,15 @@ class CallerService {
         if (!['WAITING_CLINIC', 'IN_PROGRESS', 'NO_SHOW'].includes(visit.status)) {
             throw new AppError('Patient cannot be marked no-show in current status.', 400, 'CLAIM_INVALID_STATE');
         }
+        if (visit.status === 'NO_SHOW' && !visit.sequenceKey?.startsWith(departmentSequenceKey)) {
+            throw new AppError('Patient cannot be marked no-show in current status.', 400, 'CLAIM_INVALID_STATE');
+        }
 
         const updated = await db.visit.update({
             where: { id: visitId },
             data: { 
                 status: 'NO_SHOW',
+                sequenceKey: departmentSequenceKey,
                 statusHistory: { create: { status: 'NO_SHOW', changedBy: scope.userId } }
             }
         });
@@ -542,15 +605,19 @@ class CallerService {
     }
     async restorePatient(visitId: string, userId?: string) {
         const scope = await this.getCallerScope(userId);
+        const departmentSequenceKey = `DEPT_${scope.departmentId}`;
         const visit = await db.visit.findUnique({
             where: { id: visitId },
-            select: { id: true, status: true, departmentId: true }
+            select: { id: true, status: true, departmentId: true, sequenceKey: true }
         });
         if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
         this.assertVisitScope(visit.departmentId, scope.departmentId);
 
         if (visit.status !== 'NO_SHOW') {
             throw new AppError('Only no-show patients can be restored.', 400, 'CLAIM_INVALID_STATE');
+        }
+        if (!visit.sequenceKey?.startsWith(departmentSequenceKey)) {
+            throw new AppError('Only clinic no-show patients can be restored.', 400, 'CLAIM_INVALID_STATE');
         }
 
         const updated = await db.visit.update({

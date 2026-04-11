@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import { Department } from "@/shared/types/models";
+import { create } from "zustand";
 
 export type CallerTab = "waitlist" | "noshow" | "reports" | "referrals";
 

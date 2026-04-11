@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { VisitWithPatient } from "./types";
 import { useLiveQueue } from "@/shared/hooks/use-live-queue";
 import { removeVisitById, SSE_TOPICS, upsertVisitById } from "@/shared/lib/sse";
 import { VisitStatus } from "@/shared/types/models";
+import { useCallback, useEffect, useState } from "react";
+import { VisitWithPatient } from "./types";
 
 export type TabType = "ACTIVE" | "NO_SHOW" | "REPORTS";
+
+const isTriageScopedNoShow = (visit: VisitWithPatient) =>
+    visit.status === VisitStatus.NO_SHOW && !visit.sequenceKey;
 
 export function useTriageQueue(initialQueue: VisitWithPatient[], initialCurrentVisit: VisitWithPatient | null, userId?: string) {
     const [queue, setQueue] = useState(initialQueue);
@@ -58,7 +61,7 @@ export function useTriageQueue(initialQueue: VisitWithPatient[], initialCurrentV
     const [activeTab, setActiveTab] = useState<TabType>("ACTIVE");
 
     const activeQueue = queue.filter(v => v.status === VisitStatus.WAITING_TRIAGE);
-    const noShowQueue = queue.filter(v => v.status === VisitStatus.NO_SHOW);
+    const noShowQueue = queue.filter(isTriageScopedNoShow);
 
     return {
         activeQueue,

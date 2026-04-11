@@ -21,9 +21,9 @@ export default async function AdminDashboardData() {
         session = await auth.api.getSession({ headers: await headers() });
         allUsers = await getAllUsers();
         const response = await getDepartments();
-        departments = response.success ? response.data : [];
+        departments = response.success ? (response.data ?? []) : [];
         const wsResponse = await getWorkstations();
-        workstations = wsResponse.success ? wsResponse.data : [];
+        workstations = wsResponse.success ? (wsResponse.data ?? []) : [];
     } catch {
         // Handle error
     }

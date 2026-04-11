@@ -344,22 +344,28 @@ export default function AdminDashboard({
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                className="h-8 w-full justify-between border-dashed text-xs font-semibold uppercase tracking-wider"
+                                                className="h-8 gap-1.5 px-2.5 border-dashed text-xs font-semibold tracking-tight whitespace-nowrap"
                                                 onClick={() => handleManageDepartments(user)}
+                                                title="Manage triage department access"
                                             >
-                                                <span>Manage Departments</span>
-                                                <span className="text-[10px] font-bold text-muted-foreground">Triage Access</span>
+                                                <span>Manage</span>
+                                                <Badge variant="outline" className="h-5 px-1.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                                                    Triage
+                                                </Badge>
                                             </Button>
                                         ) : user.role === 'CLINIC_CALLER' ? (
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                className="h-8 w-full justify-between border-dashed text-xs font-semibold uppercase tracking-wider"
+                                                className="h-8 gap-1.5 px-2.5 border-dashed text-xs font-semibold tracking-tight whitespace-nowrap"
                                                 onClick={() => handleManageClinicCallerDepartments(user)}
+                                                title="Manage clinic caller department access"
                                             >
-                                                <span>Manage Departments</span>
-                                                <span className="text-[10px] font-bold text-muted-foreground">Caller Access</span>
+                                                <span>Manage</span>
+                                                <Badge variant="outline" className="h-5 px-1.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                                                    Caller
+                                                </Badge>
                                             </Button>
                                         ) : (
                                             <span className="text-xs font-medium text-muted-foreground">Not Applicable</span>

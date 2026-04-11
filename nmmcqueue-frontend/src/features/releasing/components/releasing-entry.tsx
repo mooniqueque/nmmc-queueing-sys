@@ -202,7 +202,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
 
 
     const waitingQueue = activeQueue.filter(v => v.status === 'WAITING_WINDOW');
-    const noShowQueue = activeQueue.filter(v => v.status === 'NO_SHOW');
+    const noShowQueue = activeQueue.filter(v => v.status === 'NO_SHOW' && Boolean(v.sequenceKey?.startsWith('WINDOW_')));
 
     const counts = {
         ALL: waitingQueue.length,

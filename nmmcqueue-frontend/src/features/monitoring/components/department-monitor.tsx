@@ -14,12 +14,15 @@ interface DepartmentMonitorProps {
     slug: string;
 }
 
+const DEFAULT_DESKS = [
+    { stationNo: 1, windowName: "Main Desk 1", displayTicket: null },
+    { stationNo: 2, windowName: "Main Desk 2", displayTicket: null },
+    { stationNo: 3, windowName: "Main Desk 3", displayTicket: null },
+];
+
 export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     const currentTime = useCurrentTime();
     const { windows, upcoming, loading, currentAnnouncement } = useWindowMonitor(slug);
-    const stationCount = Math.max(windows.length, 1);
-    const isDense = stationCount >= 4;
-    const isVeryDense = stationCount >= 6;
     const [departmentName, setDepartmentName] = useState("LOADING...");
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -37,8 +40,21 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
             });
     }, [slug]);
 
+    // Merge real windows on top of defaults; always show at least 3 desks
+    const displayWindows = DEFAULT_DESKS.map((desk) => {
+        const real = windows.find((w) => w.stationNo === desk.stationNo);
+        return real ?? desk;
+    });
+    // Append any extra real windows beyond the 3 defaults
+    const extraWindows = windows.filter((w) => w.stationNo > DEFAULT_DESKS.length);
+    const allWindows = [...displayWindows, ...extraWindows];
+
+    const stationCount = allWindows.length;
+    const isDense = stationCount >= 4;
+    const isVeryDense = stationCount >= 6;
+
     const formatTime = (date: Date) => {
-        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     };
 
     const formatDate = (date: Date) => {
@@ -83,36 +99,27 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
 
             <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden max-w-[1800px] mx-auto w-full">
                 {/* LEFT COLUMN: CALLING LIST IN A CLEAN SHADCN CARD */}
-                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-xl border bg-card shadow-primary/5 rounded-4xl bg-white">
-                    <div className="flex justify-between px-8 py-5 bg-primary font-black text-white text-xl border-b-2 uppercase border-slate-100">
-                        <span>Lane Name</span>
+                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-xl border bg-card shadow-primary/5 rounded-3xl bg-white">
+                    <div className="flex justify-between px-8 py-6 bg-primary text-primary-foreground font-black uppercase tracking-widest text-2xl">
+                        <span>Service Window</span>
                         <span>Now Serving</span>
                     </div>
 
                     <div className="flex-1 flex flex-col overflow-hidden w-full">
-                        {loading ? (
-                            <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">Loading Monitor...</div>
-                        ) : windows.length === 0 ? (
-                            <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">No active stations</div>
-                        ) : windows.map((window, index) => (
-                            <div key={index} className={`flex-1 min-h-0 flex flex-row items-center justify-between px-7 ${isVeryDense ? "py-2.5" : isDense ? "py-3" : "py-6"} border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors`}>
+                        {allWindows.map((window, index) => (
+                            <div key={index} className="flex flex-row items-center justify-between px-4 py-6 border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                                 <div className="flex flex-col">
-                                    <span className={`font-black text-slate-400 uppercase tracking-widest ${isVeryDense ? "text-[10px] mb-1" : "text-xs mb-1.5"}`}>
-                                        Station {window.stationNo}
-                                    </span>
-                                    <span className={`${isVeryDense ? "text-2xl" : isDense ? "text-3xl" : "text-4xl"} font-extrabold text-slate-800 tracking-tight leading-none`}>
+                                    <span className="text-4xl px-5 font-bold text-slate-800 tracking-tight">
                                         {window.windowName}
                                     </span>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right flex flex-col items-end px-7">
                                     {window.displayTicket ? (
-                                        <div className={`${isVeryDense ? "w-44 h-18" : isDense ? "w-52 h-22" : "w-60 h-24"} flex items-center justify-center rounded-lg bg-emerald-50/40 border border-emerald-100`}>
-                                            <span className={`${isVeryDense ? "text-3xl" : isDense ? "text-4xl" : "text-5xl"} font-black text-emerald-600 tracking-tight tabular-nums drop-shadow-sm leading-none whitespace-nowrap`}>
-                                                {window.displayTicket}
-                                            </span>
-                                        </div>
+                                        <span className="text-7xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
+                                            {window.displayTicket}
+                                        </span>
                                     ) : (
-                                        <span className={`${isVeryDense ? "text-xl" : "text-2xl"} font-bold text-slate-300 uppercase tracking-widest italic py-2`}>Waiting...</span>
+                                        <div className="h-16" />
                                     )}
                                 </div>
                             </div>
@@ -148,7 +155,7 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
                     </Card>
 
                     {/* UPCOMING WAITLIST - COMPACT FOR PUBLIC VIEWING */}
-                    <Card className="p-4 bg-white shadow-md border shadow-xl shadow-primary/5 rounded-xl flex flex-col justify-center shrink-0">
+                    <Card className="p-6 bg-white shadow-xl shadow-primary/5 border rounded-3xl flex flex-col justify-center shrink-0">
                         <div className="flex items-center justify-between mb-3 border-b pb-2">
                             <div>
                                 <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Next in Line</h1>

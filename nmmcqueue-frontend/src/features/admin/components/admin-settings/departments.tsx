@@ -21,7 +21,7 @@ import { createDepartment, deleteDepartment, updateDepartmentStatus } from "@/fe
 import { notify } from "@/shared/lib/notify";
 import { cn } from "@/shared/lib/utils";
 import { Department, DepartmentStatus, PriorityCategory } from "@/shared/types/models";
-import { Funnel, Gear, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
+import { Funnel, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -374,12 +374,7 @@ export default function DepartmentSettings({
                                     </div>
                                 </div>
 
-                                {/* Button Area (right side) */}
-                                <div className="shrink-0 flex items-center justify-center">
-                                    <div className="flex size-9 items-center justify-center rounded-full transition-colors bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200">
-                                        <Gear size={20} weight="fill" />
-                                    </div>
-                                </div>
+
                             </div>
                         );
                     })

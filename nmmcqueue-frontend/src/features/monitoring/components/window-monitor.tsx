@@ -28,7 +28,7 @@ export default function WindowMonitor() {
     }, []);
 
     const formatTime = (date: Date) => {
-        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     };
 
     const formatDate = (date: Date) => {
@@ -74,7 +74,7 @@ export default function WindowMonitor() {
             <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden max-w-[1800px] mx-auto w-full">
                 {/* LEFT COLUMN: CALLING LIST IN A CLEAN SHADCN CARD */}
                 <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-xl shadow-primary/5 border rounded-3xl bg-card">
-                    <div className="flex justify-between px-8 py-5 bg-primary text-primary-foreground font-black uppercase tracking-widest text-xl">
+                    <div className="flex justify-between px-8 py-6 bg-primary text-primary-foreground font-black uppercase tracking-widest text-2xl">
                         <span>Service Window</span>
                         <span>Now Serving</span>
                     </div>
@@ -85,16 +85,16 @@ export default function WindowMonitor() {
                         ) : windows.length === 0 ? (
                             <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">No active windows</div>
                         ) : windows.map((window, index) => (
-                            <div key={index} className="flex flex-row items-center justify-between px-4 py-3 border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                            <div key={index} className="flex flex-row items-center justify-between px-4 py-6 border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                                 <div className="flex flex-col">
-                                    <span className="text-2xl px-5 font-bold text-slate-800 tracking-tight">
+                                    <span className="text-4xl px-5 font-bold text-slate-800 tracking-tight">
                                         {window.windowName}
                                     </span>
                                 </div>
-                                <div className="text-right flex flex-col items-end">
+                                <div className="text-right flex flex-col items-end px-7">
                                     {window.displayTicket ? (
                                         <>
-                                            <span className="text-3xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
+                                            <span className="text-7xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
                                                 {window.displayTicket}
                                             </span>
                                             {window.priorityClass && false && (
@@ -104,7 +104,7 @@ export default function WindowMonitor() {
                                             )}
                                         </>
                                     ) : (
-                                        <span className="text-3xl font-bold text-slate-300 uppercase tracking-widest italic py-4">Waiting...</span>
+                                        <div className="h-16" />
                                     )}
                                 </div>
                             </div>
@@ -139,7 +139,7 @@ export default function WindowMonitor() {
                     </Card>
 
                     {/* UPCOMING WAITLIST - COMPACT FOR PUBLIC VIEWING */}
-                    <Card className="p-4 bg-white shadow-md border-2 border-slate-100 rounded-xl flex flex-col justify-center shrink-0">
+                    <Card className="p-6 bg-white shadow-xl shadow-primary/5 border rounded-3xl flex flex-col justify-center shrink-0">
                         <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-2">
                             <div>
 

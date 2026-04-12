@@ -8,12 +8,31 @@
     "dev:frontend": "pnpm --filter nmmcqueue-frontend dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
+    "test": "pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e && pnpm run test:load",
+    "test:unit": "pnpm run test:unit:backend && pnpm run test:unit:frontend",
+    "test:unit:backend": "cross-env NODE_ENV=test jest --config jest.config.ts --selectProjects backend --testPathPatterns=tests/unit --passWithNoTests",
+    "test:unit:frontend": "pnpm --filter nmmcqueue-frontend exec vitest run --config vitest.config.ts ../../tests/unit/frontend --passWithNoTests",
+    "test:integration": "pnpm run test:integration:backend && pnpm run test:integration:frontend",
+    "test:integration:backend": "cross-env NODE_ENV=test jest --config jest.config.ts --selectProjects backend --testPathPatterns=tests/integration --passWithNoTests",
+    "test:integration:frontend": "pnpm --filter nmmcqueue-frontend exec vitest run --config vitest.config.ts ../../tests/integration/frontend --passWithNoTests",
+    "test:frontend": "pnpm --filter nmmcqueue-frontend exec vitest run --config vitest.frontend.temp.config.ts",
+    "test:e2e": "playwright test --config tests/e2e/playwright.config.ts --pass-with-no-tests",
+    "test:load": "artillery run tests/load/queue-load.yml --output tests/reports/load-report.json",
     "postinstall": "pnpm --filter nmmcqueue-backend exec prisma generate"
-  },
-  "dependencies": {
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@types/node": "^25.5.2"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.5.2",
+    "@types/supertest": "^7.2.0",
+    "artillery": "^2.0.30",
+    "cross-env": "^10.1.0",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "k6": "^0.0.0",
+    "start-server-and-test": "^3.0.2",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2"
   }
 }

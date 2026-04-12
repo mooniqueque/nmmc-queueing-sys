@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/shared/lib/utils";
 import { Drop, Heartbeat, Icon, Thermometer, Waves, Wind } from "@phosphor-icons/react";
-import { Controller, FieldPath, useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { TriageFormInput } from "../schemas";
 
 interface VitalConfig {
@@ -29,8 +29,8 @@ export function VitalsSection() {
     ];
 
     return (
-        <div className="bg-muted/10 p-6 rounded-xl border border-border shadow-sm mt-8">
-            <h3 className="flex items-center gap-2 text-sm font-extrabold tracking-widest uppercase text-muted-foreground mb-6 pb-4 border-b border-border">
+        <div className="bg-slate-100/60 p-6 rounded-xl border border-slate-300 shadow-sm mt-8">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-800 mb-6 pb-4 border-b border-slate-300">
                 <Heartbeat size={20} className="text-primary" weight="bold" />
                 Vital Signs
             </h3>
@@ -42,8 +42,8 @@ export function VitalsSection() {
                     return (
                         <div key={vital.id} className="space-y-2 group">
                             <div className="flex items-center justify-between px-1">
-                                <Label className="flex items-center gap-1.5 text-xs font-bold text-gray-800 uppercase tracking-wide">
-                                    <vital.icon size={14} weight="bold" className="text-muted-foreground/60" /> {vital.label}
+                                <Label className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+                                    <vital.icon size={16} weight="bold" className="text-slate-600" /> {vital.label}
                                 </Label>
                                 <Controller
                                     control={control}
@@ -54,9 +54,9 @@ export function VitalsSection() {
                                                 id={`${vital.id}-na`}
                                                 checked={!!field.value}
                                                 onCheckedChange={field.onChange}
-                                                className="size-3.5 border-slate-300"
+                                                className="size-4 border-slate-400"
                                             />
-                                            <Label htmlFor={`${vital.id}-na`} className="text-[10px] font-bold text-slate-400 cursor-pointer uppercase select-none">N/A</Label>
+                                            <Label htmlFor={`${vital.id}-na`} className="text-xs font-semibold text-slate-600 cursor-pointer select-none">N/A</Label>
                                         </div>
                                     )}
                                 />
@@ -69,7 +69,7 @@ export function VitalsSection() {
                                     placeholder={isNA ? "N/A" : vital.placeholder}
                                     disabled={isNA}
                                     className={cn(
-                                        "h-10 rounded-lg border-border bg-background px-4 text-lg font-semibold text-gray-900 transition-all focus:ring-primary/20 focus:border-primary/50",
+                                        "h-11 rounded-lg border-slate-300 bg-white px-4 text-xl font-medium text-slate-900 transition-all focus:ring-2 focus:ring-primary/25 focus:border-primary/60",
                                         isNA && "opacity-40 bg-slate-100 placeholder:text-slate-400 cursor-not-allowed",
                                         error && "border-destructive ring-1 ring-destructive/20"
                                     )}

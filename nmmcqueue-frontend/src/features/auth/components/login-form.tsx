@@ -56,6 +56,10 @@ export default function LoginForm() {
                 return;
             }
 
+            notify.success("Login successful", {
+                description: "Redirecting to your dashboard.",
+                duration: 2000,
+            });
             router.push("/")
             router.refresh();
         } catch {
@@ -109,12 +113,7 @@ export default function LoginForm() {
                                         <FormItem className="mb-2">
                                             <div className="flex items-center">
                                                 <FormLabel>Password</FormLabel>
-                                                <a
-                                                    href="#"
-                                                    className="ml-auto text-sm underline-offset-2 hover:underline"
-                                                >
-                                                    Forgot your password?
-                                                </a>
+                                                
                                             </div>
                                             <FormControl>
                                                 <div className="relative">
@@ -126,16 +125,19 @@ export default function LoginForm() {
                                                     >
                                                         {showPassword ? <Eye size={18} /> : <EyeClosed size={18} />}
                                                     </button>
+                                                    <a
+                                                    href="#"
+                                                    className="ml-auto mt-10 text-sm underline-offset-2 hover:underline"
+                                                >
+                                                    Forgot your password?
+                                                </a>
                                                 </div>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                                {/* Dont have an account */}
-                                <div className="text-left text-sm">
-                                    Admin will use this account to create user. No self signup.
-                                </div>
+    
 
                                 {/* Submit Button */}
                                 <Button type="submit" className="w-full h-10" disabled={isLoading}>

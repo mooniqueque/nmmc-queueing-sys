@@ -44,9 +44,9 @@ export default function AdminSidebar() {
     ];
 
     return (
-        <Sidebar className="border-r">
+        <Sidebar className="border-r bg-background">
             <SidebarContent>
-                <div className="p-6 flex items-center gap-3">
+                <div className="p-4 flex items-center gap-3">
                     <div className="h-8 w-8 flex items-center justify-center relative">
                         <Image
                             src="/logo.png"
@@ -57,14 +57,14 @@ export default function AdminSidebar() {
                         />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-bold text-xs leading-none tracking-tight">NMMC</span>
-                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Queue System</span>
+                        <span className="font-semibold text-sm leading-none tracking-tight">NMMC</span>
+                        <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide mt-0.5">Queue System</span>
                     </div>
                 </div>
 
                 {/* Main Navigation */}
                 <SidebarGroup>
-                    <SidebarGroupLabel className="px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                    <SidebarGroupLabel className="px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                         Navigation
                     </SidebarGroupLabel>
                     <SidebarGroupContent className="px-3">
@@ -74,11 +74,11 @@ export default function AdminSidebar() {
                                     <SidebarMenuButton
                                         asChild
                                         isActive={isActive(item.href)}
-                                        className="w-full justify-start gap-3 h-10 px-3 transition-colors"
+                                        className="w-full justify-start gap-3 h-10 px-3 rounded-md transition-colors data-[active=true]:bg-emerald-50 data-[active=true]:text-emerald-700 data-[active=true]:shadow-sm hover:bg-muted/60 hover:text-foreground"
                                     >
                                         <Link href={item.href}>
                                             <item.Icon size={18} weight={isActive(item.href) ? "bold" : "regular"} />
-                                            <span className="text-sm font-medium">{item.label}</span>
+                                            <span className="text-sm font-medium tracking-tight">{item.label}</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
@@ -88,7 +88,7 @@ export default function AdminSidebar() {
                 </SidebarGroup>
 
                 <SidebarGroup className="mt-4">
-                    <SidebarGroupLabel className="px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                    <SidebarGroupLabel className="px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                         Settings
                     </SidebarGroupLabel>
                     <SidebarGroupContent className="px-3">
@@ -98,10 +98,10 @@ export default function AdminSidebar() {
                                     <SidebarMenuButton
                                         asChild
                                         isActive={isActive(item.href)}
-                                        className="w-full justify-start h-10 px-3 transition-colors"
+                                        className="w-full justify-start h-10 px-3 rounded-md transition-colors data-[active=true]:bg-emerald-50 data-[active=true]:text-emerald-700 data-[active=true]:shadow-sm hover:bg-muted/60 hover:text-foreground"
                                     >
                                         <Link href={item.href}>
-                                            <span className="text-sm font-medium">{item.label}</span>
+                                            <span className="text-sm font-medium tracking-tight">{item.label}</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

@@ -1,8 +1,8 @@
 import { VisitWithPatient } from "@/features/triage/types";
 import { getServerHeaders } from "@/lib/api/server";
 import { connection } from "next/server";
-import UserCallerDashboard from './user-caller-dashboard';
 import { getCallerScope, getClinicQueues } from "../api";
+import UserCallerDashboard from './user-caller-dashboard';
 
 export default async function CallerData() {
     await connection();

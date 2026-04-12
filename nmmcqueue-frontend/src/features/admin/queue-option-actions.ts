@@ -20,23 +20,45 @@ export async function createQueueOption(
     departmentName: string,
     data: { name: string; code: string; isPriority: boolean; parentId?: string }
 ) {
-    const result = await callerApi.createQueueOption(departmentName, data, {
-        headers: await getServerHeaders(),
-    });
-    if (result.success) {
-        revalidatePath("/admin-departments");
-        revalidatePath("/admin-caller");
+    try {
+        const result = await callerApi.createQueueOption(departmentName, data, {
+            headers: await getServerHeaders(),
+        });
+        if (result.success) {
+            revalidatePath("/admin-departments");
+            revalidatePath("/admin-caller");
+        }
+        return result;
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to add queue option.";
+        return { success: false, error: message };
     }
-    return result;
 }
 
 export async function deleteQueueOption(id: string) {
-    const result = await callerApi.deleteQueueOption(id, {
+    try {
+        const result = await callerApi.deleteQueueOption(id, {
+            headers: await getServerHeaders(),
+        });
+        if (result.success) {
+            revalidatePath("/admin-departments");
+            revalidatePath("/admin-caller");
+        }
+        return result;
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to delete queue option.";
+        return { success: false, error: message };
+    }
+}
+
+export async function initializeDepartmentQueueDefaults(departmentId: string) {
+    return callerApi.initializeDepartmentQueueDefaults(departmentId, {
         headers: await getServerHeaders(),
     });
-    if (result.success) {
-        revalidatePath("/admin-departments");
-        revalidatePath("/admin-caller");
-    }
-    return result;
+}
+
+export async function repairDefaultQueueOptions() {
+    return callerApi.repairDefaultQueueOptions({
+        headers: await getServerHeaders(),
+    });
 }

@@ -58,6 +58,31 @@ export async function linkPatient(
     return res.json();
 }
 
+export async function updatePatientDemographics(
+    visitId: string,
+    data: {
+        firstName: string;
+        middleName?: string;
+        lastName: string;
+        address?: string;
+        dateOfBirth: string;
+        gender: string;
+        contactNo?: string;
+        civilStatus?: string;
+        birthPlace?: string;
+        religion?: string;
+    },
+    options?: RequestInit
+) {
+    const res = await fetch(`${API_URL}/releasing/${visitId}/patient-demographics`, {
+        method: "PUT",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify(data),
+    });
+    return res.json();
+}
+
 export async function resetDailyQueue(options?: RequestInit) {
     const res = await fetch(`${API_URL}/tickets/reset`, {
         method: "POST",

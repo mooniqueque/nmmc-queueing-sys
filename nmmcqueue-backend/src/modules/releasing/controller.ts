@@ -67,6 +67,12 @@ class ReleasingController {
         const updated = await releasingService.linkPatientByHospitalId(req.params.id, req.body.hospitalId, userId);
         res.status(200).json({ success: true, data: updated });
     });
+
+    updatePatientDemographics = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        const updated = await releasingService.updatePatientDemographics(req.params.id, req.body, userId);
+        res.status(200).json({ success: true, data: updated });
+    });
 }
 
 export const releasingController = new ReleasingController();

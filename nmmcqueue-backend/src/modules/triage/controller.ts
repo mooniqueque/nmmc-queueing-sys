@@ -82,6 +82,12 @@ class TriageController {
         const departments = await triageService.getMyAccessibleDepartments(userId);
         res.status(200).json({ success: true, data: departments });
     });
+
+    updateAppointment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        const updated = await triageService.updateAppointment(req.params.id, req.body.hasAppointment, userId);
+        res.status(200).json({ success: true, data: updated });
+    });
 }
 
 export const triageController = new TriageController();

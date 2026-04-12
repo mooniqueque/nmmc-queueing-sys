@@ -11,13 +11,70 @@ const normalizeOption = (v: string) => v.trim().toUpperCase();
 const normalizeDepartmentKey = (v: string) => v.trim().toUpperCase();
 
 const DEFAULT_QUEUE_OPTIONS: Array<{ name: string; code: string; isPriority: boolean }> = [
-    { name: 'REGULAR', code: 'REGULAR', isPriority: false },
-    { name: 'CHILD', code: 'CHILD', isPriority: true },
-    { name: 'FT', code: 'FT', isPriority: true },
-    { name: 'ER-REF', code: 'ER-REF', isPriority: true },
+    { name: 'REGULAR', code: 'REG', isPriority: false },
+    { name: 'PWD', code: 'PWD', isPriority: true },
+    { name: 'SENIOR CITIZEN', code: 'SNR', isPriority: true },
+    { name: 'PREGNANT', code: 'PREG', isPriority: true },
+    { name: 'ER-REFERRAL', code: 'ER-REF', isPriority: true },
 ];
 
+const QUEUE_CODE_PATTERN = /^[A-Z0-9-]{2,6}$/;
+
+function normalizeQueueName(value: string) {
+    return value.trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+function normalizeQueueCode(value: string) {
+    return value.trim().toUpperCase();
+}
+
+function compactLetters(value: string) {
+    return value.replace(/[^A-Z0-9]/g, '');
+}
+
+function canonicalDefaultCode(option: { name: string; code: string }): 'REG' | 'PWD' | 'SNR' | 'PREG' | 'ER-REF' | null {
+    const code = normalizeQueueCode(option.code);
+    const name = normalizeQueueName(option.name);
+    const compactName = compactLetters(name);
+    const compactCode = compactLetters(code);
+
+    if (compactCode === 'REG' || compactCode === 'REGULAR' || compactName === 'REGULAR') return 'REG';
+    if (compactCode === 'PWD' || compactName === 'PWD') return 'PWD';
+    if (compactCode === 'SNR' || compactCode === 'SENIOR' || compactName.includes('SENIOR')) return 'SNR';
+    if (compactCode === 'PREG' || compactCode === 'PREGNANT' || compactName === 'PREGNANT') return 'PREG';
+    if (
+        compactCode === 'ERREF' ||
+        compactCode === 'ERREFERRAL' ||
+        compactName === 'ERREF' ||
+        compactName === 'ERREFERRAL'
+    ) return 'ER-REF';
+
+    return null;
+}
+
+function pickCanonicalDefault(defaultCode: 'REG' | 'PWD' | 'SNR' | 'PREG' | 'ER-REF') {
+    const item = DEFAULT_QUEUE_OPTIONS.find((option) => option.code === defaultCode);
+    if (!item) throw new AppError('Invalid default queue code mapping.', 500, 'DEFAULT_MAPPING_ERROR');
+    return item;
+}
+
 class CallerService {
+    private async ensureDefaultQueueOptionsIfNone(departmentId: string) {
+        const existingCount = await db.priorityCategory.count({
+            where: { departmentId },
+        });
+
+        if (existingCount > 0) return;
+
+        await db.priorityCategory.createMany({
+            data: DEFAULT_QUEUE_OPTIONS.map((option) => ({
+                ...option,
+                departmentId,
+            })),
+            skipDuplicates: true,
+        });
+    }
+
     async getResolvedScope(userId?: string) {
         const scope = await this.getCallerScope(userId);
         const department = await db.department.findUnique({
@@ -241,11 +298,19 @@ class CallerService {
     }
     async deleteDepartment(id: string) { await db.department.delete({ where: { id } }); }
     async getQueueOptions(departmentName: string) {
-        const dept = await db.department.findUnique({ 
-            where: { name: departmentName.trim().toUpperCase() }, 
-            select: { priorityCategories: { select: { id: true, name: true, code: true, isPriority: true, parentId: true } } } 
+        const dept = await db.department.findUnique({
+            where: { name: departmentName.trim().toUpperCase() },
+            select: { id: true },
         });
-        return dept ? this.sortQueueOptions(dept.priorityCategories) : [];
+
+        if (!dept) return [];
+
+        const options = await db.priorityCategory.findMany({
+            where: { departmentId: dept.id },
+            select: { id: true, name: true, code: true, isPriority: true, parentId: true },
+        });
+
+        return this.sortQueueOptions(options);
     }
     async getPendingQueue(departmentName?: string, userId?: string) {
         const scope = await this.getCallerScope(userId);
@@ -389,28 +454,204 @@ class CallerService {
 
     async getQueueOptionsByDepartment(names: string[]) {
         const trimmed = Array.from(new Set(names.map(n => n.trim().toUpperCase()).filter(n => n.length > 0)));
-        const depts = await db.department.findMany({ 
-            where: { name: { in: trimmed } }, 
-            select: { name: true, priorityCategories: { select: { id: true, name: true, code: true, isPriority: true, parentId: true } } } 
+        const depts = await db.department.findMany({
+            where: { name: { in: trimmed } },
+            select: {
+                name: true,
+                priorityCategories: {
+                    select: { id: true, name: true, code: true, isPriority: true, parentId: true },
+                },
+            }
         });
+
         const byKey = Object.fromEntries(
             depts.map((d) => [normalizeDepartmentKey(d.name), this.sortQueueOptions(d.priorityCategories)])
         );
         return Object.fromEntries(trimmed.map(n => { const k = normalizeDepartmentKey(n); return [k, byKey[k] ?? []]; }));
     }
+
+    async initializeDepartmentQueueDefaults(departmentId: string) {
+        const department = await db.department.findUnique({
+            where: { id: departmentId },
+            select: { id: true, name: true },
+        });
+
+        if (!department) {
+            throw new AppError('Department not found.', 404, 'DEPARTMENT_NOT_FOUND');
+        }
+
+        await this.ensureDefaultQueueOptionsIfNone(department.id);
+
+        const options = await db.priorityCategory.findMany({
+            where: { departmentId: department.id },
+            select: { id: true, name: true, code: true, isPriority: true, parentId: true },
+        });
+
+        return this.sortQueueOptions(options);
+    }
+
+    async repairDefaultQueueOptions() {
+        const departments = await db.department.findMany({ select: { id: true } });
+
+        for (const department of departments) {
+            await this.repairDepartmentDefaultQueueOptions(department.id);
+        }
+
+        return { repairedDepartments: departments.length };
+    }
+
+    private async repairDepartmentDefaultQueueOptions(departmentId: string) {
+        await db.$transaction(async (tx) => {
+            const categories = await tx.priorityCategory.findMany({
+                where: { departmentId },
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    isPriority: true,
+                    _count: { select: { visits: true } },
+                },
+            });
+
+            const grouped = new Map<'REG' | 'PWD' | 'SNR' | 'PREG' | 'ER-REF', typeof categories>();
+            for (const key of ['REG', 'PWD', 'SNR', 'PREG', 'ER-REF'] as const) grouped.set(key, []);
+
+            for (const category of categories) {
+                const code = canonicalDefaultCode({ name: category.name, code: category.code });
+                if (!code) continue;
+                grouped.get(code)!.push(category);
+            }
+
+            for (const defaultCode of ['REG', 'PWD', 'SNR', 'PREG', 'ER-REF'] as const) {
+                const canonical = pickCanonicalDefault(defaultCode);
+                const matches = grouped.get(defaultCode)!;
+
+                if (matches.length === 0) {
+                    await tx.priorityCategory.create({
+                        data: {
+                            departmentId,
+                            name: canonical.name,
+                            code: canonical.code,
+                            isPriority: canonical.isPriority,
+                        },
+                    });
+                    continue;
+                }
+
+                const keeper = matches
+                    .slice()
+                    .sort((a, b) => {
+                        const aExact = Number(a.code === canonical.code && a.name === canonical.name);
+                        const bExact = Number(b.code === canonical.code && b.name === canonical.name);
+                        if (aExact !== bExact) return bExact - aExact;
+
+                        const aCodeMatch = Number(a.code === canonical.code);
+                        const bCodeMatch = Number(b.code === canonical.code);
+                        if (aCodeMatch !== bCodeMatch) return bCodeMatch - aCodeMatch;
+
+                        const aUsed = Number(a._count.visits > 0);
+                        const bUsed = Number(b._count.visits > 0);
+                        if (aUsed !== bUsed) return bUsed - aUsed;
+
+                        return a.id.localeCompare(b.id);
+                    })[0];
+
+                if (
+                    keeper.name !== canonical.name ||
+                    keeper.code !== canonical.code ||
+                    keeper.isPriority !== canonical.isPriority
+                ) {
+                    await tx.priorityCategory.update({
+                        where: { id: keeper.id },
+                        data: {
+                            name: canonical.name,
+                            code: canonical.code,
+                            isPriority: canonical.isPriority,
+                        },
+                    });
+                }
+
+                for (const duplicate of matches) {
+                    if (duplicate.id === keeper.id) continue;
+
+                    const visitLinks = await tx.visitPriorityCategory.findMany({
+                        where: { categoryId: duplicate.id },
+                        select: { visitId: true },
+                    });
+
+                    for (const link of visitLinks) {
+                        await tx.visitPriorityCategory.upsert({
+                            where: {
+                                visitId_categoryId: {
+                                    visitId: link.visitId,
+                                    categoryId: keeper.id,
+                                },
+                            },
+                            update: {},
+                            create: {
+                                visitId: link.visitId,
+                                categoryId: keeper.id,
+                            },
+                        });
+
+                        await tx.visitPriorityCategory.deleteMany({
+                            where: {
+                                visitId: link.visitId,
+                                categoryId: duplicate.id,
+                            },
+                        });
+                    }
+
+                    await tx.priorityCategory.delete({ where: { id: duplicate.id } });
+                }
+            }
+
+            await this.ensureDefaultQueueOptionsIfNone(departmentId);
+        });
+    }
     async createQueueOption(departmentName: string, data: { name: string, code: string, isPriority: boolean, parentId?: string }) {
         const dept = await db.department.findUnique({ where: { name: departmentName.trim().toUpperCase() }, select: { id: true } });
-        if (!dept) throw new Error('Department not found.');
-        
-        return await db.priorityCategory.create({
-            data: {
-                name: data.name,
-                code: data.code.trim().toUpperCase(),
-                isPriority: data.isPriority,
+        if (!dept) throw new AppError('Department not found.', 404, 'DEPARTMENT_NOT_FOUND');
+
+        const normalizedName = normalizeQueueName(data.name);
+        const normalizedCode = normalizeQueueCode(data.code);
+
+        if (!QUEUE_CODE_PATTERN.test(normalizedCode)) {
+            throw new AppError('Option code must be 2-6 chars and use only A-Z, 0-9, or hyphen.', 400, 'INVALID_QUEUE_CODE');
+        }
+
+        const duplicate = await db.priorityCategory.findFirst({
+            where: {
                 departmentId: dept.id,
-                parentId: data.parentId
-            }
+                OR: [
+                    { code: normalizedCode },
+                    { name: normalizedName },
+                ],
+            },
+            select: { id: true, name: true, code: true },
         });
+
+        if (duplicate) {
+            const duplicateType = duplicate.code === normalizedCode ? 'code' : 'name';
+            throw new AppError(`Queue option ${duplicateType} already exists in this department.`, 409, 'QUEUE_OPTION_DUPLICATE');
+        }
+
+        try {
+            return await db.priorityCategory.create({
+                data: {
+                    name: normalizedName,
+                    code: normalizedCode,
+                    isPriority: data.isPriority,
+                    departmentId: dept.id,
+                    parentId: data.parentId
+                }
+            });
+        } catch (error: unknown) {
+            if (typeof error === 'object' && error && 'code' in error && (error as { code?: string }).code === 'P2002') {
+                throw new AppError('Queue option code already exists in this department.', 409, 'QUEUE_OPTION_DUPLICATE');
+            }
+            throw error;
+        }
     }
 
     async deleteQueueOption(id: string) {

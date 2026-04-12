@@ -93,5 +93,14 @@ export const triageFormRequestSchema = z.object({
     }),
 });
 
+export const updateTriageAppointmentRequestSchema = z.object({
+    params: z.object({
+        id: z.string().min(1, 'Visit ID is required'),
+    }),
+    body: z.object({
+        hasAppointment: z.boolean(),
+    }),
+});
+
 export const kioskFormSchema = kioskFormRequestSchema.shape.body;
 export const triageFormSchema = triageFormRequestSchema.shape.body.shape.values;

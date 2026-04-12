@@ -29,6 +29,8 @@ import {
     Buildings,
     CheckCircle,
     Desktop,
+    Eye,
+    EyeSlash,
     IdentificationCard,
     Key,
     MagnifyingGlass
@@ -48,6 +50,7 @@ interface EditStaffDrawerProps {
     onOpenChange: (open: boolean) => void;
     user: UserData | null;
     workstations: WorkStation[];
+    users: UserData[];
     onSaved?: () => void;
 }
 
@@ -105,6 +108,7 @@ export function EditStaffDrawer({
     onOpenChange,
     user,
     workstations,
+    users,
     onSaved,
 }: EditStaffDrawerProps) {
     const [isSaving, setIsSaving] = useState(false);
@@ -122,6 +126,7 @@ export function EditStaffDrawer({
     // Password Reset State
     const [showResetForm, setShowResetForm] = useState(false);
     const [newPassword, setNewPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
 
     const resetState = useCallback(() => {
@@ -134,6 +139,7 @@ export function EditStaffDrawer({
         setCallerSelectedDeptId("none");
         setShowResetForm(false);
         setNewPassword("");
+        setShowPassword(false);
     }, []);
 
     const initializeDrawer = useCallback(async () => {
@@ -200,24 +206,44 @@ export function EditStaffDrawer({
         setIsSaving(true);
 
         try {
-            const promises = [];
+            const getErrorMessage = (result: unknown, fallback: string) => {
+                if (!result || typeof result !== "object") return fallback;
+                const payload = result as { error?: string; message?: string };
+                return payload.error || payload.message || fallback;
+            };
 
             // 1. Update Profile Info if changed
             if (editName !== user.name || editEmail !== user.email) {
-                promises.push(updateUserInfo(user.id, { name: editName, email: editEmail }));
+                const infoResult = await updateUserInfo(user.id, { name: editName, email: editEmail });
+                if (!infoResult?.success) {
+                    notify.error(getErrorMessage(infoResult, "Failed to update profile info."));
+                    return;
+                }
             }
 
             // 2. Update Role if changed
             if (selectedRole !== user.role) {
-                promises.push(updateUserRole(user.id, selectedRole));
+                const roleResult = await updateUserRole(user.id, selectedRole);
+                if (!roleResult?.success) {
+                    notify.error(getErrorMessage(roleResult, "Failed to update role."));
+                    return;
+                }
             }
 
             // 3. Update Workstation if changed
             if (selectedWorkstationId !== (user.workstationId || "none")) {
-                promises.push(updateUserWorkstation(user.id, selectedWorkstationId === "none" ? "" : selectedWorkstationId));
+                const workstationResult = await updateUserWorkstation(
+                    user.id,
+                    selectedWorkstationId === "none" ? null : selectedWorkstationId
+                );
+
+                if (!workstationResult?.success) {
+                    notify.error(getErrorMessage(workstationResult, "Failed to update station."));
+                    return;
+                }
             }
 
-            // 3. Update Departments
+            // 4. Update Departments
             let payload: DepartmentAssignment[] = [];
             let shouldUpdateDepartmentAssignments = false;
             if (selectedRole === "TRIAGE_NURSE") {
@@ -231,19 +257,16 @@ export function EditStaffDrawer({
             }
 
             if (shouldUpdateDepartmentAssignments) {
-                promises.push(updateUserDepartmentAssignments(user.id, payload));
+                const departmentResult = await updateUserDepartmentAssignments(user.id, payload);
+                if (!departmentResult?.success) {
+                    notify.error(getErrorMessage(departmentResult, "Failed to update department access."));
+                    return;
+                }
             }
 
-            const results = await Promise.all(promises);
-            const allSuccess = results.every(r => r.success);
-
-            if (allSuccess) {
-                notify.success("Staff profile updated successfully.");
-                onSaved?.();
-                onOpenChange(false);
-            } else {
-                notify.error("Some updates failed. Please try again.");
-            }
+            notify.success("Staff profile updated successfully.");
+            onSaved?.();
+            onOpenChange(false);
         } catch {
             notify.error("An error occurred while saving.");
         } finally {
@@ -260,6 +283,7 @@ export function EditStaffDrawer({
                 notify.success("Password successfully reset.");
                 setShowResetForm(false);
                 setNewPassword("");
+                setShowPassword(false);
             } else {
                 notify.error(result.error || "Failed to reset password.");
             }
@@ -281,33 +305,50 @@ export function EditStaffDrawer({
         return false;
     });
 
+    const occupiedStationIds = useMemo(() => {
+        const currentUserId = user?.id;
+        return new Set(
+            users
+                .filter(
+                    (entry) =>
+                        entry.id !== currentUserId &&
+                        entry.isActive &&
+                        Boolean(entry.workstationId) &&
+                        (entry.role === "WINDOW_CLERK" || entry.role === "TRIAGE_NURSE" || entry.role === "CLINIC_CALLER")
+                )
+                .map((entry) => entry.workstationId as string)
+        );
+    }, [user?.id, users]);
+
+    const availableWorkstations = filteredWorkstations.filter((ws) => !occupiedStationIds.has(ws.id));
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="flex w-full flex-col p-0 gap-0 sm:max-w-xl bg-slate-50 shadow-2xl overflow-hidden border-l border-slate-200">
-                <div className="flex-none bg-white px-6 pt-6 pb-6 border-b border-slate-100 shadow-sm">
+            <SheetContent className="flex w-full flex-col p-0 gap-0 sm:max-w-2xl lg:max-w-4xl bg-background overflow-hidden border-l">
+                <div className="flex-none bg-background px-6 pt-6 pb-5 border-b">
                     <SheetHeader className="text-left p-0">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                                 <IdentificationCard size={30} weight="duotone" />
                             </div>
                             <div className="min-w-0">
-                                <SheetTitle className="text-2xl font-bold text-slate-900 tracking-tight">User Management</SheetTitle>
-                                <SheetDescription className="text-base text-slate-500 font-medium leading-6">
+                                <SheetTitle className="text-2xl font-semibold tracking-tight">User Management</SheetTitle>
+                                <SheetDescription className="text-sm text-muted-foreground leading-6">
                                     Update staff details, roles, access, and reset passwords from one place.
                                 </SheetDescription>
                             </div>
                         </div>
 
                         {user && (
-                            <div className="mt-6 flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-                                <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-lg">
+                            <div className="mt-5 flex items-center gap-3 p-3 rounded-lg bg-muted/40 border">
+                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-semibold text-base">
                                     {user.name.charAt(0)}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-base font-bold text-slate-900 truncate">{user.name}</p>
-                                    <p className="text-sm text-slate-500 font-medium truncate">{user.email}</p>
+                                    <p className="text-sm font-semibold truncate">{user.name}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                                 </div>
-                                <Badge variant="outline" className="ml-auto bg-white text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600 border-slate-200 px-3 py-1">
+                                <Badge variant="outline" className="ml-auto text-xs font-medium">
                                     ID {user.employeeID}
                                 </Badge>
                             </div>
@@ -316,16 +357,16 @@ export function EditStaffDrawer({
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <div className="p-6 space-y-8">
+                    <div className="p-6 space-y-6">
                         {/* 0. Password Reset */}
-                        <section className="space-y-4">
-                            <div className="flex items-center gap-2 mb-2">
+                        <section className="space-y-3">
+                            <div className="flex items-center gap-2">
                                 <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">Reset Password</h3>
+                                <h3 className="text-sm font-semibold text-muted-foreground">Reset Password</h3>
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-                                <p className="text-sm text-slate-500 leading-6">
+                            <div className="rounded-lg border bg-card p-4 space-y-3">
+                                <p className="text-sm text-muted-foreground leading-6">
                                     Set a temporary password for this staff account. They can log in with it right away.
                                 </p>
 
@@ -333,27 +374,39 @@ export function EditStaffDrawer({
                                     <Button 
                                         variant="outline"
                                         onClick={() => setShowResetForm(true)}
-                                        className="w-full h-12 rounded-xl border-dashed border-slate-300 text-slate-700 font-semibold text-base hover:bg-slate-50 hover:border-slate-400 gap-2 transition-all"
+                                        className="w-full h-10 border-dashed gap-2"
                                     >
                                         <Key size={18} weight="duotone" className="text-amber-500" />
                                         Reset Staff Password
                                     </Button>
                                 ) : (
                                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <label className="text-sm font-bold text-slate-600 ml-1 block">Temporary Password</label>
+                                        <label className="text-sm font-medium text-muted-foreground block">Temporary Password</label>
                                         <div className="flex gap-2">
-                                            <Input 
-                                                type="password"
-                                                value={newPassword}
-                                                onChange={(e) => setNewPassword(e.target.value)}
-                                                autoComplete="new-password"
-                                                placeholder="Enter a temporary password"
-                                                className="h-12 bg-white border-slate-200 rounded-lg text-base font-medium"
-                                            />
+                                            <div className="relative flex-1">
+                                                <Input 
+                                                    type={showPassword ? "text" : "password"}
+                                                    value={newPassword}
+                                                    onChange={(e) => setNewPassword(e.target.value)}
+                                                    autoComplete="new-password"
+                                                    placeholder="Enter a temporary password"
+                                                    className="h-10 pr-10"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setShowPassword((current) => !current)}
+                                                    className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 p-0 text-muted-foreground hover:bg-muted"
+                                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                                >
+                                                    {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                                                </Button>
+                                            </div>
                                             <Button 
                                                 disabled={isResetting || !newPassword}
                                                 onClick={handleResetPassword}
-                                                className="h-12 px-4 rounded-lg bg-slate-900 text-white font-bold text-sm shrink-0"
+                                                className="h-10 px-4 shrink-0"
                                             >
                                                 {isResetting ? "Resetting..." : "Confirm"}
                                             </Button>
@@ -363,7 +416,7 @@ export function EditStaffDrawer({
                                                     setShowResetForm(false);
                                                     setNewPassword("");
                                                 }}
-                                                className="h-12 w-12 p-0 rounded-lg text-slate-400 hover:text-slate-600"
+                                                className="h-10 w-10 p-0"
                                             >
                                                 <CheckCircle size={18} />
                                             </Button>
@@ -374,60 +427,60 @@ export function EditStaffDrawer({
                         </section>
 
                         {/* 0. Profile Information */}
-                        <section className="space-y-4">
-                            <div className="flex items-center gap-2 mb-2">
+                        <section className="space-y-3">
+                            <div className="flex items-center gap-2">
                                 <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">Basic Profile</h3>
+                                <h3 className="text-sm font-semibold text-muted-foreground">Basic Profile</h3>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-5">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-lg border bg-card p-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                                        <IdentificationCard size={14} className="text-slate-400" />
+                                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                                        <IdentificationCard size={14} className="text-muted-foreground" />
                                         Full Name
                                     </label>
                                     <Input 
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
                                         placeholder="Enter staff name"
-                                        className="h-12 bg-white border-slate-200 rounded-xl text-base font-medium shadow-sm transition-all focus:ring-indigo-500/20"
+                                        className="h-10"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                                        <CheckCircle size={14} className="text-slate-400" />
+                                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                                        <CheckCircle size={14} className="text-muted-foreground" />
                                         Email Address
                                     </label>
                                     <Input 
                                         value={editEmail}
                                         onChange={(e) => setEditEmail(e.target.value)}
                                         placeholder="staff@example.com"
-                                        className="h-12 bg-white border-slate-200 rounded-xl text-base font-medium shadow-sm transition-all focus:ring-indigo-500/20"
+                                        className="h-10"
                                     />
                                 </div>
                             </div>
                         </section>
 
                         {/* 1. General Settings */}
-                        <section className="space-y-4">
-                            <div className="flex items-center gap-2 mb-2">
+                        <section className="space-y-3">
+                            <div className="flex items-center gap-2">
                                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">General Configuration</h3>
+                                <h3 className="text-sm font-semibold text-muted-foreground">General Configuration</h3>
                             </div>
                             
-                            <div className="grid grid-cols-1 gap-5">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-lg border bg-card p-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                                        <Buildings size={14} className="text-slate-400" />
+                                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                                        <Buildings size={14} className="text-muted-foreground" />
                                         System Role
                                     </label>
                                     <Select value={selectedRole} onValueChange={setSelectedRole}>
-                                        <SelectTrigger className="h-12 bg-white border-slate-200 rounded-xl text-base font-medium shadow-sm focus:ring-emerald-500/20">
+                                        <SelectTrigger className="h-10">
                                             <SelectValue placeholder="Select a role" />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-slate-200">
+                                        <SelectContent>
                                             {HOSPITAL_ROLES.map((role) => (
-                                                <SelectItem key={role.value} value={role.value} className="text-base font-medium focus:bg-slate-50">
+                                                <SelectItem key={role.value} value={role.value}>
                                                     {role.label}
                                                 </SelectItem>
                                             ))}
@@ -436,8 +489,8 @@ export function EditStaffDrawer({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                                        <Desktop size={14} className="text-slate-400" />
+                                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                                        <Desktop size={14} className="text-muted-foreground" />
                                         {selectedRole === "WINDOW_CLERK" ? "Default Window" : "Assigned Station"}
                                     </label>
                                     <Select 
@@ -445,36 +498,45 @@ export function EditStaffDrawer({
                                         onValueChange={setSelectedWorkstationId}
                                         disabled={!["WINDOW_CLERK", "TRIAGE_NURSE", "CLINIC_CALLER"].includes(selectedRole)}
                                     >
-                                        <SelectTrigger className="h-12 bg-white border-slate-200 rounded-xl text-base font-medium shadow-sm focus:ring-emerald-500/20">
+                                        <SelectTrigger className="h-10">
                                             <SelectValue placeholder={selectedWorkstationId === "none" ? "No Station Assigned" : "Select Station"} />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-slate-200">
-                                            <SelectItem value="none" className="text-base font-medium text-slate-400 italic">No Station</SelectItem>
-                                            {filteredWorkstations.map((ws) => (
-                                                <SelectItem key={ws.id} value={ws.id} className="text-base font-medium">
-                                                    {ws.name} ({ws.stationNo})
-                                                </SelectItem>
-                                            ))}
+                                        <SelectContent>
+                                            <SelectItem value="none" className="text-muted-foreground italic">No Station</SelectItem>
+                                            {availableWorkstations.length === 0 ? (
+                                                <div className="px-3 py-2 text-xs font-medium text-amber-700">
+                                                    All stations are occupied. Add more station.
+                                                </div>
+                                            ) : (
+                                                availableWorkstations.map((ws) => (
+                                                    <SelectItem key={ws.id} value={ws.id}>
+                                                        {ws.name} ({ws.stationNo})
+                                                    </SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     {!["WINDOW_CLERK", "TRIAGE_NURSE", "CLINIC_CALLER"].includes(selectedRole) && (
-                                        <p className="text-sm text-slate-500 mt-1 italic ml-1">* Stations are only applicable for clinical and window roles.</p>
+                                        <p className="text-xs text-muted-foreground mt-1 italic">Stations are only applicable for clinical and window roles.</p>
+                                    )}
+                                    {["WINDOW_CLERK", "TRIAGE_NURSE", "CLINIC_CALLER"].includes(selectedRole) && availableWorkstations.length === 0 && (
+                                        <p className="text-xs text-amber-700 mt-1">All stations are occupied. Add more station.</p>
                                     )}
                                     {selectedRole === "WINDOW_CLERK" && (
-                                        <p className="text-sm text-slate-500 mt-1 italic ml-1">
+                                        <p className="text-xs text-muted-foreground mt-1 italic">
                                             Window clerks are assigned to a default window only.
                                         </p>
                                     )}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
-                                        <Buildings size={14} className="text-slate-400" />
+                                <div className="space-y-2 lg:col-span-2">
+                                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                                        <Buildings size={14} className="text-muted-foreground" />
                                         Department
                                     </label>
-                                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
-                                        <p className="text-base font-bold text-slate-900">{departmentSummary.label}</p>
-                                        <p className="mt-1 text-sm text-slate-500 leading-6">{departmentSummary.helper}</p>
+                                    <div className="rounded-lg border bg-muted/40 px-4 py-3">
+                                        <p className="text-sm font-semibold">{departmentSummary.label}</p>
+                                        <p className="mt-1 text-xs text-muted-foreground leading-6">{departmentSummary.helper}</p>
                                     </div>
                                 </div>
                             </div>
@@ -482,35 +544,35 @@ export function EditStaffDrawer({
 
                         {/* 2. Department Access */}
                         {["TRIAGE_NURSE", "CLINIC_CALLER"].includes(selectedRole) && (
-                            <section className="space-y-4">
-                                <div className="flex items-center justify-between mb-2">
+                            <section className="space-y-3">
+                                <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500">Department Access</h3>
+                                        <h3 className="text-sm font-semibold text-muted-foreground">Department Access</h3>
                                     </div>
-                                    <Badge variant="secondary" className="bg-white text-slate-500 font-bold border-slate-200 px-2 py-1 text-[10px]">
+                                    <Badge variant="secondary" className="text-xs font-medium">
                                         {selectedRole === "TRIAGE_NURSE" ? "Multiple" : "Single Selection"}
                                     </Badge>
                                 </div>
 
                                 <div className="relative mb-3">
-                                    <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                    <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                                     <Input
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         placeholder="Filter departments..."
-                                        className="pl-10 h-12 bg-white border-slate-200 rounded-xl text-base placeholder:text-slate-400 shadow-sm transition-all focus:ring-emerald-500/10"
+                                        className="pl-10 h-10"
                                     />
                                 </div>
 
-                                <div className="space-y-2 max-h-100 overflow-y-auto pr-2 custom-scrollbar pb-2">
+                                <div className="space-y-2 max-h-112 overflow-y-auto pr-2 custom-scrollbar pb-2">
                                     {isLoading ? (
-                                        <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
-                                            <div className="h-5 w-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-                                            <span className="text-sm font-bold uppercase tracking-wider">Syncing Departments...</span>
+                                        <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
+                                            <div className="h-5 w-5 border-2 border-muted border-t-foreground rounded-full animate-spin" />
+                                            <span className="text-sm font-medium">Syncing Departments...</span>
                                         </div>
                                     ) : filteredDepartments.length === 0 ? (
-                                        <div className="py-10 text-center text-slate-400 text-sm italic bg-white rounded-xl border border-dashed border-slate-200">
+                                        <div className="py-10 text-center text-muted-foreground text-sm italic bg-card rounded-lg border border-dashed">
                                             No matching departments found.
                                         </div>
                                     ) : (
@@ -521,23 +583,23 @@ export function EditStaffDrawer({
                                                         key={entry.departmentId}
                                                         onClick={() => toggleDepartment(entry.departmentId, !entry.isAssigned)}
                                                         className={cn(
-                                                            "group flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200",
+                                                            "group flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors",
                                                             entry.isAssigned 
-                                                                ? "bg-emerald-50 border-emerald-200 shadow-sm" 
-                                                                : "bg-white border-slate-200 hover:border-slate-300 shadow-none"
+                                                                ? "bg-emerald-50 border-emerald-200" 
+                                                                : "bg-card hover:bg-muted/40"
                                                         )}
                                                     >
                                                         <div className="flex items-center gap-3 min-w-0">
                                                             <Checkbox 
                                                                 checked={entry.isAssigned} 
                                                                 onCheckedChange={(val) => toggleDepartment(entry.departmentId, !!val)}
-                                                                className="border-slate-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                                                                className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
                                                             />
                                                             <div className="flex flex-col">
-                                                                <span className={cn("text-sm font-bold uppercase tracking-tight truncate", entry.isAssigned ? "text-emerald-900" : "text-slate-700")}>
+                                                                <span className={cn("text-sm font-medium truncate", entry.isAssigned ? "text-emerald-900" : "text-foreground")}>
                                                                     {entry.department.name}
                                                                 </span>
-                                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">
+                                                                <span className="text-xs text-muted-foreground leading-none mt-0.5">
                                                                     CODE: {entry.department.code}
                                                                 </span>
                                                             </div>
@@ -553,10 +615,10 @@ export function EditStaffDrawer({
                                                         key={entry.departmentId}
                                                         onClick={() => setCallerSelectedDeptId(entry.departmentId)}
                                                         className={cn(
-                                                            "group flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200",
+                                                            "group flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors",
                                                             callerSelectedDeptId === entry.departmentId 
-                                                                ? "bg-emerald-50 border-emerald-200 shadow-sm" 
-                                                                : "bg-white border-slate-200 hover:border-slate-300 shadow-none"
+                                                                ? "bg-emerald-50 border-emerald-200" 
+                                                                : "bg-card hover:bg-muted/40"
                                                         )}
                                                     >
                                                         <div className="flex items-center gap-3 min-w-0">
@@ -565,10 +627,10 @@ export function EditStaffDrawer({
                                                                 className="border-slate-300 text-emerald-600"
                                                             />
                                                             <div className="flex flex-col">
-                                                                <span className={cn("text-sm font-bold uppercase tracking-tight truncate", callerSelectedDeptId === entry.departmentId ? "text-emerald-900" : "text-slate-700")}>
+                                                                <span className={cn("text-sm font-medium truncate", callerSelectedDeptId === entry.departmentId ? "text-emerald-900" : "text-foreground")}>
                                                                     {entry.department.name}
                                                                 </span>
-                                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">
+                                                                <span className="text-xs text-muted-foreground leading-none mt-0.5">
                                                                     CODE: {entry.department.code}
                                                                 </span>
                                                             </div>
@@ -586,18 +648,18 @@ export function EditStaffDrawer({
                     </div>
                 </div>
 
-                <div className="flex-none bg-white border-t border-slate-100 p-6 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-                    <div className="flex gap-3 max-w-sm mx-auto sm:max-w-none">
+                <div className="flex-none bg-background border-t p-4">
+                    <div className="flex gap-3">
                         <Button 
                             variant="ghost" 
-                            className="flex-1 h-12 rounded-xl font-bold text-base text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all border border-transparent active:scale-[0.98]"
+                            className="flex-1 h-10 text-sm"
                             onClick={() => onOpenChange(false)}
                             disabled={isSaving}
                         >
                             Dismiss
                         </Button>
                         <Button 
-                            className="flex-2 h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-base shadow-lg shadow-slate-200 transition-all active:scale-[0.98] disabled:opacity-50"
+                            className="flex-2 h-10 text-sm"
                             onClick={handleSave}
                             disabled={isSaving || isLoading || !user}
                         >

@@ -43,6 +43,12 @@ export enum WorkstationType {
     CALLER = "CALLER"
 }
 
+export enum WorkstationQueueMode {
+    MIXED = "MIXED",
+    PRIORITY_ONLY = "PRIORITY_ONLY",
+    REGULAR_ONLY = "REGULAR_ONLY",
+}
+
 export enum DepartmentStatus {
     OPEN = "OPEN",
     CLOSED = "CLOSED",
@@ -53,6 +59,7 @@ export interface WorkStation {
     id: string;
     name: string;
     type: WorkstationType;
+    queueMode?: WorkstationQueueMode;
     stationNo: number;
     isActive: boolean;
     departmentId?: string;

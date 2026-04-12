@@ -35,6 +35,12 @@ enum WorkstationType {
   CALLER
 }
 
+enum WorkstationQueueMode {
+  MIXED
+  PRIORITY_ONLY
+  REGULAR_ONLY
+}
+
 enum DepartmentStatus {
   OPEN
   CLOSED
@@ -160,6 +166,7 @@ model WorkStation {
   id           String          @id @default(cuid())
   name         String          @unique
   type         WorkstationType
+  queueMode    WorkstationQueueMode @default(MIXED)
   stationNo    Int
   isActive     Boolean         @default(true)
   departmentId String?
@@ -290,6 +297,7 @@ model PriorityCategory {
   visits       VisitPriorityCategory[]
 
   @@unique([departmentId, code])
+  @@unique([departmentId, name])
   @@map("priority_category")
 }
 

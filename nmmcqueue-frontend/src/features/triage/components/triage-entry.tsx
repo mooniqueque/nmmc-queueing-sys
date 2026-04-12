@@ -125,7 +125,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
     }, [startTransition, setSelectedPatient]);
 
     return (
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-65px)] w-full overflow-hidden bg-slate-50 p-4 lg:p-6 gap-6">
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-65px)] w-full overflow-hidden bg-slate-50/60 p-4 lg:p-6 gap-5">
 
             {/* LEFT PANE: Sticky Sidebar Container */}
             <div className="w-full lg:w-[35%] xl:w-[30%] h-full shrink-0 flex flex-col">
@@ -200,29 +200,29 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                         </Card>
                     </div>
                 ) : (
-                    <Card className="bg-card rounded-xl border border-border shrink-0 min-h-[60vh] overflow-hidden">
+                    <Card className="bg-card rounded-2xl border border-border shrink-0 min-h-[60vh] overflow-hidden">
                         <CardHeader className="border-b border-border bg-muted/30 px-6 py-6">
-                            <CardTitle className="text-lg font-bold text-foreground tracking-tight uppercase">
+                            <CardTitle className="text-2xl font-semibold text-foreground tracking-tight">
                                 Calling Zone
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 sm:p-6">
                             {showEmptyState ? (
-                                <div className="flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-slate-200 bg-white p-8 sm:p-12 shadow-sm">
+                                <div className="flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-slate-200 bg-white p-10 sm:p-12 shadow-sm">
                                     <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100">
                                         <Play size={28} weight="fill" className="text-emerald-300" />
                                     </div>
-                                    <div className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                                    <div className="text-sm font-semibold text-slate-500">
                                         Queue Empty
                                     </div>
-                                    <div className="mt-3 text-lg sm:text-xl font-black tracking-tight text-slate-800">
+                                    <div className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-slate-800">
                                         No patient currently claimed
                                     </div>
                                     <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
                                         <Button
                                             onClick={handleCallNext}
                                             disabled={!canCallNext}
-                                            className="h-14 px-8 text-sm font-black uppercase tracking-[0.18em] bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl shadow-sm"
+                                            className="h-14 px-9 text-lg font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl shadow-sm"
                                         >
                                             <Play size={18} weight="fill" />
                                             Call Next
@@ -231,7 +231,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                             type="button"
                                             variant="outline"
                                             onClick={() => setManualEntry(true)}
-                                            className="h-14 px-8 text-xs font-bold uppercase tracking-widest rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50"
+                                            className="h-14 px-8 text-base font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50"
                                         >
                                             Walk-in / Manual Entry
                                         </Button>
@@ -239,20 +239,20 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                 </div>
                             ) : (
                                 <div className="space-y-6">
-                                    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-5 sm:px-6 shadow-sm">
+                                    <div className="rounded-2xl border border-slate-100 bg-white px-5 py-5 sm:px-6 shadow-sm">
                                         <div className="flex justify-between items-start">
                                             {showManualEntry ? (
                                                 <div className="space-y-2">
-                                                    <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Manual Entry</div>
-                                                    <div className="text-xl sm:text-2xl font-bold text-foreground">Walk-in Patient</div>
+                                                    <div className="text-sm font-semibold text-muted-foreground">Manual Entry</div>
+                                                    <div className="text-2xl sm:text-3xl font-semibold text-foreground">Walk-in Patient</div>
                                                     <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 rounded-full">
                                                         Walk-In Form
                                                     </Badge>
                                                 </div>
                                             ) : (
                                                 <div className="space-y-2">
-                                                    <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Now Serving</div>
-                                                    <div className="text-2xl sm:text-3xl font-black text-foreground">
+                                                    <div className="text-sm font-semibold text-muted-foreground">Now Serving</div>
+                                                    <div className="text-3xl sm:text-4xl font-semibold text-foreground">
                                                         {activePatient?.patient.lastName}, {activePatient?.patient.firstName}
                                                     </div>
                                                     <div className="flex flex-wrap items-center gap-2">
@@ -275,7 +275,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                                     onCheckedChange={setManualEntry}
                                                     className="data-[state=checked]:bg-emerald-600 shadow-inner"
                                                 />
-                                                <Label htmlFor="manual-entry-toggle" className="text-sm sm:text-base font-bold text-gray-800 uppercase tracking-wide cursor-pointer select-none">
+                                                <Label htmlFor="manual-entry-toggle" className="text-base sm:text-lg font-semibold text-gray-800 cursor-pointer select-none">
                                                     Walk-in / Manual Entry
                                                 </Label>
                                             </div>
@@ -286,7 +286,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                                 <Button
                                                     onClick={handleCallNext}
                                                     disabled={!canCallNext}
-                                                    className="h-11 px-6 font-bold uppercase tracking-widest bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl"
+                                                    className="h-12 px-7 text-base font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl"
                                                 >
                                                     <Play size={16} weight="fill" />
                                                     Call Next
@@ -295,7 +295,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                                     type="button"
                                                     variant="destructive"
                                                     onClick={handleNoShow}
-                                                    className="h-11 px-6 font-bold uppercase tracking-widest rounded-xl border-rose-200 text-rose-600 bg-rose-50/50 hover:bg-rose-50 hover:text-rose-700"
+                                                    className="h-12 px-7 text-base font-semibold rounded-xl border-rose-200 text-rose-600 bg-rose-50/50 hover:bg-rose-50 hover:text-rose-700"
                                                 >
                                                     No Show
                                                 </Button>

@@ -1,18 +1,20 @@
-import { getWorkstations } from "@/features/admin/workstation-actions";
-import { getDepartments } from "@/features/admin/department-actions";
 import WorkstationSettings from "@/features/admin/components/admin-settings/workstations";
-import { WorkStation, Department } from "@/shared/types/models";
-import { connection } from "next/server";
+import { getDepartments } from "@/features/admin/department-actions";
+import { getAllUsers } from "@/features/admin/user-actions";
+import { getWorkstations } from "@/features/admin/workstation-actions";
 import { auth } from "@/lib/database/auth";
-import { headers } from "next/headers";
-import { SessionUser } from "@/shared/types/auth";
 import { AdminHeader } from "@/shared/layouts";
+import { SessionUser, UserData } from "@/shared/types/auth";
+import { Department, WorkStation } from "@/shared/types/models";
+import { headers } from "next/headers";
+import { connection } from "next/server";
 
 export default async function WorkstationsData() {
     await connection();
 
     let workstations: WorkStation[] = [];
     let departments: Department[] = [];
+    let users: UserData[] = [];
     let user: SessionUser | undefined;
 
     try {
@@ -24,6 +26,9 @@ export default async function WorkstationsData() {
         
         const deptResponse = await getDepartments();
         departments = deptResponse.success && deptResponse.data ? deptResponse.data : [];
+
+        const usersResponse = await getAllUsers();
+        users = Array.isArray(usersResponse) ? (usersResponse as UserData[]) : [];
     } catch {
         // Build-time handle
     }
@@ -31,10 +36,11 @@ export default async function WorkstationsData() {
     return (
         <div className="flex flex-1 flex-col">
             {user && <AdminHeader user={user} title="Manage Workstations" />}
-            <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
+            <main className="flex-1 p-6 lg:p-8 max-w-400 mx-auto w-full">
                 <WorkstationSettings 
                     initialWorkstations={workstations} 
                     departments={departments}
+                    users={users}
                 />
             </main>
         </div>

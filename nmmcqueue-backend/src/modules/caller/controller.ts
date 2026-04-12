@@ -66,6 +66,16 @@ class CallerController {
         res.status(200).json({ success: true });
     });
 
+    initializeDepartmentQueueDefaults = asyncHandler(async (req: Request, res: Response) => {
+        const data = await callerService.initializeDepartmentQueueDefaults(req.params.id);
+        res.status(200).json({ success: true, data });
+    });
+
+    repairDefaultQueueOptions = asyncHandler(async (req: Request, res: Response) => {
+        const data = await callerService.repairDefaultQueueOptions();
+        res.status(200).json({ success: true, data });
+    });
+
     callPatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         const userId = req.user.id;
         const visitId = req.params.visitId;

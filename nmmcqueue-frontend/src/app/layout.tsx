@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Queueing System: NMMC",
+  title: "Out-Patient Queuing ",
   description: "Northern Mindanao Medical Center's Queueing System and Admin Monitoring",
 
   icons: {

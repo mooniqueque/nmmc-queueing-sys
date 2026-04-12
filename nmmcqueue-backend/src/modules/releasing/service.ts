@@ -1,10 +1,10 @@
 import { db } from '../../config/database.js';
 import { withClaimConflictRetry } from '../../lib/claim-retry.js';
+import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishDepartmentEvent, publishDepartmentMonitorEvent, publishSseEvent, SSE_TOPICS } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
-import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
 import { assignTicketSchema } from './schema.js';
@@ -99,6 +99,7 @@ class ReleasingService {
         }
 
         const stationNo = user.workstation.stationNo;
+        const queueMode = ((user.workstation as unknown as { queueMode?: 'MIXED' | 'PRIORITY_ONLY' | 'REGULAR_ONLY' }).queueMode) ?? 'MIXED';
         const queueBusinessDay = getQueueBusinessDay();
 
         const baseWhere = {
@@ -112,28 +113,44 @@ class ReleasingService {
             let nextVisit = null;
 
             if (overrideClassification) {
-                // Manual override: try the requested classification first
+                // Manual override: try the requested classification only.
                 nextVisit = await tx.visit.findFirst({
                     where: { ...baseWhere, classification: overrideClassification },
                     orderBy: { createdAt: 'asc' },
                     include: { patient: true }
                 });
-            }
 
-            if (!nextVisit) {
-                // Unified Fallback Strategy: Try PRIORITY first, then fall back to REGULAR for all windows
-                nextVisit = await tx.visit.findFirst({
-                    where: { ...baseWhere, classification: 'PRIORITY' },
-                    orderBy: { createdAt: 'asc' },
-                    include: { patient: true }
-                });
-                
                 if (!nextVisit) {
+                    return null;
+                }
+            } else {
+                if (queueMode === 'PRIORITY_ONLY') {
+                    nextVisit = await tx.visit.findFirst({
+                        where: { ...baseWhere, classification: 'PRIORITY' },
+                        orderBy: { createdAt: 'asc' },
+                        include: { patient: true }
+                    });
+                } else if (queueMode === 'REGULAR_ONLY') {
                     nextVisit = await tx.visit.findFirst({
                         where: { ...baseWhere, classification: 'REGULAR' },
                         orderBy: { createdAt: 'asc' },
                         include: { patient: true }
                     });
+                } else {
+                    // Mixed mode fallback: PRIORITY first, then REGULAR.
+                    nextVisit = await tx.visit.findFirst({
+                        where: { ...baseWhere, classification: 'PRIORITY' },
+                        orderBy: { createdAt: 'asc' },
+                        include: { patient: true }
+                    });
+
+                    if (!nextVisit) {
+                        nextVisit = await tx.visit.findFirst({
+                            where: { ...baseWhere, classification: 'REGULAR' },
+                            orderBy: { createdAt: 'asc' },
+                            include: { patient: true }
+                        });
+                    }
                 }
             }
 
@@ -178,6 +195,7 @@ class ReleasingService {
                 visitId: nextVisit.id,
                 userId,
                 windowNumber: stationNo,
+                queueMode,
                 classification: nextVisit.classification
             });
 
@@ -435,6 +453,77 @@ class ReleasingService {
         const payload = updatedVisit;
         publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: payload });
         return payload;
+    }
+
+    async updatePatientDemographics(
+        visitId: string,
+        payload: {
+            firstName: string;
+            middleName?: string;
+            lastName: string;
+            address?: string;
+            dateOfBirth: string;
+            gender: string;
+            contactNo?: string;
+            civilStatus?: string;
+            birthPlace?: string;
+            religion?: string;
+        },
+        userId?: string
+    ) {
+        if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            select: {
+                id: true,
+                patientId: true,
+                status: true,
+                windowClaimedById: true,
+            },
+        });
+
+        if (!visit) throw new AppError('Visit not found', 404, 'VISIT_NOT_FOUND');
+        if (visit.status !== 'IN_WINDOW') {
+            throw new AppError('Visit must be actively claimed at the window before editing patient details.', 409, 'INVALID_WINDOW_STATE');
+        }
+        if (visit.windowClaimedById !== userId) {
+            throw new AppError('Only the window clerk who claimed this visit can update patient details.', 409, 'WINDOW_CLAIM_REQUIRED');
+        }
+
+        const dateOfBirth = new Date(payload.dateOfBirth);
+        if (Number.isNaN(dateOfBirth.getTime())) {
+            throw new AppError('Invalid dateOfBirth', 400, 'INVALID_DATE_OF_BIRTH');
+        }
+
+        const updatedPatient = await db.patient.update({
+            where: { id: visit.patientId },
+            data: {
+                firstName: payload.firstName.trim(),
+                middleName: payload.middleName?.trim() || null,
+                lastName: payload.lastName.trim(),
+                address: payload.address?.trim() || null,
+                dateOfBirth,
+                gender: payload.gender.trim(),
+                contactNo: payload.contactNo?.trim() || null,
+                civilStatus: payload.civilStatus?.trim() || null,
+                birthPlace: payload.birthPlace?.trim() || null,
+                religion: payload.religion?.trim() || null,
+            },
+        });
+
+        const refreshedVisit = await db.visit.findUnique({
+            where: { id: visitId },
+            include: {
+                patient: true,
+                department: true,
+                categories: { include: { category: true } },
+            },
+        });
+
+        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: refreshedVisit });
+
+        return updatedPatient;
     }
 }
 

@@ -18,11 +18,11 @@ export default async function AdminLayout({
     // 1. middleware.ts — blocks non-ADMIN from any /admin-* route
     // 2. Individual page-level getSession() guards
     return (
-        <div className="admin-readable-scale">
+        <div className="admin-readable-scale admin-shadcn-surface">
             <SidebarProvider>
                 <AdminSidebar />
                 {/* MAIN CONTENT */}
-                <SidebarInset>
+                <SidebarInset className="admin-shadcn-surface">
                     {children}
                 </SidebarInset>
             </SidebarProvider>

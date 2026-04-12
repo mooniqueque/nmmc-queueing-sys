@@ -18,7 +18,7 @@ interface StatsCardProps {
  */
 export function StatsCard({ label, value, icon, color = "bg-primary/10 text-primary", className }: StatsCardProps) {
     return (
-        <Card className={cn("flex items-center p-6 gap-4", className)}>
+        <Card className={cn("flex items-center p-5 gap-4", className)}>
             <div className={cn(
                 "h-12 w-12 rounded-lg flex items-center justify-center shrink-0 transition-colors",
                 color
@@ -26,8 +26,8 @@ export function StatsCard({ label, value, icon, color = "bg-primary/10 text-prim
                 {icon}
             </div>
             <div className="flex flex-col gap-0.5">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest leading-none">{label}</p>
-                <h3 className="text-2xl font-bold tracking-tight text-foreground">{value}</h3>
+                <p className="text-xs font-medium text-muted-foreground leading-none">{label}</p>
+                <h3 className="text-2xl font-semibold tracking-tight text-foreground leading-tight">{value}</h3>
             </div>
         </Card>
     );

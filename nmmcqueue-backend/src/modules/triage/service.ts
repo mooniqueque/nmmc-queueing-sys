@@ -326,29 +326,8 @@ class TriageService {
 
         assignments.sort((left, right) => left.department.name.localeCompare(right.department.name));
 
-        const departments = assignments.map((assignment) => assignment.department);
-        if (departments.length > 0) return departments;
-
-        const user = await db.user.findUnique({
-            where: { id: userId },
-            select: { departmentId: true },
-        });
-
-        if (!user?.departmentId) return [];
-
-        const legacyDepartment = await db.department.findUnique({
-            where: { id: user.departmentId },
-            select: {
-                id: true,
-                name: true,
-                code: true,
-                videoUrl: true,
-                createdAt: true,
-                updatedAt: true,
-            },
-        });
-
-        return legacyDepartment ? [legacyDepartment] : [];
+        // Access must come only from explicit admin-managed assignments.
+        return assignments.map((assignment) => assignment.department);
     }
 
     async registerKioskPatient(payload: unknown) {
@@ -493,21 +472,6 @@ class TriageService {
                 const nextTicket = await ticketService.generateNextTicketNumber(tx, `WINDOW_${classificationStr}`, existingVisit.queueBusinessDay ?? getQueueBusinessDay());
                 const isNewPatient = (await tx.visit.count({ where: { patientId: existingVisit.patientId } })) <= 1;
                 
-                const updatedPatient = await tx.patient.update({ 
-                    where: { id: existingVisit.patientId }, 
-                    data: { 
-                        firstName: normalized.firstName,
-                        middleName: normalized.middleName,
-                        lastName: normalized.lastName,
-                        dateOfBirth: normalized.dateOfBirth,
-                        gender: normalized.gender,
-                        address: normalized.address,
-                        birthPlace: normalized.birthPlace,
-                        religion: normalized.religion,
-                        civilStatus: normalized.civilStatus
-                    } 
-                });
-
                 await tx.visit.update({ 
                     where: { id: visitId }, 
                     data: {
@@ -528,7 +492,17 @@ class TriageService {
                     }
                 });
                 
-                return { triageTicket: nextTicket, patientName: `${updatedPatient.firstName} ${updatedPatient.lastName}`.trim(), classification: classificationStr, isNewPatient };
+                const existingPatient = await tx.patient.findUnique({
+                    where: { id: existingVisit.patientId },
+                    select: { firstName: true, lastName: true },
+                });
+
+                return {
+                    triageTicket: nextTicket,
+                    patientName: `${existingPatient?.firstName ?? ''} ${existingPatient?.lastName ?? ''}`.trim(),
+                    classification: classificationStr,
+                    isNewPatient,
+                };
             });
             
             logger.info('Triage completed for queued visit', {
@@ -765,6 +739,35 @@ class TriageService {
                 categories: { include: { category: true } }
             }
         }).then(withTriageQueueTicket);
+    }
+
+    async updateAppointment(visitId: string, hasAppointment: boolean, userId: string) {
+        const visit = await db.visit.findUnique({
+            where: { id: visitId },
+            select: {
+                id: true,
+                status: true,
+                triageClaimedById: true,
+            }
+        });
+
+        if (!visit) throw new AppError('Visit not found.', 404, 'VISIT_NOT_FOUND');
+        if (visit.status !== 'IN_TRIAGE') {
+            throw new AppError('Visit must be actively claimed in triage before updating appointment status.', 409, 'INVALID_TRIAGE_STATE');
+        }
+        if (visit.triageClaimedById !== userId) {
+            throw new AppError('Only the triage nurse who claimed this visit can update appointment status.', 409, 'TRIAGE_CLAIM_REQUIRED');
+        }
+
+        await db.visit.update({
+            where: { id: visitId },
+            data: { hasAppointment },
+        });
+
+        const payload = await getTriageVisitPayload(visitId);
+        publishTriageVisitUpsert(payload);
+
+        return { id: visitId, hasAppointment };
     }
 }
 

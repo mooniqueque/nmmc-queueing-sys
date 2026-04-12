@@ -19,13 +19,28 @@ export default async function AdminDashboardData() {
 
     try {
         session = await auth.api.getSession({ headers: await headers() });
+    } catch (error) {
+        console.error("[AdminDashboardData] Failed to load session", error);
+    }
+
+    try {
         allUsers = await getAllUsers();
+    } catch (error) {
+        console.error("[AdminDashboardData] Failed to load users", error);
+    }
+
+    try {
         const response = await getDepartments();
         departments = response.success ? (response.data ?? []) : [];
+    } catch (error) {
+        console.error("[AdminDashboardData] Failed to load departments", error);
+    }
+
+    try {
         const wsResponse = await getWorkstations();
         workstations = wsResponse.success ? (wsResponse.data ?? []) : [];
-    } catch {
-        // Handle error
+    } catch (error) {
+        console.error("[AdminDashboardData] Failed to load workstations", error);
     }
 
     return (

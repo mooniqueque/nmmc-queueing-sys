@@ -1,3 +1,4 @@
+import { hashPassword } from 'better-auth/crypto';
 import { Response } from 'express';
 import { db } from '../../config/database.js';
 import { AppError, asyncHandler } from '../../middleware/error-handler.js';
@@ -243,6 +244,65 @@ class AuthController {
             where: { id: req.params.id }, 
             data: { workstationId: req.body.workstationId } 
         });
+        res.status(200).json({ success: true });
+    });
+
+    updateUserInfo = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+        const { id } = req.params;
+        const { name, email } = req.body;
+
+        const firstName = name.split(' ')[0];
+        const lastName = name.split(' ').slice(1).join(' ');
+
+        await db.user.update({
+            where: { id },
+            data: {
+                name,
+                email,
+                firstName,
+                lastName,
+                username: email.split('@')[0],
+            },
+        });
+
+        res.status(200).json({ success: true });
+    });
+
+    adminResetPassword = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
+        const { id } = req.params;
+        const { password } = req.body;
+
+        const hashedPassword = await hashPassword(password);
+        const updatedAccounts = await db.account.updateMany({
+            where: {
+                userId: id,
+                providerId: { in: ['credential', 'email'] },
+            },
+            data: {
+                password: hashedPassword,
+                updatedAt: new Date(),
+            },
+        });
+
+        if (updatedAccounts.count === 0) {
+            await db.account.create({
+                data: {
+                    accountId: id,
+                    userId: id,
+                    providerId: 'credential',
+                    password: hashedPassword,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                },
+            });
+        }
+
+        await db.session.deleteMany({
+            where: { userId: id },
+        });
+
         res.status(200).json({ success: true });
     });
 

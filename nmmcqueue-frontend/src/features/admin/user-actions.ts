@@ -70,3 +70,19 @@ export async function updateUserWorkstation(userId: string, workstationId: strin
     if (result.success) revalidatePath("/admin-dashboard");
     return result;
 }
+
+export async function updateUserInfo(userId: string, data: { name: string; email: string }) {
+    const result = await authApi.updateUserInfo(userId, data, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
+}
+
+export async function adminResetPassword(userId: string, data: { password: string }) {
+    const result = await authApi.adminResetPassword(userId, data.password, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
+}

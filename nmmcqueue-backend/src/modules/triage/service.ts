@@ -2,6 +2,7 @@ import type { KioskRegistrationPayload, TriageFormValues, VisitClassification } 
 import type { Prisma } from '@prisma/client';
 import { db } from '../../config/database.js';
 import { withClaimConflictRetry } from '../../lib/claim-retry.js';
+import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishSseEvent, SSE_TOPICS } from '../../lib/sse.js';
@@ -9,7 +10,6 @@ import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
 import { kioskFormSchema, triageFormSchema } from './schema.js';
-import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 
 type NormalizedKioskInput = {
     hospitalId?: string;

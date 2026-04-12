@@ -15,14 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { createDepartment, deleteDepartment } from "@/features/admin/department-actions";
-import { updateDepartmentStatus } from "@/features/admin/department-actions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { createDepartment, deleteDepartment, updateDepartmentStatus } from "@/features/admin/department-actions";
 import { notify } from "@/shared/lib/notify";
 import { cn } from "@/shared/lib/utils";
 import { Department, DepartmentStatus, PriorityCategory } from "@/shared/types/models";
-import { Funnel, MagnifyingGlass, Plus, Trash, Gear } from "@phosphor-icons/react";
+import { Funnel, Gear, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

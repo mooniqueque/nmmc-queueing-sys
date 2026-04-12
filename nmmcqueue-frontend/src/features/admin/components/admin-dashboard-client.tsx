@@ -7,7 +7,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from '@/components/ui/input';
@@ -24,24 +23,21 @@ import { AdminHeader } from "@/shared/layouts";
 import { notify } from "@/shared/lib/notify";
 import { cn } from "@/shared/lib/utils";
 import { SessionUser, UserData } from "@/shared/types/auth";
-import { HOSPITAL_ROLES } from "@/shared/types/constants";
 import { Department, WorkStation, WorkstationType } from "@/shared/types/models";
 import {
     CheckCircle,
     Funnel,
     MagnifyingGlass,
-    Plus,
-    WarningCircle,
     Users,
+    WarningCircle,
     XCircle
 } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react';
-import { toggleUserStatus, updateUserRole, updateUserWorkstation } from "../user-actions";
+import { toggleUserStatus } from "../user-actions";
 import { AddUserDialog } from "./add-user-dialog";
 import { AddWorkstationDialog } from "./add-workstation-dialog";
-import { ManageClinicCallerDepartmentsDrawer } from "./manage-clinic-caller-departments-drawer";
-import { ManageTriageDepartmentsDrawer } from "./manage-triage-departments-drawer";
+import { EditStaffDrawer } from "./edit-staff-drawer";
 import { StatsCard } from "./stats-card";
 
 /**
@@ -64,12 +60,10 @@ export default function AdminDashboard({
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRole, setFilterRole] = useState('All Users');
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-    const [departmentDrawerOpen, setDepartmentDrawerOpen] = useState(false);
-    const [selectedDepartmentUser, setSelectedDepartmentUser] = useState<UserData | null>(null);
-    const [clinicCallerDrawerOpen, setClinicCallerDrawerOpen] = useState(false);
-    const [selectedClinicCallerUser, setSelectedClinicCallerUser] = useState<UserData | null>(null);
+    const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+    const [selectedEditUser, setSelectedEditUser] = useState<UserData | null>(null);
     const [addWorkstationDialogOpen, setAddWorkstationDialogOpen] = useState(false);
-    const [selectedWorkstationType, setSelectedWorkstationType] = useState<WorkstationType | null>(null);
+    const [selectedWorkstationType] = useState<WorkstationType | null>(null);
     const [localWorkstations, setLocalWorkstations] = useState<WorkStation[]>(workstations);
     const isMounted = useIsMounted();
     const [currentPage, setCurrentPage] = useState(1);
@@ -80,6 +74,28 @@ export default function AdminDashboard({
         TRIAGE_NURSE: 2,
         CLINIC_CALLER: 3,
         ADMIN: 4,
+    };
+
+    const getDisplayDepartments = (user: UserData) => {
+        if (user.role === 'WINDOW_CLERK') {
+            return [{ id: `default-window-${user.id}`, name: 'Windows', code: 'WND' }];
+        }
+
+        if (user.role === 'TRIAGE_NURSE') {
+            return [{ id: `default-triage-${user.id}`, name: 'Triage', code: 'TRI' }];
+        }
+
+        const assignments = (user.departmentAccess || [])
+            .filter((entry) => entry.isEnabled)
+            .map((entry) => entry.department);
+
+        if (assignments.length > 0) return assignments;
+
+        if (user.departmentId && user.department) {
+            return [{ id: user.departmentId, name: user.department, code: user.department.slice(0, 3).toUpperCase() }];
+        }
+
+        return [];
     };
 
     useEffect(() => {
@@ -97,9 +113,7 @@ export default function AdminDashboard({
     // 3. FILTERING (Let React Compiler handle memoization)
     const users = initialUsers || [];
     const filteredUsers = users.filter(user => {
-        const departmentNames = (user.departmentAccess || [])
-            .filter((entry) => entry.isEnabled)
-            .map((entry) => entry.department.name.toLowerCase());
+        const departmentNames = getDisplayDepartments(user).map((entry) => entry.name.toLowerCase());
 
         const matchesSearch =
             user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -128,35 +142,6 @@ export default function AdminDashboard({
 
 
     // 4. ACTION HANDLERS
-    const handleUpdateRole = async (userId: string, newRole: string) => {
-        setUpdatingUserId(userId);
-        try {
-            const result = await updateUserRole(userId, newRole);
-            if (result.success) {
-                router.refresh();
-            } else {
-                notify.error(result.error || "Failed to update user role.");
-            }
-        } finally {
-            setUpdatingUserId(null);
-        }
-    };
-
-    const handleUpdateWorkstation = async (userId: string, wsId: string) => {
-        setUpdatingUserId(userId);
-        try {
-            const result = await updateUserWorkstation(userId, wsId);
-            if (result.success) {
-                router.refresh();
-            } else {
-                notify.error(result.error || "Failed to update workstation assignment.");
-            }
-        } finally {
-            setUpdatingUserId(null);
-        }
-    };
-
-
     const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
         setUpdatingUserId(userId);
         try {
@@ -171,36 +156,13 @@ export default function AdminDashboard({
         }
     };
 
-    const handleManageDepartments = (user: UserData) => {
-        setSelectedDepartmentUser(user);
-        setDepartmentDrawerOpen(true);
-    };
-
-    const handleManageClinicCallerDepartments = (user: UserData) => {
-        setSelectedClinicCallerUser(user);
-        setClinicCallerDrawerOpen(true);
-    };
-
-    const handleOpenAddWorkstationDialog = (stationType: WorkstationType) => {
-        setSelectedWorkstationType(stationType);
-        setAddWorkstationDialogOpen(true);
+    const handleEditStaff = (user: UserData) => {
+        setSelectedEditUser(user);
+        setEditDrawerOpen(true);
     };
 
     const handleWorkstationCreated = (newWorkstation: WorkStation) => {
         setLocalWorkstations((current) => [...current, newWorkstation]);
-    };
-
-    const getEnabledDepartments = (user: UserData) => {
-        const assignments = (user.departmentAccess || [])
-            .filter((entry) => entry.isEnabled)
-            .map((entry) => entry.department);
-
-        if (assignments.length > 0) return assignments;
-        if (user.departmentId && user.department) {
-            return [{ id: user.departmentId, name: user.department, code: user.department.slice(0, 3).toUpperCase() }];
-        }
-
-        return [];
     };
 
     if (!loggedInUser || !isMounted) return null;
@@ -275,83 +237,61 @@ export default function AdminDashboard({
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-75 font-semibold py-4 text-left">Staff Info</TableHead>
-                                <TableHead className="font-semibold py-4 text-left">Assigned Station</TableHead>
-                                <TableHead className="font-semibold py-4 text-left">Departments</TableHead>
-                                <TableHead className="font-semibold py-4 text-left">Action</TableHead>
-                                <TableHead className="font-semibold py-4 text-left">System Role</TableHead>
-                                <TableHead className="font-semibold py-4 text-left w-37.5">Status</TableHead>
+                                <TableHead className="w-80 font-bold py-5 text-left text-[11px] uppercase tracking-wider text-slate-500">Staff Info</TableHead>
+                                <TableHead className="font-bold py-5 text-left text-[11px] uppercase tracking-wider text-slate-500">Role & Station</TableHead>
+                                <TableHead className="font-bold py-5 text-left text-[11px] uppercase tracking-wider text-slate-500">Departments</TableHead>
+                                <TableHead className="font-bold py-5 text-left text-[11px] uppercase tracking-wider text-slate-500 w-32">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {paginatedUsers.map((user) => (
-                                <TableRow key={user.id} className="h-16">
+                                <TableRow 
+                                    key={user.id} 
+                                    className="h-16 cursor-pointer hover:bg-slate-50/80 transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-inset"
+                                    onClick={() => handleEditStaff(user)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            handleEditStaff(user);
+                                        }
+                                    }}
+                                    tabIndex={0}
+                                >
                                     <TableCell>
                                         <div className="flex flex-col py-0.5">
-                                            <span className="font-semibold text-foreground tracking-tight">{user.name}</span>
-                                            <span className="text-xs text-muted-foreground">{user.email}</span>
+                                            <span className="font-bold text-slate-800 tracking-tight text-[13px]">{user.name}</span>
+                                            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">{user.email}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className={cn(
-                                                        "h-8 px-2 font-medium hover:bg-accent",
-                                                        updatingUserId === user.id && "animate-pulse opacity-50"
-                                                    )}
-                                                >
-                                                    {user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' || user.role === 'CLINIC_CALLER' ? (
-                                                        <span className="text-primary">
-                                                            {user.workstation ? `${user.workstation.name} (#${user.workstation.stationNo})` : 'No Station'}
-                                                        </span>
+                                        <div className="flex flex-col py-0.5">
+                                            <Badge variant="outline" className="w-fit text-[9px] font-bold uppercase tracking-[0.15em] h-5 text-indigo-600 border-indigo-100 bg-indigo-50/50 mb-1">
+                                                {user.role.replace('_', ' ')}
+                                            </Badge>
+                                            <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 min-h-4">
+                                                {user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' || user.role === 'CLINIC_CALLER' ? (
+                                                    user.workstation ? (
+                                                        <>
+                                                            <div className="h-1 w-1 rounded-full bg-slate-300" />
+                                                            {user.workstation.name} (#{user.workstation.stationNo})
+                                                        </>
                                                     ) : (
-                                                        user.department
-                                                    )}
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start" className="w-64">
-                                                {(user.role === 'WINDOW_CLERK' || user.role === 'TRIAGE_NURSE' || user.role === 'CLINIC_CALLER') && (
-                                                    <>
-                                                        <div className="text-[10px] font-bold text-muted-foreground px-2 py-1 uppercase tracking-widest">Stations</div>
-                                                        {localWorkstations
-                                                            .filter(ws => {
-                                                                if (user.role === 'WINDOW_CLERK') return ws.type === WorkstationType.WINDOW;
-                                                                if (user.role === 'TRIAGE_NURSE') return ws.type === WorkstationType.TRIAGE;
-                                                                if (user.role === 'CLINIC_CALLER') return ws.type === WorkstationType.CALLER;
-                                                                return false;
-                                                            })
-                                                            .map((ws) => (
-                                                                <DropdownMenuItem
-                                                                    key={ws.id}
-                                                                    onClick={() => handleUpdateWorkstation(user.id, ws.id)}
-                                                                >
-                                                                    {ws.name} ({ws.stationNo})
-                                                                </DropdownMenuItem>
-                                                            ))}
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem
-                                                            onClick={() => handleOpenAddWorkstationDialog(user.role === 'WINDOW_CLERK' ? WorkstationType.WINDOW : user.role === 'TRIAGE_NURSE' ? WorkstationType.TRIAGE : WorkstationType.CALLER)}
-                                                            className="text-emerald-600 dark:text-emerald-400 cursor-pointer"
-                                                        >
-                                                            <Plus size={14} className="mr-2" />
-                                                            <span className="text-xs font-semibold">Add Station</span>
-                                                        </DropdownMenuItem>
-                                                    </>
+                                                        <span className="text-amber-500 italic font-medium opacity-80">No station assigned</span>
+                                                    )
+                                                ) : (
+                                                    <span className="text-slate-300 font-medium italic">Administrative Role</span>
                                                 )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                            </span>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         {(() => {
-                                            const departmentList = getEnabledDepartments(user);
+                                            const departmentList = getDisplayDepartments(user);
                                             if (departmentList.length === 0) {
                                                 return (
-                                                    <div className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+                                                    <div className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/50 px-2.5 py-1 text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
                                                         <WarningCircle size={12} weight="fill" />
-                                                        <span>No departments assigned</span>
+                                                        <span>Unassigned</span>
                                                     </div>
                                                 );
                                             }
@@ -365,7 +305,7 @@ export default function AdminDashboard({
                                                         <Badge
                                                             key={department.id}
                                                             variant="secondary"
-                                                            className="h-6 px-2.5 bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-semibold uppercase tracking-wide"
+                                                            className="h-5 px-2 bg-slate-100/80 text-slate-600 border-slate-200 text-[9px] font-bold uppercase tracking-wider"
                                                         >
                                                             {department.name}
                                                         </Badge>
@@ -374,9 +314,9 @@ export default function AdminDashboard({
                                                         <Badge
                                                             variant="secondary"
                                                             title={departmentList.slice(2).map((department) => department.name).join(', ')}
-                                                            className="h-6 px-2.5 bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-semibold"
+                                                            className="h-5 px-2 bg-white text-slate-400 border-slate-200 text-[9px] font-bold"
                                                         >
-                                                            +{hiddenCount} more
+                                                            +{hiddenCount}
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -384,86 +324,22 @@ export default function AdminDashboard({
                                         })()}
                                     </TableCell>
                                     <TableCell>
-                                        {user.role === 'TRIAGE_NURSE' ? (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 gap-1.5 px-2.5 border-dashed text-xs font-semibold tracking-tight whitespace-nowrap"
-                                                onClick={() => handleManageDepartments(user)}
-                                                title="Manage triage department access"
-                                            >
-                                                <span>Manage</span>
-                                                <Badge variant="outline" className="h-5 px-1.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                                                    Triage
-                                                </Badge>
-                                            </Button>
-                                        ) : user.role === 'CLINIC_CALLER' ? (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 gap-1.5 px-2.5 border-dashed text-xs font-semibold tracking-tight whitespace-nowrap"
-                                                onClick={() => handleManageClinicCallerDepartments(user)}
-                                                title="Manage clinic caller department access"
-                                            >
-                                                <span>Manage</span>
-                                                <Badge variant="outline" className="h-5 px-1.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
-                                                    Caller
-                                                </Badge>
-                                            </Button>
-                                        ) : (
-                                            <span className="text-xs font-medium text-muted-foreground">Not Applicable</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 px-2 hover:bg-accent"
-                                                >
-                                                    <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide h-6 text-slate-600 border-slate-200 bg-slate-50">
-                                                        {user.role.replace('_', ' ')}
-                                                    </Badge>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start" className="w-48">
-                                                {HOSPITAL_ROLES.map(({ value, label }) => (
-                                                    <DropdownMenuItem
-                                                        key={value}
-                                                        onClick={() => handleUpdateRole(user.id, value)}
-                                                    >
-                                                        {label}
-                                                    </DropdownMenuItem>
-                                                ))}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="sm" className="h-8 px-2 ">
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className={cn(
-                                                            "h-5 px-2 text-[9px] font-semibold uppercase tracking-wide",
-                                                            user.isActive
-                                                                ? "text-emerald-600 bg-emerald-50 border border-emerald-100"
-                                                                : "text-slate-600 bg-slate-100 border border-slate-200"
-                                                        )}
-                                                    >
-                                                        {user.isActive ? "ACTIVE" : "INACTIVE"}
-                                                    </Badge>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start">
-                                                <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.isActive)}>
-                                                    {user.isActive ? "Set as Inactive" : "Set as Active"}
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleToggleStatus(user.id, user.isActive);
+                                            }}
+                                            disabled={updatingUserId === user.id}
+                                            className={cn(
+                                                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest border transition-all duration-200 active:scale-95 disabled:opacity-50",
+                                                user.isActive
+                                                    ? "text-emerald-700 bg-emerald-50 border-emerald-100 hover:bg-emerald-100"
+                                                    : "text-slate-400 bg-slate-50 border-slate-200 hover:bg-slate-100"
+                                            )}
+                                        >
+                                            <div className={cn("h-1.5 w-1.5 rounded-full", user.isActive ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
+                                            {user.isActive ? "Active" : "Inactive"}
+                                        </button>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -498,17 +374,11 @@ export default function AdminDashboard({
                     )}
                 </Card>
 
-                <ManageTriageDepartmentsDrawer
-                    open={departmentDrawerOpen}
-                    onOpenChange={setDepartmentDrawerOpen}
-                    user={selectedDepartmentUser}
-                    onSaved={() => router.refresh()}
-                />
-
-                <ManageClinicCallerDepartmentsDrawer
-                    open={clinicCallerDrawerOpen}
-                    onOpenChange={setClinicCallerDrawerOpen}
-                    user={selectedClinicCallerUser}
+                <EditStaffDrawer
+                    open={editDrawerOpen}
+                    onOpenChange={setEditDrawerOpen}
+                    user={selectedEditUser}
+                    workstations={localWorkstations}
                     onSaved={() => router.refresh()}
                 />
 

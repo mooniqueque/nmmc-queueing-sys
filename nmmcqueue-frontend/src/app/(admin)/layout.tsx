@@ -18,7 +18,7 @@ export default async function AdminLayout({
     // 1. middleware.ts — blocks non-ADMIN from any /admin-* route
     // 2. Individual page-level getSession() guards
     return (
-        <div style={{ zoom: "1.1" }}>
+        <div className="admin-readable-scale">
             <SidebarProvider>
                 <AdminSidebar />
                 {/* MAIN CONTENT */}

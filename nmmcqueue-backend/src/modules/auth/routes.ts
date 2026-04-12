@@ -12,6 +12,8 @@ import {
     updateUserRoleRequestSchema,
     updateUserWorkstationRequestSchema,
     userIdParamSchema,
+    updateUserInfoRequestSchema,
+    adminResetPasswordRequestSchema,
 } from './schema.js';
 
 export const authRouter = Router();
@@ -29,3 +31,5 @@ userRouter.put('/:id/department', validate(updateUserDepartmentRequestSchema), a
 userRouter.get('/:id/departments', validate(userIdParamSchema), authController.getUserDepartmentAssignments);
 userRouter.put('/:id/departments', validate(updateUserDepartmentAssignmentsRequestSchema), authController.updateUserDepartmentAssignments);
 userRouter.put('/:id/workstation', validate(updateUserWorkstationRequestSchema), authController.updateUserWorkstation);
+userRouter.put('/:id/info', validate(updateUserInfoRequestSchema), authController.updateUserInfo);
+userRouter.post('/:id/reset-password', validate(adminResetPasswordRequestSchema), authController.adminResetPassword);

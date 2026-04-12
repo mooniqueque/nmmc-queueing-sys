@@ -119,6 +119,29 @@
     @apply border-border outline-ring/50;
   }
 
+  /* Keep admin pages slightly larger for better readability across the whole admin area. */
+  .admin-readable-scale {
+    zoom: 1.24;
+  }
+
+  @media (max-width: 1536px) {
+    .admin-readable-scale {
+      zoom: 1.18;
+    }
+  }
+
+  @media (max-width: 1280px) {
+    .admin-readable-scale {
+      zoom: 1.12;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .admin-readable-scale {
+      zoom: 1.06;
+    }
+  }
+
   body {
     @apply bg-background text-foreground;
   }

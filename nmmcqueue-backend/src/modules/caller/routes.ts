@@ -8,6 +8,7 @@ import {
     createDepartmentRequestSchema,
     createQueueOptionRequestSchema,
     departmentIdParamSchema,
+    updateDepartmentStatusRequestSchema,
     transferPatientRequestSchema,
 } from './schema.js';
 
@@ -21,6 +22,7 @@ callerRouter.get('/departments', requireAuth, callerController.getDepartments);
 // Admin-only management routes (mutations)
 callerRouter.post('/departments', requireRole(['ADMIN']), validate(createDepartmentRequestSchema), callerController.createDepartment);
 callerRouter.delete('/departments/:id', requireRole(['ADMIN']), validate(departmentIdParamSchema), callerController.deleteDepartment);
+callerRouter.patch('/departments/:id/status', requireRole(['ADMIN']), validate(updateDepartmentStatusRequestSchema), callerController.updateDepartmentStatus);
 callerRouter.post('/queue-options', requireRole(['ADMIN']), validate(createQueueOptionRequestSchema), callerController.createQueueOption);
 callerRouter.delete('/queue-options/:id', requireRole(['ADMIN']), validate(departmentIdParamSchema), callerController.deleteQueueOption);
 

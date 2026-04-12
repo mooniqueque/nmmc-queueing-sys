@@ -9,6 +9,15 @@ export const createDepartmentRequestSchema = z.object({
     }),
 });
 
+export const updateDepartmentStatusRequestSchema = z.object({
+    body: z.object({
+        status: z.enum(['OPEN', 'CLOSED', 'FULL']),
+    }),
+    params: z.object({
+        id: z.string().min(1, 'Department ID is required'),
+    }),
+});
+
 export const createQueueOptionRequestSchema = z.object({
     body: z.object({
         departmentName: z.string().min(1, 'departmentName is required'),

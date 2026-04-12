@@ -35,6 +35,12 @@ enum WorkstationType {
   CALLER
 }
 
+enum DepartmentStatus {
+  OPEN
+  CLOSED
+  FULL
+}
+
 model User {
   id              String    @id @default(cuid())
   firstName       String
@@ -121,6 +127,7 @@ model Department {
   name         String       @unique
   slug         String       @unique
   code         String       @unique
+  status       DepartmentStatus @default(OPEN)
   videoUrl     String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt

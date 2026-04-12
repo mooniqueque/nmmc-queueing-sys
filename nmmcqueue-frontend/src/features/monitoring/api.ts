@@ -11,7 +11,12 @@ export async function uploadMonitorVideo(departmentId: string, videoFile: File, 
         body: formData,
         // Fetch will automatically set the correct Content-Type with boundary for FormData
     });
-    
+
+    if (!res.ok) {
+        const text = await res.text();
+        return { success: false, error: text || 'Upload failed' };
+    }
+
     return res.json();
 }
 

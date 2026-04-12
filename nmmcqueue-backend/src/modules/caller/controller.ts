@@ -32,6 +32,11 @@ class CallerController {
         }
     });
 
+    updateDepartmentStatus = asyncHandler(async (req: Request, res: Response) => {
+        const data = await callerService.updateDepartmentStatus(req.params.id, req.body.status);
+        res.status(200).json({ success: true, data });
+    });
+
     deleteDepartment = asyncHandler(async (req: Request, res: Response) => {
         try {
             await callerService.deleteDepartment(req.params.id);

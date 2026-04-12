@@ -32,6 +32,19 @@ export async function deleteDepartment(id: string, options?: RequestInit) {
     });
 }
 
+export async function updateDepartmentStatus(
+    id: string,
+    status: "OPEN" | "CLOSED" | "FULL",
+    options?: RequestInit
+) {
+    return apiClient(`/caller/departments/${id}/status`, {
+        method: "PATCH",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ status }),
+    });
+}
+
 export async function createQueueOption(
     departmentName: string,
     data: { name: string, code: string, isPriority: boolean, parentId?: string },

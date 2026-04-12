@@ -43,6 +43,12 @@ export enum WorkstationType {
     CALLER = "CALLER"
 }
 
+export enum DepartmentStatus {
+    OPEN = "OPEN",
+    CLOSED = "CLOSED",
+    FULL = "FULL",
+}
+
 export interface WorkStation {
     id: string;
     name: string;
@@ -58,6 +64,7 @@ export interface Department {
     id: string;
     name: string;
     code: string;
+    status?: DepartmentStatus;
     videoUrl?: string;
     createdAt: Date;
     updatedAt: Date;

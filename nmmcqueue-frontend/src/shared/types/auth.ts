@@ -1,3 +1,13 @@
+export interface DepartmentAccessSummary {
+    departmentId: string;
+    isEnabled: boolean;
+    department: {
+        id: string;
+        name: string;
+        code: string;
+    };
+}
+
 export interface SessionUser {
     id: string;
     email: string;
@@ -29,6 +39,7 @@ export interface UserData {
         stationNo: number;
         pairedStationId?: string;
     };
+    departmentAccess?: DepartmentAccessSummary[];
 }
 
 export interface SignUpPayload {

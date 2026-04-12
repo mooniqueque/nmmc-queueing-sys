@@ -252,7 +252,23 @@ class AuthController {
             orderBy: { createdAt: 'desc' },
             include: {
                 workstation: true,
-                dept: true
+                dept: true,
+                departmentAccess: {
+                    include: {
+                        department: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                            },
+                        },
+                    },
+                    orderBy: {
+                        department: {
+                            name: 'asc',
+                        },
+                    },
+                },
             }
         });
         res.status(200).json({ success: true, data: users });

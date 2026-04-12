@@ -34,3 +34,10 @@ export const WorkstationType = {
     CALLER: 'CALLER',
 } as const;
 export type WorkstationType = (typeof WorkstationType)[keyof typeof WorkstationType];
+
+export const DepartmentStatus = {
+    OPEN: 'OPEN',
+    CLOSED: 'CLOSED',
+    FULL: 'FULL',
+} as const;
+export type DepartmentStatus = (typeof DepartmentStatus)[keyof typeof DepartmentStatus];

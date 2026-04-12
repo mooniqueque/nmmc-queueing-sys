@@ -17,6 +17,7 @@ export interface DepartmentSummary {
     id: string;
     name: string;
     code?: string;
+    status?: 'OPEN' | 'CLOSED' | 'FULL';
 }
 
 // ─── Session / Auth ──────────────────────────────────────────

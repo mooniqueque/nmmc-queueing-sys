@@ -4,6 +4,7 @@ import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishDepartmentEvent, publishDepartmentMonitorEvent, publishSseEvent, SSE_TOPICS } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
 import { assignTicketSchema } from './schema.js';
@@ -302,8 +303,10 @@ class ReleasingService {
         });
 
         const department = await db.department.findUnique({
-            where: { id: data.departmentId }
+            where: { id: data.departmentId },
+            select: { id: true, name: true, status: true, code: true },
         });
+        assertDepartmentAcceptsAssignments(department);
 
         const classification = category?.isPriority ? 'PRIORITY' : 'REGULAR';
 

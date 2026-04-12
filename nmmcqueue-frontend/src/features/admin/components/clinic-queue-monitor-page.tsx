@@ -1,179 +1,160 @@
 "use client";
 
-import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { VisitWithPatient } from "@/features/triage/types";
-import { API_URL } from "@/lib/api";
+import { uploadMonitorVideo } from "@/features/monitoring/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { notify } from "@/shared/lib/notify";
 import { AdminHeader } from "@/shared/layouts";
-import { cn } from "@/shared/lib/utils";
 import { SessionUser } from "@/shared/types/auth";
-import { Play } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { Department } from "@/shared/types/models";
+import { ArrowSquareOut, Desktop, SpinnerGap, UploadSimple } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 
 export default function QueueMonitor({
-    departmentName,
-    initialQueue,
+    departments,
     loggedInUser,
 }: {
-    departmentName: string;
-    initialQueue?: VisitWithPatient[];
+    departments: Department[];
     loggedInUser: SessionUser;
 }) {
-    // Live Queue Hook
-    const { activeQueue } = useClinicQueue(departmentName, initialQueue || []);
+    const router = useRouter();
+    const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+    const [uploadingDepartmentId, setUploadingDepartmentId] = useState<string | null>(null);
+    const sortedDepartments = [...departments].sort((a, b) => a.name.localeCompare(b.name));
 
-    const [videoUrl, setVideoUrl] = useState<string | null>(null);
-
-    useEffect(() => {
-        // Fetch department video info
-        const loadVideo = async () => {
-            const { getDepartmentsVideos } = await import('@/features/monitoring/actions');
-            const res = await getDepartmentsVideos();
-            if (res.success) {
-                const dept = res.data.find((d: any) => d.name === departmentName);
-                if (dept) setVideoUrl(dept.videoUrl);
-            }
-        };
-        loadVideo();
-    }, [departmentName]);
-
-    const getFullVideoUrl = (url: string) => {
-        const backendUrl = API_URL.replace('/api', '');
-        return `${backendUrl}${url}`;
+    const openUploadPicker = (departmentId: string) => {
+        inputRefs.current[departmentId]?.click();
     };
 
-    // Calculate dynamically from the active array filtering for the target department
-    const departmentQueue = activeQueue.filter((v: VisitWithPatient) => v.department?.name === departmentName);
+    const handleUploadForDepartment = async (department: Department, file: File | null) => {
+        if (!file) return;
 
-    // Simplistic handling of what is "Now Serving" vs "Waitlist"
-    const currentTicket = departmentQueue.length > 0 ? `P-${departmentQueue[0].ticketNumber}` : "NONE";
-
-    // Map backend data to UI expected shapes for Monitor
-    const UPCOMING_QUEUE = departmentQueue.slice(1, 5).map((v: VisitWithPatient) => {
-        const priorityCode = v.categories?.[0]?.category?.code || "REGULAR";
-        return {
-            ticket: `P-${v.ticketNumber}`,
-            category: priorityCode,
-            type: priorityCode.includes('FT') || priorityCode.includes('ER') ? 'urgent' :
-                priorityCode.includes('PRIO') || priorityCode.includes('CHILD') || priorityCode.includes('SR') ? 'priority' : 'regular'
-        };
-    });
-
-    const SERVING_LIST = [
-        { service: departmentName, ticket: currentTicket },
-    ];
-
-    // Helper for styling tickets based on type
-    const getTicketStyle = (type: string) => {
-        switch (type) {
-            case 'priority': return 'bg-red-50 border-red-100 text-red-900 border';
-            case 'urgent': return 'bg-orange-50 border-orange-100 text-orange-900 border';
-            default: return 'bg-emerald-50 border-emerald-100 text-emerald-900 border';
+        if (file.type !== "video/mp4") {
+            notify.error("Only MP4 files are allowed");
+            return;
         }
-    };
 
-    const getLabelStyle = (type: string) => {
-        switch (type) {
-            case 'priority': return 'text-red-500';
-            case 'urgent': return 'text-orange-500';
-            default: return 'text-emerald-500';
+        if (file.size > 100 * 1024 * 1024) {
+            notify.error("File size must be under 100MB");
+            return;
+        }
+
+        setUploadingDepartmentId(department.id);
+        try {
+            const result = await uploadMonitorVideo(department.id, file, {
+                credentials: "include",
+            });
+            if (result?.success) {
+                notify.success("Video uploaded successfully", {
+                    description: `${department.name} monitor video is now connected. Open the monitor to verify playback.`,
+                });
+                router.refresh();
+            } else {
+                notify.error(result?.error || "Upload failed");
+            }
+        } catch {
+            notify.error("An error occurred during upload");
+        } finally {
+            setUploadingDepartmentId(null);
+            const input = inputRefs.current[department.id];
+            if (input) input.value = "";
         }
     };
 
     return (
         <div className="w-full h-screen bg-background flex flex-col overflow-hidden">
-            {/* HEADER */}
-            <AdminHeader 
-                user={loggedInUser} 
-                title="Queue Monitor" 
-                subtitle={departmentName}
+            <AdminHeader
+                user={loggedInUser}
+                title="Queue Monitor"
+                subtitle="Monitor Links & Video Settings"
             />
 
-            <main className="flex-1 p-8 grid grid-cols-1 lg:grid-cols-3 gap-8 overflow-hidden">
-                {/* LEFT COLUMN: Service List */}
-                <div className="col-span-1 flex flex-col h-full overflow-hidden border rounded-3xl bg-card shadow-xl shadow-primary/5">
-                    <div className="flex justify-between px-8 py-5 bg-primary text-primary-foreground font-black uppercase tracking-widest text-xs">
-                        <span>Station</span>
-                        <span>Now Serving</span>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                        {SERVING_LIST.map((item, index) => (
-                            <div key={index} className="flex items-center justify-between p-6 px-8 bg-background border rounded-2xl transition-all hover:bg-accent/5">
-                                <span className="text-sm font-bold uppercase tracking-tight line-clamp-2 w-1/2">
-                                    {item.service}
+            <main className="flex-1 p-6 lg:p-8 overflow-y-auto space-y-8">
+                <Card className="rounded-2xl border shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Display Monitors</CardTitle>
+                        <CardDescription>
+                            Open any monitor in a new tab and upload the department loop directly from each row.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <a href="/monitor-windows" target="_blank" rel="noopener noreferrer" className="block">
+                            <Button variant="outline" className="w-full justify-between h-12">
+                                <span className="inline-flex items-center gap-2 font-semibold">
+                                    <Desktop size={16} />
+                                    Window Monitor Display
                                 </span>
-                                <span className="text-5xl font-black text-primary tracking-tighter tabular-nums w-1/2 text-right">
-                                    {item.ticket}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                                <ArrowSquareOut size={16} />
+                            </Button>
+                        </a>
 
-                {/* RIGHT COLUMN: Video & Upcoming */}
-                <div className="col-span-2 flex flex-col gap-8 h-full">
-                    {/* TOP: Video Player */}
-                    <Card className="h-[60%] bg-black rounded-3xl overflow-hidden relative shadow-2xl group border-0">
-                        <div className="absolute inset-0 flex items-center justify-center bg-muted/10">
-                            {videoUrl ? (
-                                <video 
-                                    key={videoUrl}
-                                    src={getFullVideoUrl(videoUrl)} 
-                                    className="w-full h-full object-contain"
-                                    autoPlay
-                                    muted
-                                    loop
-                                    playsInline
-                                />
-                            ) : (
-                                <div className="flex flex-col items-center gap-4">
-                                    <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
-                                        <Play size={40} className="text-primary ml-1" weight="fill" />
-                                    </div>
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Awaiting Video Stream</span>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
+                        {sortedDepartments.map((department) => {
+                            const isUploading = uploadingDepartmentId === department.id;
 
-                    {/* BOTTOM: UPCOMING QUEUE */}
-                    <Card className="flex-1 rounded-3xl flex flex-col border shadow-xl shadow-primary/5">
-                        <CardHeader className="py-5 px-8 border-b">
-                            <CardTitle className="text-xs font-black uppercase tracking-[0.25em] flex items-center gap-3">
-                                <div className="flex gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                                </div>
-                                Next in Line
-                            </CardTitle>
-                        </CardHeader>
+                            return (
+                                <div
+                                    key={department.id}
+                                    className="flex items-center justify-between rounded-md border border-input bg-background h-12 px-3"
+                                >
+                                    <a
+                                        href={`/monitor/${department.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-semibold truncate pr-2"
+                                    >
+                                        {department.name}
+                                    </a>
 
-                        <CardContent className="flex-1 flex items-center justify-center overflow-hidden p-0">
-                            <div className="flex gap-6 px-8 py-4 overflow-x-auto w-full custom-scrollbar no-scrollbar">
-                                {UPCOMING_QUEUE.length > 0 ? (
-                                    UPCOMING_QUEUE.map((item: { ticket: string, category: string, type: string }, index: number) => (
-                                        <div 
-                                            key={index} 
-                                            className={cn(
-                                                "shrink-0 w-56 h-32 rounded-3xl flex flex-col items-center justify-center shadow-lg relative overflow-hidden transition-all hover:scale-110",
-                                                getTicketStyle(item.type)
-                                            )}
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            ref={(el) => {
+                                                inputRefs.current[department.id] = el;
+                                            }}
+                                            type="file"
+                                            accept="video/mp4"
+                                            className="hidden"
+                                            onChange={(event) => {
+                                                const selectedFile = event.target.files?.[0] ?? null;
+                                                void handleUploadForDepartment(department, selectedFile);
+                                            }}
+                                        />
+
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8"
+                                            disabled={isUploading}
+                                            onClick={() => openUploadPicker(department.id)}
+                                            aria-label={`Upload monitor video for ${department.name}`}
+                                            title={`Upload monitor video for ${department.name}`}
                                         >
-                                            <div className="text-4xl font-black tabular-nums tracking-tighter mb-1">{item.ticket}</div>
-                                            <div className={cn("text-[10px] font-black uppercase tracking-widest", getLabelStyle(item.type))}>
-                                                {item.category}
-                                            </div>
-                                            <div className="absolute bottom-0 left-0 w-full h-1.5 bg-current opacity-20" />
-                                        </div>
-                                    ))
-                                ) : (
-                                    <span className="text-sm font-medium text-muted-foreground opacity-50 uppercase tracking-widest">No upcoming tickets</span>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                                            {isUploading ? (
+                                                <SpinnerGap size={16} className="animate-spin" />
+                                            ) : (
+                                                <UploadSimple size={16} />
+                                            )}
+                                        </Button>
+
+                                        <a
+                                            href={`/monitor/${department.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex"
+                                            aria-label={`Open ${department.name} monitor`}
+                                            title={`Open ${department.name} monitor`}
+                                        >
+                                            <Button type="button" size="icon" variant="ghost" className="h-8 w-8">
+                                                <ArrowSquareOut size={16} />
+                                            </Button>
+                                        </a>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </CardContent>
+                </Card>
             </main>
         </div>
     );

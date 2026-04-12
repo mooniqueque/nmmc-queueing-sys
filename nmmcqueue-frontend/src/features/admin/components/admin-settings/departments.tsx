@@ -16,10 +16,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { createDepartment, deleteDepartment } from "@/features/admin/department-actions";
+import { updateDepartmentStatus } from "@/features/admin/department-actions";
 import { notify } from "@/shared/lib/notify";
 import { cn } from "@/shared/lib/utils";
-import { Department, PriorityCategory } from "@/shared/types/models";
+import { Department, DepartmentStatus, PriorityCategory } from "@/shared/types/models";
 import { Funnel, MagnifyingGlass, Plus, Trash, Gear } from "@phosphor-icons/react";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -219,6 +221,25 @@ export default function DepartmentSettings({
         router.refresh();
     };
 
+    const handleQueueStatusChange = async (departmentId: string, nextOpen: boolean) => {
+        const nextStatus: DepartmentStatus = nextOpen ? DepartmentStatus.OPEN : DepartmentStatus.CLOSED;
+        const result = await updateDepartmentStatus(departmentId, nextStatus);
+
+        if (!result.success) {
+            notify.error(result.error || "Failed to update department queue status.");
+            return;
+        }
+
+        setDepartments((current) =>
+            current.map((department) => (
+                department.id === departmentId
+                    ? { ...department, status: nextStatus }
+                    : department
+            ))
+        );
+        router.refresh();
+    };
+
     const openDeleteConfirm = (id: string) => {
         setPendingDeleteDepartmentId(id);
         setIsDeleteConfirmOpen(true);
@@ -345,9 +366,13 @@ export default function DepartmentSettings({
                                 {/* Text contents (pushed left) */}
                                 <div className="flex-1 ml-3 mr-4 overflow-hidden">
                                     <h3 className="text-base sm:text-lg font-bold tracking-tight text-emerald-950 truncate">{department.name}</h3>
-                                    <p className="text-[9px] sm:text-[10px] uppercase font-bold text-muted-foreground tracking-[0.1em] mt-1 truncate">
+                                    <p className="text-[9px] sm:text-[10px] uppercase font-bold text-muted-foreground tracking-widest mt-1 truncate">
                                         CODE: {department.code} • {insight.staffCount} STAFF
                                     </p>
+                                    <div className="mt-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        <span className={cn("size-2 rounded-full", department.status === DepartmentStatus.CLOSED ? "bg-slate-400" : department.status === DepartmentStatus.FULL ? "bg-amber-500" : "bg-emerald-500")} />
+                                        <span>{department.status ?? DepartmentStatus.OPEN}</span>
+                                    </div>
                                 </div>
 
                                 {/* Button Area (right side) */}
@@ -482,6 +507,25 @@ export default function DepartmentSettings({
                             </TabsContent>
 
                             <TabsContent value="queue-options" className="space-y-4">
+                                <div className="rounded-xl border bg-white p-4 shadow-sm space-y-4">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p className="text-sm font-semibold text-foreground">Enable Ticket Assignment</p>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                When closed, Triage staff cannot assign new patients to this department regardless of their individual access.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-3 rounded-full border bg-muted/20 px-3 py-2">
+                                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Closed</span>
+                                            <Switch
+                                                checked={selectedDepartment.status === DepartmentStatus.OPEN}
+                                                onCheckedChange={(checked) => handleQueueStatusChange(selectedDepartment.id, checked)}
+                                            />
+                                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Open</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="rounded-xl border bg-muted/20 p-4">
                                     <p className="text-sm font-semibold">Add Queue Option</p>
                                     <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">

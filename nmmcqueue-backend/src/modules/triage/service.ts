@@ -9,6 +9,7 @@ import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
 import { kioskFormSchema, triageFormSchema } from './schema.js';
+import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 
 type NormalizedKioskInput = {
     hospitalId?: string;
@@ -388,6 +389,15 @@ class TriageService {
         const normalized = this.normalizeTriageInput(validData);
         let affectedPatientId: string | undefined;
         const queueBusinessDay = getQueueBusinessDay();
+
+        if (normalized.departmentId) {
+            const department = await db.department.findUnique({
+                where: { id: normalized.departmentId },
+                select: { id: true, name: true, status: true },
+            });
+            assertDepartmentAcceptsAssignments(department);
+        }
+
         const user = await db.user.findUnique({
             where: { id: userId },
             select: { workstationId: true }

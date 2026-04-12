@@ -1,5 +1,6 @@
 import { db } from '../../config/database.js';
 import { withClaimConflictRetry } from '../../lib/claim-retry.js';
+import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishDepartmentEvent, publishDepartmentMonitorEvent } from '../../lib/sse.js';
@@ -216,7 +217,8 @@ class CallerService {
                 data: {
                     name: trimmedName,
                     code: code.trim().toUpperCase(),
-                    slug
+                    slug,
+                    status: 'OPEN',
                 }
             });
 
@@ -229,6 +231,12 @@ class CallerService {
             });
 
             return department;
+        });
+    }
+    async updateDepartmentStatus(id: string, status: 'OPEN' | 'CLOSED' | 'FULL') {
+        return await db.department.update({
+            where: { id },
+            data: { status },
         });
     }
     async deleteDepartment(id: string) { await db.department.delete({ where: { id } }); }
@@ -553,6 +561,12 @@ class CallerService {
         });
         if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
         this.assertVisitScope(visit.departmentId, scope.departmentId);
+
+        const targetDepartment = await db.department.findUnique({
+            where: { id: targetDepartmentId },
+            select: { id: true, name: true, status: true },
+        });
+        assertDepartmentAcceptsAssignments(targetDepartment);
 
         if (visit.departmentId === targetDepartmentId) {
             throw new AppError('Patient is already in this department', 400, 'CLAIM_INVALID_STATE');

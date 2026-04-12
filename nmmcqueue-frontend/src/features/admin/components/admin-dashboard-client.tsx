@@ -31,12 +31,13 @@ import {
     Funnel,
     MagnifyingGlass,
     Plus,
+    WarningCircle,
     Users,
     XCircle
 } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react';
-import { toggleUserStatus, updateUserDepartment, updateUserRole, updateUserWorkstation } from "../user-actions";
+import { toggleUserStatus, updateUserRole, updateUserWorkstation } from "../user-actions";
 import { AddUserDialog } from "./add-user-dialog";
 import { AddWorkstationDialog } from "./add-workstation-dialog";
 import { ManageClinicCallerDepartmentsDrawer } from "./manage-clinic-caller-departments-drawer";
@@ -96,10 +97,15 @@ export default function AdminDashboard({
     // 3. FILTERING (Let React Compiler handle memoization)
     const users = initialUsers || [];
     const filteredUsers = users.filter(user => {
+        const departmentNames = (user.departmentAccess || [])
+            .filter((entry) => entry.isEnabled)
+            .map((entry) => entry.department.name.toLowerCase());
+
         const matchesSearch =
             user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (user.department?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+            departmentNames.some((name) => name.includes(searchQuery.toLowerCase())) ||
             user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (user.workstation?.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
             user.employeeID.toLowerCase().includes(searchQuery.toLowerCase());
@@ -130,20 +136,6 @@ export default function AdminDashboard({
                 router.refresh();
             } else {
                 notify.error(result.error || "Failed to update user role.");
-            }
-        } finally {
-            setUpdatingUserId(null);
-        }
-    };
-
-    const handleUpdateDepartment = async (userId: string, newDept: string) => {
-        setUpdatingUserId(userId);
-        try {
-            const result = await updateUserDepartment(userId, newDept);
-            if (result.success) {
-                router.refresh();
-            } else {
-                notify.error(result.error || "Failed to update user department.");
             }
         } finally {
             setUpdatingUserId(null);
@@ -198,6 +190,19 @@ export default function AdminDashboard({
         setLocalWorkstations((current) => [...current, newWorkstation]);
     };
 
+    const getEnabledDepartments = (user: UserData) => {
+        const assignments = (user.departmentAccess || [])
+            .filter((entry) => entry.isEnabled)
+            .map((entry) => entry.department);
+
+        if (assignments.length > 0) return assignments;
+        if (user.departmentId && user.department) {
+            return [{ id: user.departmentId, name: user.department, code: user.department.slice(0, 3).toUpperCase() }];
+        }
+
+        return [];
+    };
+
     if (!loggedInUser || !isMounted) return null;
 
     return (
@@ -208,7 +213,7 @@ export default function AdminDashboard({
                 title="Admin Dashboard" 
             />
 
-            <main className="flex-1 p-6 lg:p-10 space-y-8 max-w-[1600px] mx-auto w-full">
+            <main className="flex-1 p-6 lg:p-10 space-y-8 max-w-400 mx-auto w-full">
 
                 {/* ANALYTICS */}
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
@@ -237,7 +242,7 @@ export default function AdminDashboard({
                     <div className="relative w-full sm:max-w-md">
                         <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         <Input
-                            placeholder="Search staff, email, or department..."
+                            placeholder="Search staff, email, station, or department..."
                             className="pl-9"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -270,11 +275,12 @@ export default function AdminDashboard({
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-75 font-semibold py-4">Staff Info</TableHead>
-                                <TableHead className="font-semibold py-4">Assignment</TableHead>
-                                <TableHead className="font-semibold py-4">Department Access</TableHead>
-                                <TableHead className="font-semibold py-4">System Role</TableHead>
-                                <TableHead className="font-semibold py-4 text-center w-[150px]">Status</TableHead>
+                                <TableHead className="w-75 font-semibold py-4 text-left">Staff Info</TableHead>
+                                <TableHead className="font-semibold py-4 text-left">Assigned Station</TableHead>
+                                <TableHead className="font-semibold py-4 text-left">Departments</TableHead>
+                                <TableHead className="font-semibold py-4 text-left">Action</TableHead>
+                                <TableHead className="font-semibold py-4 text-left">System Role</TableHead>
+                                <TableHead className="font-semibold py-4 text-left w-37.5">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -339,6 +345,45 @@ export default function AdminDashboard({
                                         </DropdownMenu>
                                     </TableCell>
                                     <TableCell>
+                                        {(() => {
+                                            const departmentList = getEnabledDepartments(user);
+                                            if (departmentList.length === 0) {
+                                                return (
+                                                    <div className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+                                                        <WarningCircle size={12} weight="fill" />
+                                                        <span>No departments assigned</span>
+                                                    </div>
+                                                );
+                                            }
+
+                                            const visible = departmentList.slice(0, 2);
+                                            const hiddenCount = departmentList.length - visible.length;
+
+                                            return (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {visible.map((department) => (
+                                                        <Badge
+                                                            key={department.id}
+                                                            variant="secondary"
+                                                            className="h-6 px-2.5 bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-semibold uppercase tracking-wide"
+                                                        >
+                                                            {department.name}
+                                                        </Badge>
+                                                    ))}
+                                                    {hiddenCount > 0 && (
+                                                        <Badge
+                                                            variant="secondary"
+                                                            title={departmentList.slice(2).map((department) => department.name).join(', ')}
+                                                            className="h-6 px-2.5 bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-semibold"
+                                                        >
+                                                            +{hiddenCount} more
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+                                    </TableCell>
+                                    <TableCell>
                                         {user.role === 'TRIAGE_NURSE' ? (
                                             <Button
                                                 type="button"
@@ -379,7 +424,7 @@ export default function AdminDashboard({
                                                     size="sm"
                                                     className="h-8 px-2 hover:bg-accent"
                                                 >
-                                                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider h-6">
+                                                    <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide h-6 text-slate-600 border-slate-200 bg-slate-50">
                                                         {user.role.replace('_', ' ')}
                                                     </Badge>
                                                 </Button>
@@ -396,11 +441,19 @@ export default function AdminDashboard({
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
-                                    <TableCell className="text-center">
+                                    <TableCell>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="ghost" size="sm" className="h-8 px-2 ">
-                                                    <Badge variant={user.isActive ? "default" : "secondary"} className="text-[10px] font-bold uppercase tracking-wider h-6 mx-auto">
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className={cn(
+                                                            "h-5 px-2 text-[9px] font-semibold uppercase tracking-wide",
+                                                            user.isActive
+                                                                ? "text-emerald-600 bg-emerald-50 border border-emerald-100"
+                                                                : "text-slate-600 bg-slate-100 border border-slate-200"
+                                                        )}
+                                                    >
                                                         {user.isActive ? "ACTIVE" : "INACTIVE"}
                                                     </Badge>
                                                 </Button>
@@ -456,7 +509,6 @@ export default function AdminDashboard({
                     open={clinicCallerDrawerOpen}
                     onOpenChange={setClinicCallerDrawerOpen}
                     user={selectedClinicCallerUser}
-                    workstations={localWorkstations}
                     onSaved={() => router.refresh()}
                 />
 

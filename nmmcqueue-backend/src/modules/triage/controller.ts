@@ -46,8 +46,9 @@ class TriageController {
         res.status(200).json({ success: true });
     });
 
-    restoreNoShow = asyncHandler(async (req: Request, res: Response) => {
-        await triageService.restoreNoShow(req.params.id);
+    restoreNoShow = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        await triageService.restoreNoShow(req.params.id, userId);
         res.status(200).json({ success: true });
     });
 
@@ -56,8 +57,9 @@ class TriageController {
         res.status(200).json({ success: true });
     });
 
-    getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
-        const queue = await triageService.getPendingQueue();
+    getPendingQueue = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        const queue = await triageService.getPendingQueue(userId);
         res.status(200).json({ success: true, data: queue });
     });
 

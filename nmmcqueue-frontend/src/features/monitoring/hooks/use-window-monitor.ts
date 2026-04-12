@@ -118,6 +118,7 @@ export function useWindowMonitor(slugOrId?: string) {
                         enqueueAnnouncement({
                             ticket: data.payload.window.displayTicket,
                             windowName: data.payload.window.windowName,
+                            stationNo: data.payload.window.stationNo,
                             calledAt: data.payload.window.calledAt,
                         });
                     }

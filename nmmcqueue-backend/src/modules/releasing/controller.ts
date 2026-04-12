@@ -4,8 +4,9 @@ import { AuthenticatedRequest } from '../../middleware/types.js';
 import { releasingService } from './service.js';
 
 class ReleasingController {
-    getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
-        const queue = await releasingService.getPendingQueue();
+    getPendingQueue = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        const queue = await releasingService.getPendingQueue(userId);
         res.status(200).json({ success: true, data: queue });
     });
 

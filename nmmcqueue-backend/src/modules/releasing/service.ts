@@ -61,7 +61,7 @@ class ReleasingService {
     /**
      * Get the window queue: WAITING_WINDOW patients sorted by priority.
      */
-    async getPendingQueue() {
+    async getPendingQueue(userId?: string) {
         const queueBusinessDay = getQueueBusinessDay();
 
         return db.visit.findMany({
@@ -73,6 +73,7 @@ class ReleasingService {
                     {
                         status: 'NO_SHOW',
                         sequenceKey: { startsWith: 'WINDOW_' },
+                        ...(userId ? { calledByUserId: userId } : {}),
                     },
                 ],
             },
@@ -240,7 +241,7 @@ class ReleasingService {
                 id: visitId,
                 OR: [
                     { status: 'WAITING_WINDOW' },
-                    { status: 'NO_SHOW', sequenceKey: { startsWith: 'WINDOW_' } },
+                    { status: 'NO_SHOW', sequenceKey: { startsWith: 'WINDOW_' }, calledByUserId: userId },
                     { status: 'IN_WINDOW', windowClaimedById: userId }
                 ]
             },
@@ -284,6 +285,7 @@ class ReleasingService {
             },
             data: {
                 status: 'NO_SHOW',
+                calledByUserId: userId,
                 windowClaimedById: null,
                 windowStartedAt: null,
             }

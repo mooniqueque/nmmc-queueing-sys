@@ -33,7 +33,7 @@ interface ReleasingEntryProps {
 }
 
 export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepartment, currentVisit, user }: ReleasingEntryProps) {
-    const { activeQueue } = useReleasingQueue(initialQueue);
+    const { activeQueue } = useReleasingQueue(initialQueue, user?.id);
     const [activeTab, setActiveTab] = useState<SidebarTab>("ALL");
     const [isResetting, setIsResetting] = useState(false);
     const [resetDialogOpen, setResetDialogOpen] = useState(false);

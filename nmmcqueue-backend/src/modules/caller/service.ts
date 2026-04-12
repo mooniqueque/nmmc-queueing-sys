@@ -5,6 +5,7 @@ import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishDepartmentEvent, publishDepartmentMonitorEvent } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
+import { ticketService } from '../tickets/service.js';
 
 const normalizeOption = (v: string) => v.trim().toUpperCase();
 const normalizeDepartmentKey = (v: string) => v.trim().toUpperCase();
@@ -249,7 +250,7 @@ class CallerService {
             departmentId: scope.departmentId,
             OR: [
                 { status: 'WAITING_CLINIC' },
-                { status: 'NO_SHOW', sequenceKey: { startsWith: departmentSequenceKey } },
+                { status: 'NO_SHOW', sequenceKey: { startsWith: departmentSequenceKey }, calledByUserId: scope.userId },
                 { status: 'IN_PROGRESS', calledByUserId: scope.userId },
             ],
         };
@@ -534,6 +535,7 @@ class CallerService {
             data: { 
                 status: 'NO_SHOW',
                 sequenceKey: departmentSequenceKey,
+                calledByUserId: scope.userId,
                 statusHistory: { create: { status: 'NO_SHOW', changedBy: scope.userId } }
             }
         });
@@ -549,7 +551,7 @@ class CallerService {
         const scope = await this.getCallerScope(userId);
         const visit = await db.visit.findUnique({
             where: { id: visitId },
-            select: { id: true, status: true, departmentId: true, calledByUserId: true }
+            select: { id: true, status: true, departmentId: true, calledByUserId: true, queueBusinessDay: true }
         });
         if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
         this.assertVisitScope(visit.departmentId, scope.departmentId);
@@ -564,19 +566,79 @@ class CallerService {
         if (!['WAITING_CLINIC', 'IN_PROGRESS'].includes(visit.status)) {
             throw new AppError('Patient cannot be transferred in current status.', 400, 'CLAIM_INVALID_STATE');
         }
-        
-        const updated = await db.visit.update({
-            where: { id: visitId },
-            data: { 
-                status: 'WAITING_CLINIC', 
-                departmentId: targetDepartmentId,
-                isReferred: true,
-                referredFromId: visit.departmentId,
-                calledByUserId: null,
-                calledAtStationId: null,
-                statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: scope.userId } }
-            }
+
+        const targetDepartment = await db.department.findUnique({
+            where: { id: targetDepartmentId },
+            select: { id: true }
         });
+        if (!targetDepartment) {
+            throw new AppError('Target department not found.', 404, 'DEPARTMENT_NOT_FOUND');
+        }
+
+        const targetPriorityOptions = await db.priorityCategory.findMany({
+            where: { departmentId: targetDepartmentId, isPriority: true },
+            select: { id: true, code: true, name: true },
+            orderBy: [{ code: 'asc' }, { name: 'asc' }]
+        });
+
+        const preferredPriority =
+            targetPriorityOptions.find((option) => {
+                const key = `${option.code} ${option.name}`.trim().toUpperCase();
+                return key.includes('REF') || key.includes('PRIO') || key.includes('PRIORITY');
+            }) ?? targetPriorityOptions[0];
+
+        const sequenceKey = `DEPT_${targetDepartmentId}`;
+        const maxTicketCollisionRetries = 50;
+        let updated: Awaited<ReturnType<typeof db.visit.update>> | null = null;
+
+        for (let attempt = 0; attempt < maxTicketCollisionRetries; attempt++) {
+            const nextTicket = await ticketService.generateNextTicketNumber(db, sequenceKey, visit.queueBusinessDay);
+
+            try {
+                updated = await db.visit.update({
+                    where: { id: visitId },
+                    data: {
+                        status: 'WAITING_CLINIC',
+                        departmentId: targetDepartmentId,
+                        classification: 'PRIORITY',
+                        isReferred: true,
+                        referredFromId: visit.departmentId,
+                        serviceTicket: nextTicket,
+                        sequenceKey,
+                        calledByUserId: null,
+                        calledAtStationId: null,
+                        calledAt: null,
+                        windowNumber: null,
+                        categories: preferredPriority
+                            ? {
+                                upsert: {
+                                    where: {
+                                        visitId_categoryId: {
+                                            visitId,
+                                            categoryId: preferredPriority.id,
+                                        },
+                                    },
+                                    create: { categoryId: preferredPriority.id },
+                                    update: {},
+                                },
+                            }
+                            : undefined,
+                        statusHistory: { create: { status: 'WAITING_CLINIC', changedBy: scope.userId } }
+                    }
+                });
+                break;
+            } catch (error: any) {
+                const isTicketConflict = error?.code === 'P2002';
+                if (isTicketConflict && attempt < maxTicketCollisionRetries - 1) {
+                    continue;
+                }
+                throw error;
+            }
+        }
+
+        if (!updated) {
+            throw new AppError('Could not generate unique target department ticket for referral.', 500, 'TICKET_ASSIGNMENT_FAILED');
+        }
         
         if (visit.departmentId) {
             await this.publishDepartmentVisitRemove(visit.departmentId, visitId);
@@ -608,7 +670,7 @@ class CallerService {
         const departmentSequenceKey = `DEPT_${scope.departmentId}`;
         const visit = await db.visit.findUnique({
             where: { id: visitId },
-            select: { id: true, status: true, departmentId: true, sequenceKey: true }
+            select: { id: true, status: true, departmentId: true, sequenceKey: true, calledByUserId: true }
         });
         if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
         this.assertVisitScope(visit.departmentId, scope.departmentId);
@@ -618,6 +680,9 @@ class CallerService {
         }
         if (!visit.sequenceKey?.startsWith(departmentSequenceKey)) {
             throw new AppError('Only clinic no-show patients can be restored.', 400, 'CLAIM_INVALID_STATE');
+        }
+        if (visit.calledByUserId && visit.calledByUserId !== scope.userId) {
+            throw new AppError('Only the caller who marked this patient as no-show can restore it.', 403, 'CLAIM_FORBIDDEN_SCOPE');
         }
 
         const updated = await db.visit.update({

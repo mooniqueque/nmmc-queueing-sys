@@ -325,7 +325,7 @@ class TriageService {
         }
     }
 
-    async getPendingQueue() {
+    async getPendingQueue(userId?: string) {
         const queueBusinessDay = getQueueBusinessDay();
 
         return db.visit.findMany({
@@ -336,6 +336,7 @@ class TriageService {
                     {
                         status: 'NO_SHOW',
                         sequenceKey: null,
+                        ...(userId ? { calledByUserId: userId } : {}),
                     },
                 ],
             },
@@ -365,6 +366,7 @@ class TriageService {
             data: {
                 status: 'NO_SHOW',
                 sequenceKey: null,
+                calledByUserId: userId,
                 triageClaimedById: null,
                 triageStartedAt: null,
             }
@@ -378,18 +380,20 @@ class TriageService {
         publishTriageVisitUpsert(await getTriageVisitPayload(visitId));
     }
     async restoreNoShow(visitId: string, userId?: string) { 
+        if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
         const updated = await db.visit.updateMany({
             where: {
                 id: visitId,
                 status: 'NO_SHOW',
                 sequenceKey: null,
+                calledByUserId: userId,
             },
             data: { 
                 status: 'WAITING_TRIAGE',
             } 
         });
         if (updated.count === 0) {
-            throw new AppError('Only triage no-show visits can be restored to triage queue.', 409, 'TRIAGE_CLAIM_REQUIRED');
+            throw new AppError('Only your triage no-show visits can be restored to triage queue.', 409, 'TRIAGE_CLAIM_REQUIRED');
         }
         await db.visitStatusHistory.create({
             data: { visitId, status: 'WAITING_TRIAGE', changedBy: userId }
@@ -488,6 +492,9 @@ class TriageService {
             const isTriageNoShow = visitToCall?.status === 'NO_SHOW' && visitToCall.sequenceKey === null;
             if (!visitToCall || (!isTriageNoShow && visitToCall.status !== 'WAITING_TRIAGE')) {
                 throw new AppError('Patient is not waiting or no-show.', 400);
+            }
+            if (isTriageNoShow && visitToCall.calledByUserId && visitToCall.calledByUserId !== userId) {
+                throw new AppError('Only the triage user who marked this no-show can call it back.', 403, 'TRIAGE_CLAIM_REQUIRED');
             }
 
             const claimed = await tx.visit.updateMany({

@@ -26,6 +26,14 @@ export function useTriageQueue(initialQueue: VisitWithPatient[], initialCurrentV
     const handleLiveEvent = useCallback((event: { type: string; payload?: { visit?: VisitWithPatient; visitId?: string } }) => {
         if (event.type === "visit-upsert" && event.payload?.visit) {
             const visit = event.payload.visit;
+
+            // Enforce owner-scoped triage NO_SHOW visibility in real time.
+            if (visit.status === VisitStatus.NO_SHOW && !visit.sequenceKey) {
+                if (userId && visit.calledByUserId && visit.calledByUserId !== userId) {
+                    setQueue((current) => removeVisitById(current, visit.id));
+                    return;
+                }
+            }
             
             // TASK 2 FIX: Only set as claimedVisit if it belongs to US
             if (visit.status === VisitStatus.IN_TRIAGE) {

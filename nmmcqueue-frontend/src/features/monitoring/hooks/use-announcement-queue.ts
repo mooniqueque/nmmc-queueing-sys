@@ -5,13 +5,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export interface AnnouncementItem {
     ticket: string;
     windowName: string;
+    stationNo?: number | null;
     calledAt: string | null;
 }
 
 const DEFAULT_DISPLAY_MS = 5000;
 
 function getAnnouncementKey(item: AnnouncementItem) {
-    return `${item.calledAt ?? "0"}:${item.ticket}:${item.windowName}`;
+    return `${item.calledAt ?? "0"}:${item.ticket}:${item.windowName}:${item.stationNo ?? "x"}`;
 }
 
 function getAnnouncementTime(item: AnnouncementItem) {

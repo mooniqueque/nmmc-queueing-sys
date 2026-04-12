@@ -3,7 +3,8 @@ const mockDb = {
   department: { findUnique: jest.fn(), findFirst: jest.fn(), findMany: jest.fn(), create: jest.fn(), delete: jest.fn() },
   visit: { findFirst: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn(), count: jest.fn(), delete: jest.fn() },
   visitStatusHistory: { create: jest.fn() },
-  priorityCategory: { create: jest.fn(), createMany: jest.fn(), delete: jest.fn() },
+  priorityCategory: { create: jest.fn(), createMany: jest.fn(), delete: jest.fn(), findMany: jest.fn() },
+  sequence: { upsert: jest.fn(), deleteMany: jest.fn() },
   patient: { delete: jest.fn() },
   $transaction: jest.fn(),
 };
@@ -52,6 +53,22 @@ describe('CallerService (Phase 4)', () => {
     expect(mockDb.visit.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ departmentId: 'dept-1' }),
+      })
+    );
+  });
+
+  it('getPendingQueue scopes no-show tickets to the current caller', async () => {
+    mockDb.visit.findMany.mockResolvedValue([]);
+
+    await callerService.getPendingQueue(undefined, 'caller-1');
+
+    expect(mockDb.visit.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            expect.objectContaining({ status: 'NO_SHOW', calledByUserId: 'caller-1' }),
+          ]),
+        }),
       })
     );
   });
@@ -128,17 +145,72 @@ describe('CallerService (Phase 4)', () => {
     });
   });
 
+  it('transferPatient marks referrals as PRIORITY with target priority option', async () => {
+    mockDb.visit.findUnique.mockResolvedValue({
+      id: 'visit-1',
+      status: 'IN_PROGRESS',
+      departmentId: 'dept-1',
+      calledByUserId: 'caller-1',
+      queueBusinessDay: '2026-04-12',
+    });
+
+    mockDb.department.findUnique.mockResolvedValue({ id: 'dept-2' });
+    mockDb.sequence.upsert.mockResolvedValue({ value: 42 });
+    mockDb.priorityCategory.findMany.mockResolvedValue([
+      { id: 'cat-ref', code: 'ER-REF', name: 'ER Referral' },
+      { id: 'cat-prio', code: 'PRIO', name: 'Priority' },
+    ]);
+    mockDb.visit.update.mockResolvedValue({ id: 'visit-1', departmentId: 'dept-2', classification: 'PRIORITY' });
+    mockDb.$transaction.mockImplementation(async (work: (tx: typeof mockDb) => Promise<unknown>) => work(mockDb));
+
+    await callerService.transferPatient('visit-1', 'dept-2', 'caller-1');
+
+    expect(mockDb.visit.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'visit-1' },
+        data: expect.objectContaining({
+          departmentId: 'dept-2',
+          classification: 'PRIORITY',
+          isReferred: true,
+          sequenceKey: 'DEPT_dept-2',
+          serviceTicket: 42,
+          categories: expect.objectContaining({
+            upsert: expect.objectContaining({
+              create: { categoryId: 'cat-ref' },
+            }),
+          }),
+        }),
+      })
+    );
+  });
+
   it('restorePatient only restores department no-show tickets', async () => {
     mockDb.visit.findUnique.mockResolvedValue({
       id: 'visit-1',
       status: 'NO_SHOW',
       departmentId: 'dept-1',
       sequenceKey: 'WINDOW',
+      calledByUserId: 'caller-1',
     });
 
     await expect(callerService.restorePatient('visit-1', 'caller-1')).rejects.toMatchObject({
       code: 'CLAIM_INVALID_STATE',
       statusCode: 400,
+    });
+  });
+
+  it('restorePatient blocks restoring no-show owned by another caller', async () => {
+    mockDb.visit.findUnique.mockResolvedValue({
+      id: 'visit-1',
+      status: 'NO_SHOW',
+      departmentId: 'dept-1',
+      sequenceKey: 'DEPT_dept-1',
+      calledByUserId: 'caller-2',
+    });
+
+    await expect(callerService.restorePatient('visit-1', 'caller-1')).rejects.toMatchObject({
+      code: 'CLAIM_FORBIDDEN_SCOPE',
+      statusCode: 403,
     });
   });
 

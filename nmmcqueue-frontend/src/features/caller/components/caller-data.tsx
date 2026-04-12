@@ -9,6 +9,7 @@ export default async function CallerData() {
 
     let initialQueueData: VisitWithPatient[] = [];
     let userDepartment = "";
+    let callerUserId = "";
 
     try {
         const headers = await getServerHeaders();
@@ -19,6 +20,7 @@ export default async function CallerData() {
 
         if (scopeRes.success) {
             userDepartment = scopeRes.data?.department?.name ?? "";
+            callerUserId = scopeRes.data?.userId ?? "";
         }
 
         if (pendingRes.success) {
@@ -36,6 +38,7 @@ export default async function CallerData() {
     return (
         <UserCallerDashboard
             department={userDepartment}
+            callerUserId={callerUserId}
             initialQueue={initialQueueData}
         />
     );

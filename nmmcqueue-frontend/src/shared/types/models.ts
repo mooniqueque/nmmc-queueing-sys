@@ -1,3 +1,5 @@
+import type { DepartmentStatus as SharedDepartmentStatus } from "@nmmc/types";
+
 export enum UserRole {
     ADMIN = "ADMIN",
     TRIAGE_NURSE = "TRIAGE_NURSE",
@@ -49,11 +51,12 @@ export enum WorkstationQueueMode {
     REGULAR_ONLY = "REGULAR_ONLY",
 }
 
-export enum DepartmentStatus {
-    OPEN = "OPEN",
-    CLOSED = "CLOSED",
-    FULL = "FULL",
-}
+export const DepartmentStatus = {
+    OPEN: "OPEN",
+    CLOSED: "CLOSED",
+    FULL: "FULL",
+} as const satisfies Record<SharedDepartmentStatus, SharedDepartmentStatus>;
+export type DepartmentStatus = SharedDepartmentStatus;
 
 export interface WorkStation {
     id: string;

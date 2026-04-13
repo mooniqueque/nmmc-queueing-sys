@@ -248,7 +248,7 @@ model Visit {
   referredFromId  String?
   categories      VisitPriorityCategory[]
   referredFrom    Department? @relation("DepartmentReferrals", fields: [referredFromId], references: [id], onDelete: SetNull)
-  department      Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  department      Department? @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   patient         Patient     @relation(fields: [patientId], references: [id], onDelete: Restrict)
   triagedByUser   User?       @relation("UserTriage", fields: [triagedByUserId], references: [id], onDelete: SetNull)
   calledByUser    User?       @relation("UserCall", fields: [calledByUserId], references: [id], onDelete: SetNull)

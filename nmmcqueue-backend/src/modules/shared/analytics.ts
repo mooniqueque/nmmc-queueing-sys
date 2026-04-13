@@ -155,7 +155,10 @@ export async function getAnalytics(query: AnalyticsQueryDto): Promise<AnalyticsR
             WHERE createdAt >= ${from} AND createdAt < ${to}
             ${departmentFilterSql}
             ${statusFilterSql}
-        `.catch(() => [{ avgProcessing: 0, avgKioskToWindow: 0, avgWindowToClinic: 0 }]),
+        `.catch((error) => {
+            console.error('Analytics duration query failed', error);
+            return [{ avgProcessing: 0, avgKioskToWindow: 0, avgWindowToClinic: 0 }];
+        }),
 
         // ─── Direct SQL for Hourly Volume ───
         db.$queryRaw<AnalyticsHourlyRow[]>`
@@ -165,7 +168,10 @@ export async function getAnalytics(query: AnalyticsQueryDto): Promise<AnalyticsR
             ${departmentFilterSql}
             GROUP BY HOUR(createdAt)
             ORDER BY hour ASC
-        `.catch(() => [])
+        `.catch((error) => {
+            console.error('Analytics hourly query failed', error);
+            return [];
+        })
     ]);
 
     // ─── Post-Processing ──────────────────────────────────────────

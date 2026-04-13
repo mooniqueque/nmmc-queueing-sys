@@ -1,7 +1,7 @@
 "use client";
 
 import { useLiveQueue } from "@/shared/hooks/use-live-queue";
-import { removeVisitById, SSE_TOPICS, upsertVisitById } from "@/shared/lib/sse";
+import { DepartmentStatusUpdatedPayload, removeVisitById, SSE_TOPICS, SseEventType, upsertVisitById } from "@/shared/lib/sse";
 import { VisitStatus } from "@/shared/types/models";
 import { useCallback, useEffect, useState } from "react";
 import { VisitWithPatient } from "./types";
@@ -11,7 +11,12 @@ export type TabType = "ACTIVE" | "NO_SHOW" | "REPORTS";
 const isTriageScopedNoShow = (visit: VisitWithPatient) =>
     visit.status === VisitStatus.NO_SHOW && !visit.sequenceKey;
 
-export function useTriageQueue(initialQueue: VisitWithPatient[], initialCurrentVisit: VisitWithPatient | null, userId?: string) {
+export function useTriageQueue(
+    initialQueue: VisitWithPatient[],
+    initialCurrentVisit: VisitWithPatient | null,
+    userId?: string,
+    onDepartmentStatusUpdated?: (payload: DepartmentStatusUpdatedPayload) => void
+) {
     const [queue, setQueue] = useState(initialQueue);
     const [claimedVisit, setClaimedVisit] = useState<VisitWithPatient | null>(initialCurrentVisit);
 
@@ -23,7 +28,14 @@ export function useTriageQueue(initialQueue: VisitWithPatient[], initialCurrentV
         setClaimedVisit(initialCurrentVisit);
     }, [initialCurrentVisit]);
 
-    const handleLiveEvent = useCallback((event: { type: string; payload?: { visit?: VisitWithPatient; visitId?: string } }) => {
+    const handleLiveEvent = useCallback((event: { type: string; payload?: { visit?: VisitWithPatient; visitId?: string } | DepartmentStatusUpdatedPayload }) => {
+        if (event.type === SseEventType.DEPARTMENT_STATUS_UPDATED) {
+            const payload = event.payload as DepartmentStatusUpdatedPayload | undefined;
+            if (payload?.departmentId && payload.status) {
+                onDepartmentStatusUpdated?.(payload);
+            }
+            return;
+        }
         if (event.type === "visit-upsert" && event.payload?.visit) {
             const visit = event.payload.visit;
 
@@ -62,7 +74,7 @@ export function useTriageQueue(initialQueue: VisitWithPatient[], initialCurrentV
                 setClaimedVisit(null);
             }
         }
-    }, [userId, claimedVisit?.id]);
+    }, [userId, claimedVisit?.id, onDepartmentStatusUpdated]);
 
     useLiveQueue(SSE_TOPICS.TRIAGE, handleLiveEvent);
 

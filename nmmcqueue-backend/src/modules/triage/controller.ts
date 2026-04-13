@@ -18,11 +18,7 @@ class TriageController {
         let printError: string | null = null;
         if (result?.triageTicket) {
             try {
-                await ticketPrintingService.print({
-                    type: 'triage',
-                    triageTicket: result.triageTicket,
-                    classification: result.classification,
-                });
+                await ticketPrintingService.print(result);
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown printer error occurred';
                 console.error('Printer util failed:', message);

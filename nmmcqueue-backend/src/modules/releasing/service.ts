@@ -4,6 +4,7 @@ import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.
 import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishDepartmentEvent, publishDepartmentMonitorEvent, publishSseEvent, SSE_TOPICS } from '../../lib/sse.js';
+import { SseEventType } from '@nmmc/types';
 import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
@@ -29,18 +30,18 @@ async function publishWindowMonitorDiff(previousSnapshot?: Awaited<ReturnType<ty
         }
 
         if (next?.triageTicket) {
-            publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], 'monitor-upsert', { window: next });
+            publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], SseEventType.MONITOR_UPSERT, { window: next });
             continue;
         }
 
-        publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], 'monitor-remove', { stationNo });
+        publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], SseEventType.MONITOR_REMOVE, { stationNo });
     }
 
     if (
         !previousSnapshot ||
         JSON.stringify(previousSnapshot.upcoming ?? []) !== JSON.stringify(snapshot.upcoming ?? [])
     ) {
-        publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], 'monitor-upcoming', {
+        publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], SseEventType.MONITOR_UPCOMING, {
             upcoming: snapshot.upcoming,
         });
     }
@@ -204,7 +205,7 @@ class ReleasingService {
         }));
 
         if (result) {
-            publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: result });
+            publishSseEvent([SSE_TOPICS.WINDOW], SseEventType.VISIT_UPSERT, { visit: result });
             await publishWindowMonitorDiff(previousMonitorSnapshot);
         }
         
@@ -277,7 +278,7 @@ class ReleasingService {
         });
 
         const payload = updated;
-        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: payload });
+        publishSseEvent([SSE_TOPICS.WINDOW], SseEventType.VISIT_UPSERT, { visit: payload });
         await publishWindowMonitorDiff(previousMonitorSnapshot);
         return payload;
     }
@@ -307,7 +308,7 @@ class ReleasingService {
             where: { id: visitId },
             include: { patient: true, department: true }
         });
-        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: payload });
+        publishSseEvent([SSE_TOPICS.WINDOW], SseEventType.VISIT_UPSERT, { visit: payload });
         await publishWindowMonitorDiff(previousMonitorSnapshot);
         return payload;
     }
@@ -380,7 +381,7 @@ class ReleasingService {
             };
         });
 
-        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-remove', { visitId });
+        publishSseEvent([SSE_TOPICS.WINDOW], SseEventType.VISIT_REMOVE, { visitId });
         const clinicVisit = await db.visit.findUnique({
             where: { id: visitId },
             include: {
@@ -391,11 +392,11 @@ class ReleasingService {
             }
         });
         if (clinicVisit?.departmentId) {
-            await publishDepartmentEvent(clinicVisit.departmentId, 'visit-upsert', {
+            await publishDepartmentEvent(clinicVisit.departmentId, SseEventType.VISIT_UPSERT, {
                 visit: clinicVisit
             });
             const departmentSnapshot = await monitorService.getDepartmentStatus(clinicVisit.departmentId);
-            await publishDepartmentMonitorEvent(clinicVisit.departmentId, 'monitor-upcoming', {
+            await publishDepartmentMonitorEvent(clinicVisit.departmentId, SseEventType.MONITOR_UPCOMING, {
                 upcoming: Array.isArray(departmentSnapshot) ? [] : departmentSnapshot.upcoming,
             });
         }
@@ -453,7 +454,7 @@ class ReleasingService {
         });
 
         const payload = updatedVisit;
-        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: payload });
+        publishSseEvent([SSE_TOPICS.WINDOW], SseEventType.VISIT_UPSERT, { visit: payload });
         return payload;
     }
 
@@ -523,7 +524,7 @@ class ReleasingService {
             },
         });
 
-        publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit: refreshedVisit });
+        publishSseEvent([SSE_TOPICS.WINDOW], SseEventType.VISIT_UPSERT, { visit: refreshedVisit });
 
         return updatedPatient;
     }

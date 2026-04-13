@@ -17,7 +17,7 @@ import { getTodayBusinessDay } from "@/features/shared/components/operational-re
 import { useTriageSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 import { notify } from "@/shared/lib/notify";
 import { SessionUser } from "@/shared/types/auth";
-import { Department } from "@/shared/types/models";
+import { Department, DepartmentStatus } from "@/shared/types/models";
 import { Play } from "@phosphor-icons/react";
 import { Building2, Ticket, UserX, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
@@ -39,7 +39,18 @@ interface TriageEntryProps {
 export function TriageEntry({ initialQueue, currentVisit, user, availableDepartments = [] }: TriageEntryProps) {
     const { isManualEntry, selectedPatient, setManualEntry, setSelectedPatient } = useTriageStore();
     const { clearDraft } = useTriageDraftStore();
-    const { activeQueue, noShowQueue, claimedVisit, activeTab, setActiveTab } = useTriageQueue(initialQueue, currentVisit, user?.id);
+    const [liveDepartments, setLiveDepartments] = useState<Department[]>(availableDepartments);
+    const handleDepartmentStatusUpdated = useCallback((payload: { departmentId: string; status: DepartmentStatus }) => {
+        setLiveDepartments((current) => current.map((dept) =>
+            dept.id === payload.departmentId ? { ...dept, status: payload.status } : dept
+        ));
+    }, []);
+    const { activeQueue, noShowQueue, claimedVisit, activeTab, setActiveTab } = useTriageQueue(
+        initialQueue,
+        currentVisit,
+        user?.id,
+        handleDepartmentStatusUpdated
+    );
     const [isPending, startTransition] = useTransition();
     const [reportDate, setReportDate] = useState(getTodayBusinessDay());
     const [isNoShowDialogOpen, setIsNoShowDialogOpen] = useState(false);
@@ -57,6 +68,10 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
             setSelectedPatient(claimedVisit);
         }
     }, [claimedVisit, setSelectedPatient]);
+
+    useEffect(() => {
+        setLiveDepartments(availableDepartments);
+    }, [availableDepartments]);
 
     const handleCallNext = useCallback(() => {
         startTransition(async () => {
@@ -304,7 +319,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                     </div>
 
                                     <div id="triage-form" className="scroll-mt-24">
-                                        <TriageForm availableDepartments={availableDepartments} />
+                                        <TriageForm availableDepartments={liveDepartments} />
                                     </div>
                                 </div>
                             )}

@@ -4,8 +4,23 @@ import { characterSet as CharacterSet, types as PrinterTypes, printer as Thermal
 import path from "path";
 import logger from "../lib/logger.js";
 
+type TriagePrintSource = {
+    triageTicket: number;
+    classification: "PRIORITY" | "REGULAR";
+};
+
+type ReleasingPrintSource = {
+    serviceTicket: number;
+    departmentCode: string;
+    classification: "PRIORITY" | "REGULAR";
+    priorityName?: string;
+};
+
+type TicketPrintInput = TicketPrintJob | TriagePrintSource | ReleasingPrintSource;
+
 class TicketPrintingService {
-    async print(job: TicketPrintJob): Promise<void> {
+    async print(input: TicketPrintInput): Promise<void> {
+        const job = this.normalizeJob(input);
         const payload = this.buildPayload(job);
         await this.printPayload(payload);
     }
@@ -104,6 +119,32 @@ class TicketPrintingService {
             date: job.timestamp || new Date().toLocaleString(),
             footer: "This ticket is valid for today only.",
         };
+    }
+
+    private normalizeJob(input: TicketPrintInput): TicketPrintJob {
+        if ("type" in input) {
+            return input;
+        }
+
+        if ("triageTicket" in input) {
+            return {
+                type: "triage",
+                triageTicket: input.triageTicket,
+                classification: input.classification,
+            };
+        }
+
+        if ("serviceTicket" in input) {
+            return {
+                type: "releasing",
+                serviceTicket: input.serviceTicket,
+                departmentCode: input.departmentCode,
+                classification: input.classification,
+                priorityName: input.priorityName,
+            };
+        }
+
+        throw new Error("Unsupported print payload");
     }
 
     private createWin32PrintDriver() {

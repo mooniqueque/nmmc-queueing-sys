@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { getDepartments, getQueueOptions } from "@/features/shared/api";
 import { notify } from "@/shared/lib/notify";
-import { Department, PriorityCategory, VisitPriorityCategory } from "@/shared/types/models";
+import { Department, DepartmentStatus, PriorityCategory, VisitPriorityCategory } from "@/shared/types/models";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CaretDoubleRight, Printer, WarningCircle } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -55,13 +55,19 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
 
     useEffect(() => {
         if (availableDepartments !== undefined) {
-            queueMicrotask(() => setDepartments(availableDepartments));
+            const filtered = availableDepartments.filter((dept) => dept.status !== DepartmentStatus.CLOSED);
+            queueMicrotask(() => setDepartments(filtered));
             return;
         }
 
         getDepartments().then(res => {
             if (res.data) {
-                setDepartments(res.data.filter((d: Department) => !d.name.toLowerCase().includes('admin') && !d.name.toLowerCase().includes('triage') && !d.name.toLowerCase().includes('window')));
+                setDepartments(res.data.filter((d: Department) =>
+                    d.status !== DepartmentStatus.CLOSED &&
+                    !d.name.toLowerCase().includes('admin') &&
+                    !d.name.toLowerCase().includes('triage') &&
+                    !d.name.toLowerCase().includes('window')
+                ));
             }
         });
     }, [availableDepartments]);

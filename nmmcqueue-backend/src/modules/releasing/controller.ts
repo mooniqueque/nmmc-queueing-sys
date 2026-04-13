@@ -1,4 +1,3 @@
-import type { VisitClassification } from '@nmmc/types';
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../middleware/error-handler.js';
 import { AuthenticatedRequest } from '../../middleware/types.js';
@@ -34,13 +33,7 @@ class ReleasingController {
 
         if (result?.serviceTicket) {
             try {
-                await ticketPrintingService.print({
-                    type: 'releasing',
-                    serviceTicket: result.serviceTicket,
-                    departmentCode: result.departmentCode,
-                    classification: result.classification as VisitClassification,
-                    priorityName: result.priorityName,
-                });
+                await ticketPrintingService.print(result);
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown printer error occurred';
                 console.error('Printer util failed:', message);

@@ -6,6 +6,7 @@ import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.
 import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishSseEvent, SSE_TOPICS } from '../../lib/sse.js';
+import { SseEventType } from '@nmmc/types';
 import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
@@ -92,21 +93,21 @@ async function getTriageVisitPayload(visitId: string) {
 
 function publishTriageVisitUpsert<T>(visit: T | null) {
     if (!visit) return;
-    publishSseEvent([SSE_TOPICS.TRIAGE], 'visit-upsert', { visit });
+    publishSseEvent([SSE_TOPICS.TRIAGE], SseEventType.VISIT_UPSERT, { visit });
 }
 
 function publishTriageVisitRemove(visitId: string) {
-    publishSseEvent([SSE_TOPICS.TRIAGE], 'visit-remove', { visitId });
+    publishSseEvent([SSE_TOPICS.TRIAGE], SseEventType.VISIT_REMOVE, { visitId });
 }
 
 function publishWindowVisitUpsert<T>(visit: T | null) {
     if (!visit) return;
-    publishSseEvent([SSE_TOPICS.WINDOW], 'visit-upsert', { visit });
+    publishSseEvent([SSE_TOPICS.WINDOW], SseEventType.VISIT_UPSERT, { visit });
 }
 
 async function publishWindowMonitorSnapshot() {
     const { upcoming } = await monitorService.getWindowStatus();
-    publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], 'monitor-upcoming', { upcoming });
+    publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], SseEventType.MONITOR_UPCOMING, { upcoming });
 }
 
 class TriageService {
@@ -316,6 +317,8 @@ class TriageService {
                         id: true,
                         name: true,
                         code: true,
+                        slug: true,
+                        status: true,
                         videoUrl: true,
                         createdAt: true,
                         updatedAt: true,

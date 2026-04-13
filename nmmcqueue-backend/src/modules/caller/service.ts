@@ -3,7 +3,8 @@ import { withClaimConflictRetry } from '../../lib/claim-retry.js';
 import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
-import { publishDepartmentEvent, publishDepartmentMonitorEvent } from '../../lib/sse.js';
+import { publishDepartmentEvent, publishDepartmentMonitorEvent, publishDepartmentStatusUpdate } from '../../lib/sse.js';
+import { SseEventType } from '@nmmc/types';
 import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
@@ -131,13 +132,13 @@ class CallerService {
             }
         });
         if (!visit) return;
-        await publishDepartmentEvent(departmentId, 'visit-upsert', {
+        await publishDepartmentEvent(departmentId, SseEventType.VISIT_UPSERT, {
             visit
         });
     }
 
     private async publishDepartmentVisitRemove(departmentId: string, visitId: string) {
-        await publishDepartmentEvent(departmentId, 'visit-remove', { visitId });
+        await publishDepartmentEvent(departmentId, SseEventType.VISIT_REMOVE, { visitId });
     }
 
     private async publishDepartmentMonitorSnapshot(departmentId: string) {
@@ -147,16 +148,16 @@ class CallerService {
 
         for (const window of snapshot.active) {
             if (window.serviceTicket) {
-                await publishDepartmentMonitorEvent(departmentId, 'monitor-upsert', { window });
+                await publishDepartmentMonitorEvent(departmentId, SseEventType.MONITOR_UPSERT, { window });
                 continue;
             }
 
-            await publishDepartmentMonitorEvent(departmentId, 'monitor-remove', {
+            await publishDepartmentMonitorEvent(departmentId, SseEventType.MONITOR_REMOVE, {
                 stationNo: window.stationNo,
             });
         }
 
-        await publishDepartmentMonitorEvent(departmentId, 'monitor-upcoming', {
+        await publishDepartmentMonitorEvent(departmentId, SseEventType.MONITOR_UPCOMING, {
             upcoming: snapshot.upcoming,
         });
     }
@@ -187,18 +188,18 @@ class CallerService {
             }
 
             if (next?.serviceTicket) {
-                await publishDepartmentMonitorEvent(departmentId, 'monitor-upsert', { window: next });
+                await publishDepartmentMonitorEvent(departmentId, SseEventType.MONITOR_UPSERT, { window: next });
                 continue;
             }
 
-            await publishDepartmentMonitorEvent(departmentId, 'monitor-remove', { stationNo });
+            await publishDepartmentMonitorEvent(departmentId, SseEventType.MONITOR_REMOVE, { stationNo });
         }
 
         if (
             !normalizedPrevious ||
             JSON.stringify(normalizedPrevious.upcoming ?? []) !== JSON.stringify(snapshot.upcoming ?? [])
         ) {
-            await publishDepartmentMonitorEvent(departmentId, 'monitor-upcoming', {
+            await publishDepartmentMonitorEvent(departmentId, SseEventType.MONITOR_UPCOMING, {
                 upcoming: snapshot.upcoming,
             });
         }
@@ -292,10 +293,12 @@ class CallerService {
         });
     }
     async updateDepartmentStatus(id: string, status: 'OPEN' | 'CLOSED' | 'FULL') {
-        return await db.department.update({
+        const updated = await db.department.update({
             where: { id },
             data: { status },
         });
+        await publishDepartmentStatusUpdate(updated.id, status);
+        return updated;
     }
     async deleteDepartment(id: string) { await db.department.delete({ where: { id } }); }
     async getQueueOptions(departmentName: string) {
@@ -809,6 +812,9 @@ class CallerService {
             where: { id: targetDepartmentId },
             select: { id: true, name: true, status: true },
         });
+        if (!targetDepartment) {
+            throw new AppError('Target department not found.', 404, 'DEPARTMENT_NOT_FOUND');
+        }
         assertDepartmentAcceptsAssignments(targetDepartment);
 
         if (visit.departmentId === targetDepartmentId) {
@@ -820,14 +826,6 @@ class CallerService {
         }
         if (!['WAITING_CLINIC', 'IN_PROGRESS'].includes(visit.status)) {
             throw new AppError('Patient cannot be transferred in current status.', 400, 'CLAIM_INVALID_STATE');
-        }
-
-        const targetDepartment = await db.department.findUnique({
-            where: { id: targetDepartmentId },
-            select: { id: true }
-        });
-        if (!targetDepartment) {
-            throw new AppError('Target department not found.', 404, 'DEPARTMENT_NOT_FOUND');
         }
 
         const targetPriorityOptions = await db.priorityCategory.findMany({

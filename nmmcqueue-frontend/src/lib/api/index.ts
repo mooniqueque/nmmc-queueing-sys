@@ -1,8 +1,14 @@
 /**
  * Base URL for the Backend API
- * Uses NEXT_PUBLIC_API_URL if defined, otherwise defaults to localhost:3001/api
+ * Fail loudly in production if NEXT_PUBLIC_API_URL is missing.
  */
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+if (!apiUrl) {
+	throw new Error("CRITICAL: NEXT_PUBLIC_API_URL is missing");
+}
+
+export const API_URL = apiUrl;
 
 export { apiClient, ApiClientError } from "./api-client";
 

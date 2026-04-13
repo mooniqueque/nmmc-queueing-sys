@@ -1,4 +1,3 @@
-import type { VisitClassification } from '@nmmc/types';
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../middleware/error-handler.js';
 import { AuthenticatedRequest } from '../../middleware/types.js';
@@ -6,8 +5,9 @@ import { ticketPrintingService } from '../../services/ticket-printing-service.js
 import { releasingService } from './service.js';
 
 class ReleasingController {
-    getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
-        const queue = await releasingService.getPendingQueue();
+    getPendingQueue = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        const queue = await releasingService.getPendingQueue(userId);
         res.status(200).json({ success: true, data: queue });
     });
 
@@ -33,13 +33,7 @@ class ReleasingController {
 
         if (result?.serviceTicket) {
             try {
-                await ticketPrintingService.print({
-                    type: 'releasing',
-                    serviceTicket: result.serviceTicket,
-                    departmentCode: result.departmentCode,
-                    classification: result.classification as VisitClassification,
-                    priorityName: result.priorityName,
-                });
+                await ticketPrintingService.print(result);
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown printer error occurred';
                 console.error('Printer util failed:', message);
@@ -65,6 +59,12 @@ class ReleasingController {
     linkPatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         const userId = req.user.id;
         const updated = await releasingService.linkPatientByHospitalId(req.params.id, req.body.hospitalId, userId);
+        res.status(200).json({ success: true, data: updated });
+    });
+
+    updatePatientDemographics = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        const updated = await releasingService.updatePatientDemographics(req.params.id, req.body, userId);
         res.status(200).json({ success: true, data: updated });
     });
 }

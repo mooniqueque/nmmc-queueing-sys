@@ -23,6 +23,24 @@ export const linkPatientRequestSchema = z.object({
     }),
 });
 
+export const updatePatientDemographicsRequestSchema = z.object({
+    body: z.object({
+        firstName: z.string().min(1, 'firstName is required'),
+        middleName: z.string().optional(),
+        lastName: z.string().min(1, 'lastName is required'),
+        address: z.string().optional(),
+        dateOfBirth: z.string().min(1, 'dateOfBirth is required'),
+        gender: z.string().min(1, 'gender is required'),
+        contactNo: z.string().optional(),
+        civilStatus: z.string().optional(),
+        birthPlace: z.string().optional(),
+        religion: z.string().optional(),
+    }),
+    params: z.object({
+        id: z.string().min(1, 'Visit ID is required'),
+    }),
+});
+
 export const visitParamSchema = z.object({
     params: z.object({
         id: z.string().min(1, 'Visit ID is required'),

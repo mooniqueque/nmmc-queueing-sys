@@ -26,16 +26,18 @@ import {
 } from "@phosphor-icons/react";
 import { BarChart2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
 
 
 export default function UserCallerDashboard({
     department,
+    callerUserId,
     initialQueue = []
 }: {
     department: string;
+    callerUserId: string;
     initialQueue?: VisitWithPatient[];
 }) {
     const router = useRouter();
@@ -56,9 +58,10 @@ export default function UserCallerDashboard({
     }, [setDepartments]);
 
     // Live Queue Hook locked directly to the user's role department
-    const { activeQueue } = useClinicQueue(department, initialQueue);
+    const { activeQueue } = useClinicQueue(department, initialQueue, callerUserId);
 
     const [reportDate, setReportDate] = useState(getTodayBusinessDay());
+    const lastSpeechRef = useRef<{ key: string; ts: number }>({ key: "", ts: 0 });
 
     // Filter queue to make absolutely sure we only count tickets for THIS department
     const departmentQueue = activeQueue.filter((v: VisitWithPatient) =>
@@ -66,7 +69,9 @@ export default function UserCallerDashboard({
     );
 
     // Simplistic handling of what is "Now Serving" vs "Waitlist"
-    const inProgressVisit = departmentQueue.find(v => v.status === "IN_PROGRESS");
+    const inProgressVisit = departmentQueue.find(
+        (v) => v.status === "IN_PROGRESS" && v.calledByUserId === callerUserId
+    );
     const waitingList = departmentQueue.filter(v => v.status === "WAITING_CLINIC");
     
     // Regular: Standard classification and NOT referred
@@ -114,6 +119,83 @@ export default function UserCallerDashboard({
 
         notify.error(fallbackMessage);
     };
+
+    const selectPreferredFemaleVoice = (voices: SpeechSynthesisVoice[]) => {
+        const femaleHints = ["zira", "samantha", "victoria", "aria", "jenny", "hazel", "susan", "female"];
+        const englishVoices = voices.filter((voice) => voice.lang?.toLowerCase().startsWith("en"));
+
+        const exactPreferred = englishVoices.find((voice) => {
+            const name = voice.name.toLowerCase();
+            return name.includes("zira") || name.includes("aria") || name.includes("jenny");
+        });
+        if (exactPreferred) return exactPreferred;
+
+        const hintedFemale = englishVoices.find((voice) => {
+            const name = voice.name.toLowerCase();
+            return femaleHints.some((hint) => name.includes(hint));
+        });
+        if (hintedFemale) return hintedFemale;
+
+        return englishVoices[0] || voices[0] || null;
+    };
+
+    const speakCallerAnnouncement = (
+        ticketNo: number | null | undefined,
+        classification?: "REGULAR" | "PRIORITY" | null,
+        retries = 3
+    ) => {
+        if (!ticketNo || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+        try {
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length === 0 && retries > 0) {
+                setTimeout(() => speakCallerAnnouncement(ticketNo, classification, retries - 1), 250);
+                return;
+            }
+
+            const prefix = classification === "PRIORITY" ? "PRIO" : "REG";
+            const formattedTicket = `${prefix}-${String(ticketNo).padStart(3, "0")}`;
+            const speechKey = `${formattedTicket}|${department}`;
+            const now = Date.now();
+            if (lastSpeechRef.current.key === speechKey && now - lastSpeechRef.current.ts < 1000) {
+                return;
+            }
+            lastSpeechRef.current = { key: speechKey, ts: now };
+
+            const utterance = new SpeechSynthesisUtterance(
+                `Now serving ${formattedTicket}. Please proceed to ${department} station.`
+            );
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            utterance.lang = "en-US";
+
+            const femaleVoice = selectPreferredFemaleVoice(voices);
+            if (femaleVoice) {
+                utterance.voice = femaleVoice;
+            }
+
+            window.speechSynthesis.cancel();
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+            window.speechSynthesis.speak(utterance);
+        } catch (error) {
+            console.error("[Caller TTS] Unable to speak announcement", error);
+        }
+    };
+
+    useEffect(() => {
+        if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+        window.speechSynthesis.getVoices();
+        const onVoicesChanged = () => {
+            window.speechSynthesis.getVoices();
+        };
+        window.speechSynthesis.onvoiceschanged = onVoicesChanged;
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, []);
 
     useEffect(() => {
         if (callAgainCooldown > 0) {

@@ -1,19 +1,17 @@
 "use client";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getDepartments, getQueueOptions } from "@/features/shared/api";
 import { notify } from "@/shared/lib/notify";
-import { Department, PriorityCategory, VisitPriorityCategory } from "@/shared/types/models";
+import { Department, DepartmentStatus, PriorityCategory, VisitPriorityCategory } from "@/shared/types/models";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CaretDoubleRight, Printer, WarningCircle, XCircle } from "@phosphor-icons/react";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { CaretDoubleRight, Printer, WarningCircle } from "@phosphor-icons/react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { markNoShow, submitTriageForm } from "../actions";
+import { submitTriageForm } from "../actions";
 import { TriageFormInput, TriageFormValues, triageFormSchema } from "../schemas";
 
 import { useTriageDraftStore } from "../store/use-triage-draft-store";
@@ -24,6 +22,20 @@ import { VitalsSection } from "./vitals-section";
 
 interface TriageFormProps {
     availableDepartments?: Department[];
+}
+
+function getClassificationDisplayLabel(category: PriorityCategory) {
+    const knownLabels: Record<string, string> = {
+        REG: "Regular",
+        PWD: "Person with Disability",
+        SNR: "Senior Citizen",
+        PREG: "Pregnant",
+        "ER-REF": "ER-Referral",
+    };
+
+    const code = category.code?.trim().toUpperCase() || "";
+    const label = knownLabels[code] || category.name || code;
+    return `${label} (${code})`;
 }
 
 export function TriageForm({ availableDepartments }: TriageFormProps) {
@@ -43,13 +55,19 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
 
     useEffect(() => {
         if (availableDepartments !== undefined) {
-            queueMicrotask(() => setDepartments(availableDepartments));
+            const filtered = availableDepartments.filter((dept) => dept.status !== DepartmentStatus.CLOSED);
+            queueMicrotask(() => setDepartments(filtered));
             return;
         }
 
         getDepartments().then(res => {
             if (res.data) {
-                setDepartments(res.data.filter((d: Department) => !d.name.toLowerCase().includes('admin') && !d.name.toLowerCase().includes('triage') && !d.name.toLowerCase().includes('window')));
+                setDepartments(res.data.filter((d: Department) =>
+                    d.status !== DepartmentStatus.CLOSED &&
+                    !d.name.toLowerCase().includes('admin') &&
+                    !d.name.toLowerCase().includes('triage') &&
+                    !d.name.toLowerCase().includes('window')
+                ));
             }
         });
     }, [availableDepartments]);
@@ -77,6 +95,18 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
 
     const selectedDepartmentId = methods.watch("departmentId");
     const selectedQueueOptionId = methods.watch("queueOptionId");
+    const selectedOption = availableCategories.find((category) => category.id === selectedQueueOptionId);
+
+    const acuityOptions = [
+        { value: "NON-URGENT", label: "Non-Urgent" },
+        { value: "URGENT", label: "Urgent" },
+        { value: "EMERGENT", label: "Emergent (Critical)" },
+    ];
+
+    const classificationOptions = availableCategories.map((category) => ({
+        value: category.id,
+        label: getClassificationDisplayLabel(category),
+    }));
 
     useEffect(() => {
         if (isManualEntry) {
@@ -282,16 +312,15 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                                             name="disposition"
                                             render={({ field }) => (
                                                 <div className="relative">
-                                                <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-lg font-semibold text-gray-900 transition-all border ${methods.formState.errors.disposition ? 'border-destructive ring-1 ring-destructive/20' : field.value === "EMERGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-slate-500/20" : field.value === "URGENT" ? "text-slate-800 border-amber-500/50 ring-2 ring-amber-500/20" : "border-slate-300 text-slate-800"}`}>
-                                                        <SelectValue placeholder="Select Acuity" />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-300 bg-white">
-                                                        <SelectItem value="NON-URGENT" className="font-bold py-2 focus:bg-slate-100 text-slate-800">Non-Urgent</SelectItem>
-                                                        <SelectItem value="URGENT" className="font-bold py-2 focus:bg-slate-100 text-slate-800">Urgent</SelectItem>
-                                                        <SelectItem value="EMERGENT" className="font-bold py-2 focus:bg-slate-100 text-slate-800">Emergent (Critical)</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                    <SearchableSelect
+                                                        options={acuityOptions}
+                                                        value={field.value}
+                                                        onSelect={field.onChange}
+                                                        placeholder="Select Acuity"
+                                                        searchPlaceholder="Search acuity..."
+                                                        emptyMessage="No acuity found."
+                                                        className={`h-12 text-xl font-semibold ${methods.formState.errors.disposition ? 'border-destructive ring-1 ring-destructive/20 text-destructive' : field.value === "EMERGENT" ? "text-slate-800 border-slate-500/50 ring-2 ring-slate-500/20" : field.value === "URGENT" ? "text-slate-800 border-amber-500/50 ring-2 ring-amber-500/20" : "border-slate-300 text-slate-800"}`}
+                                                    />
                                                 {methods.formState.errors.disposition && <span className="text-destructive text-[10px] font-bold uppercase tracking-widest mt-1 absolute block">{methods.formState.errors.disposition.message}</span>}
                                                 </div>
                                             )}
@@ -301,11 +330,6 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                                         <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
                                             Clinical Department *
                                         </Label>
-                                        {departments.length === 0 && (
-                                            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-600">
-                                                No enabled departments assigned for this user.
-                                            </p>
-                                        )}
                                         <Controller
                                             control={methods.control}
                                             name="departmentId"
@@ -322,8 +346,14 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                                                     />
                                                     {methods.formState.errors.departmentId && <span className="text-destructive text-[10px] font-bold uppercase tracking-widest mt-1 absolute block">{methods.formState.errors.departmentId.message}</span>}
                                                 </div>
+                                                
                                             )}
                                         />
+                                        {departments.length === 0 && (
+                                            <p className="mt-3 ml-4 mb-2 text-xs font-semibold uppercase tracking-widest text-amber-600">
+                                                No enabled departments assigned for this user. 
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="flex-1">
                                         <Label className="text-base font-bold text-gray-800 uppercase tracking-wide pl-1 mb-2 block">
@@ -332,36 +362,23 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                                         <Controller
                                             control={methods.control}
                                             name="queueOptionId"
-                                            render={({ field }) => {
-                                                const selectedOption = availableCategories.find((category) => category.id === field.value);
-
-                                                return (
-                                                <Select
-                                                    onValueChange={(value) => {
+                                            render={({ field }) => (
+                                                <SearchableSelect
+                                                    options={classificationOptions}
+                                                    value={field.value}
+                                                    onSelect={(value) => {
                                                         const option = availableCategories.find((category) => category.id === value);
                                                         field.onChange(value);
                                                         methods.setValue("priorityClass", option?.isPriority ? "PRIORITY" : "REGULAR", { shouldValidate: true });
                                                         methods.setValue("categoryIds", option ? [option.id] : [], { shouldValidate: true });
                                                     }}
-                                                    value={field.value}
+                                                    placeholder={methods.watch("departmentId") ? "Select Classification" : "Select Department First"}
+                                                    searchPlaceholder="Search classification..."
+                                                    emptyMessage={methods.watch("departmentId") ? "No classification available." : "Select department first."}
                                                     disabled={!methods.watch("departmentId") || availableCategories.length === 0}
-                                                >
-                                                    <SelectTrigger className={`h-11 rounded-xl bg-white text-lg font-semibold text-gray-900 transition-all border border-slate-300 ${selectedOption?.isPriority ? "text-emerald-600 ring-1 ring-emerald-500/50 border-emerald-500/50" : "text-slate-800"}`}>
-                                                        <SelectValue placeholder={methods.watch("departmentId") ? "Select Classification" : "Select Department First"} />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-xl shadow-2xl border-slate-300 bg-white">
-                                                        {availableCategories.map((category) => (
-                                                            <SelectItem
-                                                                key={category.id}
-                                                                value={category.id}
-                                                                className={`font-bold py-2 focus:bg-slate-100 ${category.isPriority ? "text-emerald-600" : "text-slate-800"}`}
-                                                            >
-                                                                {category.code}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}}
+                                                    className={`h-12 text-xl font-semibold border border-slate-300 ${selectedOption?.isPriority ? "text-emerald-600 ring-1 ring-emerald-500/50 border-emerald-500/50" : "text-slate-800"}`}
+                                                />
+                                            )}
                                         />
                                     </div>
                                 </div>
@@ -390,7 +407,7 @@ export function TriageForm({ availableDepartments }: TriageFormProps) {
                                         >
                                             {isPending ? "Submitting..." : (
                                                 <span className="flex items-center gap-2">
-                                                    Print Ticket & Send <Printer size={22} weight="fill" />
+                                                    SUBMIT <Printer size={22} weight="fill" />
                                                 </span>
                                             )}
                                         </Button>

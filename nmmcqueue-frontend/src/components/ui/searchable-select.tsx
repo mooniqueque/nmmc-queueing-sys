@@ -1,8 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { Check, CaretUpDown } from "@phosphor-icons/react";
-import { cn } from "@/shared/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
     Command,
@@ -17,6 +14,9 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import { cn } from "@/shared/lib/utils";
+import { CaretUpDown, Check } from "@phosphor-icons/react";
+import { useState } from "react";
 
 interface Option {
     label: string;
@@ -80,10 +80,10 @@ export function SearchableSelect({
                 <Command className="rounded-none border-none">
                     <CommandInput 
                         placeholder={searchPlaceholder} 
-                        className="h-10 text-sm border-none ring-0 focus:ring-0" 
+                        className="h-11 text-base border-none ring-0 focus:ring-0" 
                     />
-                    <CommandList className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar bg-white">
-                        <CommandEmpty className="py-6 text-center text-sm font-medium text-muted-foreground italic">
+                    <CommandList className="max-h-75 overflow-y-auto overflow-x-hidden custom-scrollbar bg-white">
+                        <CommandEmpty className="py-6 text-center text-base font-medium text-muted-foreground italic">
                             {emptyMessage}
                         </CommandEmpty>
                         <CommandGroup className="p-1">
@@ -95,7 +95,7 @@ export function SearchableSelect({
                                         onSelect(option.value);
                                         setOpen(false);
                                     }}
-                                    className="rounded-lg font-medium py-2 px-3 cursor-pointer data-[selected=true]:bg-muted data-[selected=true]:text-foreground transition-colors"
+                                    className="rounded-lg font-medium text-base py-2.5 px-3 cursor-pointer data-[selected=true]:bg-muted data-[selected=true]:text-foreground transition-colors"
                                 >
                                     <Check
                                         className={cn(

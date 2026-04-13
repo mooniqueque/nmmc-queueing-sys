@@ -1,0 +1,16 @@
+config:
+  # Default local backend target for baseline load smoke checks.
+  target: "http://localhost:3001"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: warmup
+  defaults:
+    headers:
+      Content-Type: application/json
+
+scenarios:
+  - name: health-check-load-baseline
+    flow:
+      - get:
+          url: "/health"

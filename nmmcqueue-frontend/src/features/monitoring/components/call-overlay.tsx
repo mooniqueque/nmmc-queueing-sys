@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, SpeakerSlash } from "@phosphor-icons/react";
 
 interface CallOverlayProps {
-    callData: { ticket: string; windowName: string; calledAt: string | null } | null;
+    callData: { ticket: string; windowName: string; stationNo?: number | null; calledAt: string | null } | null;
 }
 
 const DISPLAY_DURATION_SECONDS = 5;
@@ -110,52 +110,66 @@ export function CallOverlay({ callData }: CallOverlayProps) {
             if (!('speechSynthesis' in window)) return;
             try {
                 window.speechSynthesis.cancel();
-                const cleanTicket = callData.ticket.replace('-', ' ');
-                const text = `Calling number, ${cleanTicket}, to ${callData.windowName}`;
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                }
+                const cleanTicket = callData.ticket.trim();
+                const stationName = (callData.windowName || '').trim();
+                const hasStationNo = typeof callData.stationNo === 'number';
+                const text = hasStationNo
+                    ? `Now serving ${cleanTicket}. Please proceed to ${stationName}, station ${callData.stationNo}.`
+                    : `Now serving ${cleanTicket}. Please proceed to ${stationName}.`;
                 
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = 0.9;
                 utterance.pitch = 1;
+                utterance.volume = 1;
+                utterance.lang = "en-US";
 
                 const voices = window.speechSynthesis.getVoices();
                 if (voices.length > 0) {
-                    // Try to find a female voice (often contains 'female', 'zira', 'samantha', 'victoria')
-                    const femaleVoice = voices.find(v => 
-                        v.lang.startsWith("en-") && 
-                        (v.name.toLowerCase().includes("female") || 
-                         v.name.toLowerCase().includes("zira") || 
-                         v.name.toLowerCase().includes("samantha") || 
-                         v.name.toLowerCase().includes("victoria"))
-                    );
-                    
-                    const selectedVoice = femaleVoice || voices.find(v => v.lang.startsWith("en-") && v.name.includes("Google")) || voices.find(v => v.lang.startsWith("en-")) || voices[0];
+                    const femaleHints = ['female', 'zira', 'samantha', 'victoria', 'aria', 'jenny', 'hazel', 'susan'];
+                    const englishVoices = voices.filter((voice) => voice.lang?.toLowerCase().startsWith('en'));
+                    const femaleVoice = englishVoices.find((voice) => {
+                        const voiceName = voice.name.toLowerCase();
+                        return femaleHints.some((hint) => voiceName.includes(hint));
+                    });
+
+                    const selectedVoice = femaleVoice
+                        || englishVoices.find((voice) => voice.name.toLowerCase().includes('google'))
+                        || englishVoices[0]
+                        || voices[0];
                     utterance.voice = selectedVoice;
                 }
                 
                 utterance.onerror = (e) => {
-                    console.error("[TTS] Error speaking:", e);
-                    if (e.error === "not-allowed") {
+                    const eventError = typeof e?.error === 'string' ? e.error : '';
+                    const isBenign = eventError === '' || eventError === 'canceled' || eventError === 'interrupted';
+
+                    if (eventError === "not-allowed") {
                         setAudioAllowed(false);
+                        return;
                     }
+
+                    if (!isBenign) {
+                        console.warn("[TTS] Speech event issue:", eventError || 'unknown');
+                    }
+                };
+                utterance.onstart = () => {
+                    setAudioAllowed(true);
                 };
                 
                 window.speechSynthesis.speak(utterance);
             } catch (err) {
-                 console.error("[TTS] SpeechSynthesis failed:", err);
+                 console.warn("[TTS] SpeechSynthesis failed:", err);
                  setAudioAllowed(false);
             }
         };
 
-        playChime().then((chimeSuccess) => {
-            // Only play TTS if Chime wasn't completely blocked by autoplay
-            if (chimeSuccess) {
-                setTimeout(() => {
-                    playTTS();
-                }, 800);
-            } else {
-                // If chime failed due to autoplay block, TTS will also definitely fail.
-                setAudioAllowed(false);
-            }
+        playChime().then(() => {
+            setTimeout(() => {
+                playTTS();
+            }, 800);
         });
 
     }, [callData]);

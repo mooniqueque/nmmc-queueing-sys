@@ -1,5 +1,5 @@
-import { db } from '../../config/database.js';
 import { WorkstationType } from '@prisma/client';
+import { db } from '../../config/database.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
 
@@ -18,8 +18,14 @@ class WorkstationService {
         });
     }
 
-    async createWithAutoIncrement(data: { type: WorkstationType, customName?: string, departmentId?: string, count?: number }) {
-        const { type, customName, departmentId, count = 1 } = data;
+    async createWithAutoIncrement(data: {
+        type: WorkstationType,
+        queueMode?: 'MIXED' | 'PRIORITY_ONLY' | 'REGULAR_ONLY',
+        customName?: string,
+        departmentId?: string,
+        count?: number,
+    }) {
+        const { type, queueMode = 'MIXED', customName, departmentId, count = 1 } = data;
         const maxRetries = 3;
         let lastError: any;
 
@@ -48,6 +54,7 @@ class WorkstationService {
                             data: {
                                 name: finalName,
                                 type,
+                                queueMode,
                                 stationNo: nextNumber,
                                 ...(departmentId ? { departmentId } : {})
                             }

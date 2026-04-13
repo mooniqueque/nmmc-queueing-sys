@@ -3,7 +3,8 @@
         "target": "ES2022",
         "module": "NodeNext",
         "types": [
-            "node"
+            "node",
+            "jest"
         ],
         "lib": [
             "es2022"
@@ -15,7 +16,8 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "moduleResolution": "NodeNext",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "isolatedModules": true
     },
     "include": [
         "src/**/*"

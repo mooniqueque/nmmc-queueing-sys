@@ -45,6 +45,20 @@ export async function updateDepartmentStatus(
     });
 }
 
+export async function initializeDepartmentQueueDefaults(id: string, options?: RequestInit) {
+    return apiClient<PriorityCategory[]>(`/caller/departments/${id}/queue-options/defaults`, {
+        method: "POST",
+        ...options,
+    });
+}
+
+export async function repairDefaultQueueOptions(options?: RequestInit) {
+    return apiClient<{ repairedDepartments: number }>("/caller/queue-options/repair-defaults", {
+        method: "POST",
+        ...options,
+    });
+}
+
 export async function createQueueOption(
     departmentName: string,
     data: { name: string, code: string, isPriority: boolean, parentId?: string },

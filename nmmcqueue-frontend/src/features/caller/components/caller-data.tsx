@@ -1,14 +1,15 @@
 import { VisitWithPatient } from "@/features/triage/types";
 import { getServerHeaders } from "@/lib/api/server";
 import { connection } from "next/server";
-import UserCallerDashboard from './user-caller-dashboard';
 import { getCallerScope, getClinicQueues } from "../api";
+import UserCallerDashboard from './user-caller-dashboard';
 
 export default async function CallerData() {
     await connection();
 
     let initialQueueData: VisitWithPatient[] = [];
     let userDepartment = "";
+    let callerUserId = "";
 
     try {
         const headers = await getServerHeaders();
@@ -19,6 +20,7 @@ export default async function CallerData() {
 
         if (scopeRes.success) {
             userDepartment = scopeRes.data?.department?.name ?? "";
+            callerUserId = scopeRes.data?.userId ?? "";
         }
 
         if (pendingRes.success) {
@@ -36,6 +38,7 @@ export default async function CallerData() {
     return (
         <UserCallerDashboard
             department={userDepartment}
+            callerUserId={callerUserId}
             initialQueue={initialQueueData}
         />
     );

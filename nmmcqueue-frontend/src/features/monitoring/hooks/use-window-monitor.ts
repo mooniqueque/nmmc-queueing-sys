@@ -1,6 +1,6 @@
 import { API_URL } from "@/lib/api";
 import { useAnnouncementQueue } from "@/features/monitoring/hooks/use-announcement-queue";
-import { SseMessage, SSE_TOPICS } from "@/shared/lib/sse";
+import { SseEventType, SseMessage, SSE_TOPICS } from "@/shared/lib/sse";
 import { useCallback, useEffect, useState } from "react";
 
 const BACKEND_URL = API_URL;
@@ -103,14 +103,14 @@ export function useWindowMonitor(slugOrId?: string) {
                     window?: WindowStatus;
                     stationNo?: number;
                 }>;
-                if (data.type === "monitor-snapshot" && data.payload) {
+                if (data.type === SseEventType.MONITOR_SNAPSHOT && data.payload) {
                     setWindows((data.payload.active || []).map(toDisplayWindow));
                     setUpcoming(data.payload.upcoming || []);
                     setLoading(false);
                     return;
                 }
 
-                if (data.type === "monitor-upsert" && data.payload?.window) {
+                if (data.type === SseEventType.MONITOR_UPSERT && data.payload?.window) {
                     setWindows((current) => upsertWindowByStation(current, toDisplayWindow(data.payload!.window!)));
                     setLoading(false);
 
@@ -118,19 +118,20 @@ export function useWindowMonitor(slugOrId?: string) {
                         enqueueAnnouncement({
                             ticket: data.payload.window.displayTicket,
                             windowName: data.payload.window.windowName,
+                            stationNo: data.payload.window.stationNo,
                             calledAt: data.payload.window.calledAt,
                         });
                     }
                     return;
                 }
 
-                if (data.type === "monitor-remove" && typeof data.payload?.stationNo === "number") {
+                if (data.type === SseEventType.MONITOR_REMOVE && typeof data.payload?.stationNo === "number") {
                     setWindows((current) => clearWindowByStation(current, data.payload!.stationNo!));
                     setLoading(false);
                     return;
                 }
 
-                if (data.type === "monitor-upcoming" && data.payload?.upcoming) {
+                if (data.type === SseEventType.MONITOR_UPCOMING && data.payload?.upcoming) {
                     setUpcoming(data.payload.upcoming);
                     setLoading(false);
                 }

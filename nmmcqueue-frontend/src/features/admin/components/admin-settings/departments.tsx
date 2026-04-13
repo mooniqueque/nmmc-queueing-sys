@@ -166,7 +166,9 @@ export default function DepartmentSettings({
         });
 
         if (!result.success) {
-            setQueueError(result.error || "Failed to add queue option.");
+            const message = result.error || "Failed to add queue option.";
+            setQueueError(message);
+            notify.error(message);
             setQueueLoading(false);
             return;
         }
@@ -198,7 +200,9 @@ export default function DepartmentSettings({
                 [selectedDepartmentKey]: removeCategory(prev[selectedDepartmentKey] ?? [], id),
             }));
         } else {
-            setQueueError(result.error || "Failed to delete queue option.");
+            const message = result.error || "Failed to delete queue option.";
+            setQueueError(message);
+            notify.error(message);
         }
         setQueueLoading(false);
     };
@@ -285,7 +289,7 @@ export default function DepartmentSettings({
 
     return (
         <div className="space-y-6">
-            <section className="flex flex-col gap-4">
+            <section className="space-y-4 rounded-lg border bg-card p-4">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
                     <div className="relative">
                         <MagnifyingGlass size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -293,11 +297,11 @@ export default function DepartmentSettings({
                             value={searchQuery}
                             onChange={(event) => setSearchQuery(event.target.value)}
                             placeholder="Search departments, clinics or services....."
-                            className="h-10 rounded-lg bg-white pl-9"
+                            className="h-10 pl-9"
                         />
                     </div>
 
-                    <div className="flex items-center gap-2 rounded-lg border bg-white px-3">
+                    <div className="flex items-center gap-2 rounded-md border bg-background px-3">
                         <Funnel size={14} className="text-muted-foreground" />
                         <select
                             value={filterMode}
@@ -310,8 +314,8 @@ export default function DepartmentSettings({
                         </select>
                     </div>
 
-                    <div className="flex items-center gap-2 rounded-lg border bg-white px-3">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sort</span>
+                    <div className="flex items-center gap-2 rounded-md border bg-background px-3">
+                        <span className="text-xs font-medium text-muted-foreground">Sort</span>
                         <select
                             value={sortMode}
                             onChange={(event) =>
@@ -327,7 +331,7 @@ export default function DepartmentSettings({
                     </div>
 
                     <Button
-                        className="h-10 rounded-lg bg-emerald-900 px-5 font-bold hover:bg-emerald-800"
+                        className="h-10 px-5"
                         onClick={() => {
                             setError("");
                             setIsAddDepartmentOpen(true);
@@ -338,7 +342,7 @@ export default function DepartmentSettings({
                     </Button>
                 </div>
 
-                <h2 className="text-xl font-bold tracking-tight text-emerald-900 mt-2">All Departments</h2>
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">All Departments</h2>
             </section>
 
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
@@ -354,32 +358,33 @@ export default function DepartmentSettings({
                         const hasPriority = departmentCategories.some((category) => category.isPriority);
 
                         return (
-                            <div 
+                            <Card 
                                 key={department.id} 
-                                className="group relative flex items-center bg-white rounded-xl shadow-sm border border-border/60 p-4 transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer max-w-full"
+                                className="group relative overflow-hidden border bg-card shadow-sm transition-colors hover:bg-muted/40 cursor-pointer"
                                 onClick={() => openManageDialog(department.id)}
                             >
-                                {/* Left vertical Accent */}
-                                <div className="absolute left-0 top-0 bottom-0 w-2 rounded-l-xl transition-colors bg-emerald-600" />
-
-                                {/* Text contents (pushed left) */}
-                                <div className="flex-1 ml-3 mr-4 overflow-hidden">
-                                    <h3 className="text-base sm:text-lg font-bold tracking-tight text-emerald-950 truncate">{department.name}</h3>
-                                    <p className="text-[9px] sm:text-[10px] uppercase font-bold text-muted-foreground tracking-widest mt-1 truncate">
-                                        CODE: {department.code} • {insight.staffCount} STAFF
-                                    </p>
-                                    <div className="mt-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                        <span className={cn("size-2 rounded-full", department.status === DepartmentStatus.CLOSED ? "bg-slate-400" : department.status === DepartmentStatus.FULL ? "bg-amber-500" : "bg-emerald-500")} />
-                                        <span>{department.status ?? DepartmentStatus.OPEN}</span>
+                                <CardContent className="flex items-center gap-4 p-4">
+                                    <div className="h-10 w-1.5 rounded-full bg-emerald-600" />
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="truncate text-base font-semibold tracking-tight">{department.name}</h3>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            Code {department.code} · {insight.staffCount} staff
+                                        </p>
+                                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                                            <span className={cn("size-2 rounded-full", department.status === DepartmentStatus.CLOSED ? "bg-slate-400" : department.status === DepartmentStatus.FULL ? "bg-amber-500" : "bg-emerald-500")} />
+                                            <span>{department.status ?? DepartmentStatus.OPEN}</span>
+                                        </div>
                                     </div>
-                                </div>
 
-
-                            </div>
+                                    <div className="shrink-0 flex items-center justify-center rounded-md border bg-background p-2 text-muted-foreground transition-colors group-hover:text-emerald-700">
+                                        <Gear size={18} weight="bold" />
+                                    </div>
+                                </CardContent>
+                            </Card>
                         );
                     })
                 ) : (
-                    <Card className="col-span-full rounded-2xl border-dashed">
+                    <Card className="col-span-full border-dashed">
                         <CardContent className="py-16 text-center">
                             <p className="text-sm font-semibold text-muted-foreground">No departments match your current search and filters.</p>
                         </CardContent>
@@ -390,8 +395,8 @@ export default function DepartmentSettings({
             <Dialog open={isAddDepartmentOpen} onOpenChange={setIsAddDepartmentOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Add New Department</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-lg font-semibold">Add New Department</DialogTitle>
+                        <DialogDescription className="text-sm text-muted-foreground">
                             Keep this quick. Capture only the essentials and configure details later.
                         </DialogDescription>
                     </DialogHeader>
@@ -440,17 +445,17 @@ export default function DepartmentSettings({
             </Dialog>
 
             <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
                     <DialogHeader>
-                        <DialogTitle>{selectedDepartment?.name ?? "Department"}</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-lg font-semibold">{selectedDepartment?.name ?? "Department"}</DialogTitle>
+                        <DialogDescription className="text-sm text-muted-foreground">
                             Edit department details and queue options in one place.
                         </DialogDescription>
                     </DialogHeader>
 
                     {selectedDepartment ? (
                         <Tabs defaultValue="department-info" className="space-y-4">
-                            <TabsList className="w-full justify-start">
+                            <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:grid-cols-2">
                                 <TabsTrigger value="department-info">Department Info</TabsTrigger>
                                 <TabsTrigger value="queue-options">Queue Options</TabsTrigger>
                             </TabsList>
@@ -458,7 +463,7 @@ export default function DepartmentSettings({
                             <TabsContent value="department-info" className="space-y-4">
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label>Name</Label>
+                                        <Label className="text-sm font-medium">Name</Label>
                                         <Input
                                             value={infoDraft.name}
                                             onChange={(event) =>
@@ -468,7 +473,7 @@ export default function DepartmentSettings({
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Code</Label>
+                                        <Label className="text-sm font-medium">Code</Label>
                                         <Input
                                             value={infoDraft.code}
                                             onChange={(event) =>
@@ -484,7 +489,7 @@ export default function DepartmentSettings({
                                     Department identity fields are currently read-only in this release.
                                 </p>
 
-                                <Alert variant="warning" className="rounded-xl">
+                                <Alert variant="warning">
                                     <AlertCircle className="size-4" />
                                     <AlertTitle>Danger Zone</AlertTitle>
                                     <AlertDescription>Deleting a department removes it from active settings.</AlertDescription>
@@ -501,27 +506,27 @@ export default function DepartmentSettings({
                             </TabsContent>
 
                             <TabsContent value="queue-options" className="space-y-4">
-                                <div className="rounded-xl border bg-white p-4 shadow-sm space-y-4">
+                                <div className="rounded-lg border bg-card p-4 space-y-4">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <p className="text-sm font-semibold text-foreground">Enable Ticket Assignment</p>
+                                            <p className="text-sm font-medium text-foreground">Enable Ticket Assignment</p>
                                             <p className="mt-1 text-sm text-muted-foreground">
                                                 When closed, Triage staff cannot assign new patients to this department regardless of their individual access.
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-3 rounded-full border bg-muted/20 px-3 py-2">
-                                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Closed</span>
+                                        <div className="flex items-center gap-3 rounded-full border bg-muted/40 px-3 py-2">
+                                            <span className="text-xs font-medium text-muted-foreground">Closed</span>
                                             <Switch
                                                 checked={selectedDepartment.status === DepartmentStatus.OPEN}
                                                 onCheckedChange={(checked) => handleQueueStatusChange(selectedDepartment.id, checked)}
                                             />
-                                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Open</span>
+                                            <span className="text-xs font-medium text-muted-foreground">Open</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="rounded-xl border bg-muted/20 p-4">
-                                    <p className="text-sm font-semibold">Add Queue Option</p>
+                                <div className="rounded-lg border bg-card p-4">
+                                    <p className="text-sm font-medium">Add Queue Option</p>
                                     <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <Input
                                             placeholder="Option Name"
@@ -541,7 +546,7 @@ export default function DepartmentSettings({
                                             checked={isPriorityInput}
                                             onCheckedChange={(checked) => setIsPriorityInput(Boolean(checked))}
                                         />
-                                        <Label htmlFor="queue-priority">Mark as priority</Label>
+                                        <Label htmlFor="queue-priority" className="text-sm font-medium">Mark as priority</Label>
                                     </div>
                                     <Button
                                         type="button"
@@ -555,7 +560,7 @@ export default function DepartmentSettings({
 
                                 <div className="space-y-2">
                                     {queueOptions.length === 0 ? (
-                                        <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+                                        <p className="rounded-lg border border-dashed p-5 text-center text-sm text-muted-foreground">
                                             No queue options configured.
                                         </p>
                                     ) : (
@@ -570,7 +575,7 @@ export default function DepartmentSettings({
                                                         {cat.code}
                                                     </Badge>
                                                     {cat.isPriority ? (
-                                                        <Badge className="bg-amber-100 text-amber-800">Priority</Badge>
+                                                        <Badge variant="secondary">Priority</Badge>
                                                     ) : null}
                                                 </div>
                                                 <Button
@@ -608,8 +613,8 @@ export default function DepartmentSettings({
             >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Delete Department</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-lg font-semibold">Delete Department</DialogTitle>
+                        <DialogDescription className="text-sm text-muted-foreground">
                             This action cannot be undone. The department will be removed from active settings.
                         </DialogDescription>
                     </DialogHeader>

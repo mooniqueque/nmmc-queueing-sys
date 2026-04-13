@@ -40,11 +40,11 @@ export default function CallerDashboard({
         <div className="flex flex-1 flex-col bg-background">
             <AdminHeader user={loggedInUser} title="Clinic Caller Analytics" />
 
-            <main className="flex-1 p-6 lg:p-10 space-y-8 overflow-y-auto">
+            <main className="flex-1 p-6 lg:p-8 space-y-8 overflow-y-auto">
                 {/* Filter */}
                 <div className="flex items-center justify-between">
                     <Select value={departmentId} onValueChange={setDepartmentId}>
-                        <SelectTrigger className="w-52 h-9">
+                        <SelectTrigger className="w-56 h-10">
                             <SelectValue placeholder="All Departments" />
                         </SelectTrigger>
                         <SelectContent>
@@ -56,7 +56,7 @@ export default function CallerDashboard({
                     </Select>
                     <div className="flex items-center gap-2">
                         <div className={cn("size-2 rounded-full", isLoading ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
-                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                        <p className="text-xs font-medium text-primary">
                             {isLoading ? "Syncing..." : "Live"}
                         </p>
                     </div>
@@ -110,7 +110,7 @@ export default function CallerDashboard({
                 {/* Recent History */}
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
                             Recent Activity
                         </CardTitle>
                     </CardHeader>

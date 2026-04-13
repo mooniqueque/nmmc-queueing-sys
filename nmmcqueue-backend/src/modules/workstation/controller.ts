@@ -9,7 +9,7 @@ class WorkstationController {
     });
 
     create = asyncHandler(async (req: Request, res: Response) => {
-        const { type, customName, departmentId, count } = req.body;
+        const { type, queueMode, customName, departmentId, count } = req.body;
         
         if (!type) {
             res.status(400).json({ success: false, error: 'Type is required' });
@@ -18,6 +18,7 @@ class WorkstationController {
 
         const stations = await workstationService.createWithAutoIncrement({
             type,
+            queueMode,
             customName,
             departmentId,
             count: count ? Number(count) : 1

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import { API_URL } from "@/lib/api";
-import { SseMessage } from "@/shared/lib/sse";
+import { SseEventType, SseMessage } from "@/shared/lib/sse";
 
 /**
  * A generic hook to subscribe to the backend SSE stream 
@@ -21,9 +21,10 @@ export function useLiveQueue<T = unknown>(topic: string, onEvent: (event: SseMes
         eventSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data) as SseMessage<T>;
-                if (data.type !== "connected") {
-                    onEvent(data);
+                if (data.type === SseEventType.CONNECTED) {
+                    return;
                 }
+                onEvent(data);
             } catch (error) {
                 console.error("Failed to parse SSE message:", error);
             }

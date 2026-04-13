@@ -1,10 +1,14 @@
-const DEFAULT_API_URL = "http://localhost:3001/api";
-
 function trimTrailingSlash(url: string): string {
     return url.replace(/\/+$/, "");
 }
 
-export const API_URL = trimTrailingSlash(process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL);
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+if (!apiUrl) {
+    throw new Error("CRITICAL: NEXT_PUBLIC_API_URL is missing");
+}
+
+export const API_URL = trimTrailingSlash(apiUrl);
 export const AUTH_BASE_URL = `${API_URL}/auth`;
 export const AUTH_GET_SESSION_URL = `${AUTH_BASE_URL}/get-session`;
 

@@ -18,11 +18,7 @@ class TriageController {
         let printError: string | null = null;
         if (result?.triageTicket) {
             try {
-                await ticketPrintingService.print({
-                    type: 'triage',
-                    triageTicket: result.triageTicket,
-                    classification: result.classification,
-                });
+                await ticketPrintingService.print(result);
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown printer error occurred';
                 console.error('Printer util failed:', message);
@@ -40,8 +36,9 @@ class TriageController {
         res.status(200).json({ success: true });
     });
 
-    restoreNoShow = asyncHandler(async (req: Request, res: Response) => {
-        await triageService.restoreNoShow(req.params.id);
+    restoreNoShow = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        await triageService.restoreNoShow(req.params.id, userId);
         res.status(200).json({ success: true });
     });
 
@@ -50,8 +47,9 @@ class TriageController {
         res.status(200).json({ success: true });
     });
 
-    getPendingQueue = asyncHandler(async (req: Request, res: Response) => {
-        const queue = await triageService.getPendingQueue();
+    getPendingQueue = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        const queue = await triageService.getPendingQueue(userId);
         res.status(200).json({ success: true, data: queue });
     });
 
@@ -81,6 +79,12 @@ class TriageController {
         const userId = req.user.id;
         const departments = await triageService.getMyAccessibleDepartments(userId);
         res.status(200).json({ success: true, data: departments });
+    });
+
+    updateAppointment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        const updated = await triageService.updateAppointment(req.params.id, req.body.hasAppointment, userId);
+        res.status(200).json({ success: true, data: updated });
     });
 }
 

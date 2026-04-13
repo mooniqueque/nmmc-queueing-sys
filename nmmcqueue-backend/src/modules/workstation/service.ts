@@ -6,7 +6,26 @@ import { AppError } from '../../middleware/error-handler.js';
 class WorkstationService {
     async getAll() {
         return await db.workStation.findMany({
-            include: { department: true },
+            include: {
+                department: true,
+                parentWorkstation: {
+                    select: {
+                        id: true,
+                        name: true,
+                        stationNo: true,
+                        type: true,
+                    },
+                },
+                childWorkstations: {
+                    include: {
+                        department: true,
+                    },
+                    orderBy: [
+                        { stationNo: 'asc' },
+                        { name: 'asc' },
+                    ],
+                },
+            },
             orderBy: [{ type: 'asc' }, { stationNo: 'asc' }]
         });
     }
@@ -56,7 +75,7 @@ class WorkstationService {
                                 type,
                                 queueMode,
                                 stationNo: nextNumber,
-                                ...(departmentId ? { departmentId } : {})
+                                ...(type !== 'CALLER' && departmentId ? { departmentId } : {})
                             }
                         });
                         createdStations.push(station);
@@ -94,6 +113,14 @@ class WorkstationService {
                 stationNo: true,
                 type: true,
                 departmentId: true,
+                parentWorkstationId: true,
+                childWorkstations: {
+                    select: {
+                        id: true,
+                        stationNo: true,
+                        departmentId: true,
+                    }
+                }
             }
         });
 
@@ -101,15 +128,21 @@ class WorkstationService {
             throw new AppError('Station not found', 404, 'STATION_NOT_FOUND');
         }
 
+        const stationIdsToDelete = [station.id, ...station.childWorkstations.map((child) => child.id)];
+        const stationNosToDelete = Array.from(new Set([station.stationNo, ...station.childWorkstations.map((child) => child.stationNo)]));
+        const departmentIds = Array.from(new Set([station.departmentId, ...station.childWorkstations.map((child) => child.departmentId)].filter(Boolean)));
+
         const result = await db.$transaction(async (tx) => {
             const linkedVisits = await tx.visit.findMany({
                 where: {
                     OR: [
-                        { calledAtStationId: id },
-                        { triageStationId: id },
-                        { originStationId: id },
+                        { calledAtStationId: { in: stationIdsToDelete } },
+                        { triageStationId: { in: stationIdsToDelete } },
+                        { originStationId: { in: stationIdsToDelete } },
                         // Fallback for legacy rows that only persisted station number.
-                        { windowNumber: station.stationNo },
+                        ...(station.type === 'WINDOW'
+                            ? [{ windowNumber: { in: stationNosToDelete } }]
+                            : []),
                     ]
                 },
                 select: {
@@ -137,9 +170,15 @@ class WorkstationService {
             }
 
             await tx.user.updateMany({
-                where: { workstationId: id },
+                where: { workstationId: { in: stationIdsToDelete } },
                 data: { workstationId: null }
             });
+
+            if (station.childWorkstations.length > 0) {
+                await tx.workStation.deleteMany({
+                    where: { id: { in: station.childWorkstations.map((child) => child.id) } }
+                });
+            }
 
             await tx.workStation.delete({ where: { id } });
 
@@ -149,7 +188,14 @@ class WorkstationService {
             };
         });
 
-        await emitQueueUpdate(station.departmentId || undefined);
+        for (const departmentId of departmentIds) {
+            if (departmentId) {
+                await emitQueueUpdate(departmentId);
+            }
+        }
+        if (departmentIds.length === 0) {
+            await emitQueueUpdate(undefined);
+        }
 
         return {
             stationId: station.id,

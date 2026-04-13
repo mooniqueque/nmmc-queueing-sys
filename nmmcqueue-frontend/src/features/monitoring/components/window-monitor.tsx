@@ -3,8 +3,8 @@
 import { Card } from "@/components/ui/card";
 import { CallOverlay } from "@/features/monitoring/components/call-overlay";
 import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
-import { useCurrentTime } from "@/shared/hooks/use-current-time";
 import { API_URL } from "@/lib/api";
+import { useCurrentTime } from "@/shared/hooks/use-current-time";
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -71,10 +71,10 @@ export default function WindowMonitor() {
                 </div>
             </header>
 
-            <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden max-w-[1800px] mx-auto w-full">
+            <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10 overflow-hidden max-w-[1800px] mx-auto w-full">
                 {/* LEFT COLUMN: CALLING LIST IN A CLEAN SHADCN CARD */}
                 <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-xl shadow-primary/5 border rounded-3xl bg-card">
-                    <div className="flex justify-between px-8 py-5 bg-primary text-primary-foreground font-black uppercase tracking-widest text-xl">
+                    <div className="flex justify-between px-10 py-5 bg-primary text-primary-foreground font-bold uppercase tracking-tight text-3xl">
                         <span>Service Window</span>
                         <span>Now Serving</span>
                     </div>
@@ -85,16 +85,16 @@ export default function WindowMonitor() {
                         ) : windows.length === 0 ? (
                             <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">No active windows</div>
                         ) : windows.map((window, index) => (
-                            <div key={index} className="flex flex-row items-center justify-between px-4 py-3 border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                            <div key={index} className="flex flex-row items-center justify-between px-4 py-4 min-h-[84px] border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                                 <div className="flex flex-col">
-                                    <span className="text-2xl px-5 font-bold text-slate-800 tracking-tight">
+                                    <span className="text-5xl px-5 font-bold text-slate-800 tracking-tight">
                                         {window.windowName}
                                     </span>
                                 </div>
-                                <div className="text-right flex flex-col items-end">
+                                <div className="text-right flex flex-col items-end justify-center min-h-[70px] px-10">
                                     {window.displayTicket ? (
                                         <>
-                                            <span className="text-3xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
+                                            <span className="text-7xl font-extrabold text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
                                                 {window.displayTicket}
                                             </span>
                                             {window.priorityClass && false && (
@@ -103,9 +103,7 @@ export default function WindowMonitor() {
                                                 </span>
                                             )}
                                         </>
-                                    ) : (
-                                        <span className="text-3xl font-bold text-slate-300 uppercase tracking-widest italic py-4">Waiting...</span>
-                                    )}
+                                    ) : null}
                                 </div>
                             </div>
                         ))}
@@ -139,24 +137,24 @@ export default function WindowMonitor() {
                     </Card>
 
                     {/* UPCOMING WAITLIST - COMPACT FOR PUBLIC VIEWING */}
-                    <Card className="p-4 bg-white shadow-md border-2 border-slate-100 rounded-xl flex flex-col justify-center shrink-0">
+                    <Card className="p-5 shadow-xl shadow-primary/5 border rounded-3xl bg-card">
                         <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-2">
                             <div>
 
-                                <p className="text-xl font-bold text-slate-800 tracking-tight leading-none">Next in Line</p>
+                                <p className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Next in Line</p>
                             </div>
-                            <div className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-bold uppercase tracking-widest ring-1 ring-emerald-200">
+                            <div className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-base font-bold uppercase tracking-widest ring-1 ring-emerald-200">
                                 {upcoming.length} Waiting
                             </div>
                         </div>
 
                         <div className="flex justify-start gap-4 flex-wrap">
                             {upcoming.length > 0 ? upcoming.map((num, i) => (
-                                <div key={i} className="px-6 py-2 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-lg text-slate-900 font-black text-4xl tracking-tighter tabular-nums drop-shadow-sm">
+                                <div key={i} className="px-6 py-2 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-lg text-slate-900 font-black text-5xl tracking-tighter tabular-nums drop-shadow-sm">
                                     {num}
                                 </div>
                             )) : (
-                                <span className="text-slate-400 font-medium italic text-lg py-2">No upcoming patients.</span>
+                                <span className="text-slate-400 font-medium italic text-xl py-2">No upcoming patients.</span>
                             )}
                         </div>
                     </Card>

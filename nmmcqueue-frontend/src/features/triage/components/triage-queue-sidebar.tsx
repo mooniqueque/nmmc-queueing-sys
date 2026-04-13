@@ -6,7 +6,7 @@ import { ReportDatePicker } from "@/features/shared/components/operational-repor
 import { Clock } from "@phosphor-icons/react";
 import { BarChart2 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TabType } from "../hooks";
 import { VisitWithPatient } from "../types";
 
@@ -33,6 +33,18 @@ export function TriageQueueSidebar({
 }: TriageQueueSidebarProps) {
     const [nowMs, setNowMs] = useState<number | null>(null);
 
+    const sortedActiveQueue = useMemo(() => {
+        return [...activeQueue].sort((a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+    }, [activeQueue]);
+
+    const sortedNoShowQueue = useMemo(() => {
+        return [...noShowQueue].sort((a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+    }, [noShowQueue]);
+
     useEffect(() => {
         const updateNow = () => setNowMs(Date.now());
         updateNow();
@@ -41,7 +53,7 @@ export function TriageQueueSidebar({
     }, []);
 
     return (
-        <div className="flex flex-col w-full bg-card rounded-2xl border border-border overflow-hidden shrink-0 h-[calc(100vh-24px)] sm:h-[calc(100vh-32px)] lg:h-[calc(100vh-48px)]">
+        <div className="flex flex-col w-full bg-card rounded-2xl border border-border overflow-hidden shrink-0 h-auto max-h-[45vh] lg:max-h-none lg:h-[calc(100vh-48px)]">
             {/* Header */}
             <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center shrink-0">
                 <div>
@@ -70,7 +82,7 @@ export function TriageQueueSidebar({
                         activeTab === "ACTIVE" ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
-                    Active Queue ({activeQueue.length})
+                    Active Queue ({sortedActiveQueue.length})
                     {activeTab === "ACTIVE" && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
                     )}
@@ -82,7 +94,7 @@ export function TriageQueueSidebar({
                         activeTab === "NO_SHOW" ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
-                    No Shows ({noShowQueue.length})
+                    No Shows ({sortedNoShowQueue.length})
                     {activeTab === "NO_SHOW" && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-destructive" />
                     )}
@@ -93,25 +105,26 @@ export function TriageQueueSidebar({
             <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
                 {activeTab === "ACTIVE" && (
                     <div className="p-4 sm:p-5 space-y-3">
-                        {activeQueue.length === 0 ? (
+                        {sortedActiveQueue.length === 0 ? (
                             <EmptyQueueState label="No active patients" />
                         ) : (
-                            activeQueue.map((visit) => (
-                                <QueueCard key={visit.id} visit={visit} nowMs={nowMs} />
+                            sortedActiveQueue.map((visit, index) => (
+                                <QueueCard key={visit.id} visit={visit} nowMs={nowMs} isNext={index === 0} />
                             ))
                         )}
                     </div>
                 )}
                 {activeTab === "NO_SHOW" && (
                     <div className="p-4 sm:p-5 space-y-3">
-                        {noShowQueue.length === 0 ? (
+                        {sortedNoShowQueue.length === 0 ? (
                             <EmptyQueueState label="No missed patients" />
                         ) : (
-                            noShowQueue.map((visit) => (
+                            sortedNoShowQueue.map((visit, index) => (
                                 <QueueCard
                                     key={visit.id}
                                     visit={visit}
                                     nowMs={nowMs}
+                                    isNext={index === 0}
                                     action={
                                         <Button
                                             type="button"
@@ -144,10 +157,12 @@ export function TriageQueueSidebar({
 function QueueCard({
     visit,
     nowMs,
+    isNext,
     action,
 }: {
     visit: VisitWithPatient;
     nowMs: number | null;
+    isNext: boolean;
     action?: ReactNode;
 }) {
     const createdAtMs = new Date(visit.createdAt).getTime();
@@ -155,7 +170,12 @@ function QueueCard({
     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
 
     return (
-        <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm flex items-start justify-between gap-3 transition-colors hover:bg-slate-50 cursor-pointer">
+        <div className={`rounded-2xl border border-slate-100 bg-white p-3 shadow-sm flex items-start justify-between gap-3 transition-colors hover:bg-slate-50 cursor-pointer relative ${isNext ? "ring-1 ring-emerald-200" : ""}`}>
+            {isNext && (
+                <span className="absolute -top-2 left-3 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    Next
+                </span>
+            )}
             <div className="min-w-0">
                 <div className="text-base font-semibold text-gray-700">
                     {visit.triageTicket || ""}

@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { asyncHandler } from '../../middleware/error-handler.js';
 import { AuthenticatedRequest } from '../../middleware/types.js';
 import { ticketPrintingService } from '../../services/ticket-printing-service.js';
@@ -17,6 +17,23 @@ class ReleasingController {
         const visit = await releasingService.callNextWindow(userId, overrideClassification);
         if (!visit) {
             return res.status(200).json({ success: true, data: null, message: 'No patients waiting in window queue.' });
+        }
+        res.status(200).json({ success: true, data: visit });
+    });
+
+    callPriorityClass = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+        const userId = req.user.id;
+        const { priorityTemplateId, priorityCategoryKey } = req.body as {
+            priorityTemplateId?: string;
+            priorityCategoryKey?: string;
+        };
+        const resolvedKey = priorityTemplateId ?? priorityCategoryKey;
+        if (!resolvedKey) {
+            return res.status(400).json({ success: false, error: 'priorityTemplateId is required' });
+        }
+        const visit = await releasingService.callPriorityClass(userId, resolvedKey);
+        if (!visit) {
+            return res.status(200).json({ success: true, data: null, message: 'No patients waiting for this priority class.' });
         }
         res.status(200).json({ success: true, data: visit });
     });

@@ -149,7 +149,11 @@ export function EditStaffDrawer({
         setEditName(user.name);
         setEditEmail(user.email);
         setSelectedRole(user.role);
-        setSelectedWorkstationId(user.workstationId || "none");
+        setSelectedWorkstationId(
+            user.role === "CLINIC_CALLER"
+                ? (user.workstation?.parentWorkstationId || user.workstationId || "none")
+                : (user.workstationId || "none")
+        );
 
         try {
             const [depsRes, assignRes] = await Promise.all([
@@ -230,20 +234,7 @@ export function EditStaffDrawer({
                 }
             }
 
-            // 3. Update Workstation if changed
-            if (selectedWorkstationId !== (user.workstationId || "none")) {
-                const workstationResult = await updateUserWorkstation(
-                    user.id,
-                    selectedWorkstationId === "none" ? null : selectedWorkstationId
-                );
-
-                if (!workstationResult?.success) {
-                    notify.error(getErrorMessage(workstationResult, "Failed to update station."));
-                    return;
-                }
-            }
-
-            // 4. Update Departments
+            // 3. Update Departments
             let payload: DepartmentAssignment[] = [];
             let shouldUpdateDepartmentAssignments = false;
             if (selectedRole === "TRIAGE_NURSE") {
@@ -260,6 +251,24 @@ export function EditStaffDrawer({
                 const departmentResult = await updateUserDepartmentAssignments(user.id, payload);
                 if (!departmentResult?.success) {
                     notify.error(getErrorMessage(departmentResult, "Failed to update department access."));
+                    return;
+                }
+            }
+
+            // 4. Update Workstation after department selection is finalized
+            const initialSelectedWorkstationId = user.role === "CLINIC_CALLER"
+                ? (user.workstation?.parentWorkstationId || user.workstationId || "none")
+                : (user.workstationId || "none");
+
+            if (selectedWorkstationId !== initialSelectedWorkstationId) {
+                const workstationResult = await updateUserWorkstation(
+                    user.id,
+                    selectedWorkstationId === "none" ? null : selectedWorkstationId,
+                    selectedRole === "CLINIC_CALLER" && callerSelectedDeptId !== "none" ? callerSelectedDeptId : null
+                );
+
+                if (!workstationResult?.success) {
+                    notify.error(getErrorMessage(workstationResult, "Failed to update station."));
                     return;
                 }
             }
@@ -301,7 +310,7 @@ export function EditStaffDrawer({
     const filteredWorkstations = workstations.filter(ws => {
         if (selectedRole === "WINDOW_CLERK") return ws.type === WorkstationType.WINDOW;
         if (selectedRole === "TRIAGE_NURSE") return ws.type === WorkstationType.TRIAGE;
-        if (selectedRole === "CLINIC_CALLER") return ws.type === WorkstationType.CALLER;
+        if (selectedRole === "CLINIC_CALLER") return ws.type === WorkstationType.CALLER && !ws.parentWorkstationId;
         return false;
     });
 
@@ -320,7 +329,22 @@ export function EditStaffDrawer({
         );
     }, [user?.id, users]);
 
-    const availableWorkstations = filteredWorkstations.filter((ws) => !occupiedStationIds.has(ws.id));
+    const availableWorkstations = filteredWorkstations.filter((ws) => {
+        if (selectedRole !== "CLINIC_CALLER") {
+            return !occupiedStationIds.has(ws.id);
+        }
+
+        if (callerSelectedDeptId === "none") return false;
+
+        const departmentChild = workstations.find((candidate) =>
+            candidate.type === WorkstationType.CALLER &&
+            candidate.parentWorkstationId === ws.id &&
+            candidate.departmentId === callerSelectedDeptId
+        );
+
+        if (!departmentChild) return true;
+        return !occupiedStationIds.has(departmentChild.id);
+    });
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -491,19 +515,29 @@ export function EditStaffDrawer({
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-foreground flex items-center gap-2">
                                         <Desktop size={14} className="text-muted-foreground" />
-                                        {selectedRole === "WINDOW_CLERK" ? "Default Window" : "Assigned Station"}
+                                        {selectedRole === "WINDOW_CLERK" ? "Default Window" : selectedRole === "CLINIC_CALLER" ? "Caller Lane" : "Assigned Station"}
                                     </label>
                                     <Select 
                                         value={selectedWorkstationId} 
                                         onValueChange={setSelectedWorkstationId}
-                                        disabled={!["WINDOW_CLERK", "TRIAGE_NURSE", "CLINIC_CALLER"].includes(selectedRole)}
+                                        disabled={!["WINDOW_CLERK", "TRIAGE_NURSE", "CLINIC_CALLER"].includes(selectedRole) || (selectedRole === "CLINIC_CALLER" && callerSelectedDeptId === "none")}
                                     >
                                         <SelectTrigger className="h-10">
-                                            <SelectValue placeholder={selectedWorkstationId === "none" ? "No Station Assigned" : "Select Station"} />
+                                            <SelectValue placeholder={
+                                                selectedRole === "CLINIC_CALLER" && callerSelectedDeptId === "none"
+                                                    ? "Select department first"
+                                                    : selectedWorkstationId === "none"
+                                                        ? "No Station Assigned"
+                                                        : "Select Station"
+                                            } />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none" className="text-muted-foreground italic">No Station</SelectItem>
-                                            {availableWorkstations.length === 0 ? (
+                                            {selectedRole === "CLINIC_CALLER" && callerSelectedDeptId === "none" ? (
+                                                <div className="px-3 py-2 text-xs font-medium text-muted-foreground">
+                                                    Select a department first.
+                                                </div>
+                                            ) : availableWorkstations.length === 0 ? (
                                                 <div className="px-3 py-2 text-xs font-medium text-amber-700">
                                                     All stations are occupied. Add more station.
                                                 </div>
@@ -519,7 +553,10 @@ export function EditStaffDrawer({
                                     {!["WINDOW_CLERK", "TRIAGE_NURSE", "CLINIC_CALLER"].includes(selectedRole) && (
                                         <p className="text-xs text-muted-foreground mt-1 italic">Stations are only applicable for clinical and window roles.</p>
                                     )}
-                                    {["WINDOW_CLERK", "TRIAGE_NURSE", "CLINIC_CALLER"].includes(selectedRole) && availableWorkstations.length === 0 && (
+                                    {selectedRole === "CLINIC_CALLER" && callerSelectedDeptId === "none" && (
+                                        <p className="text-xs text-muted-foreground mt-1">Choose a department to see reusable caller lanes.</p>
+                                    )}
+                                    {["WINDOW_CLERK", "TRIAGE_NURSE", "CLINIC_CALLER"].includes(selectedRole) && (selectedRole !== "CLINIC_CALLER" || callerSelectedDeptId !== "none") && availableWorkstations.length === 0 && (
                                         <p className="text-xs text-amber-700 mt-1">All stations are occupied. Add more station.</p>
                                     )}
                                     {selectedRole === "WINDOW_CLERK" && (

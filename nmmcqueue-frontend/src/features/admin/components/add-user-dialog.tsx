@@ -65,7 +65,7 @@ export function AddUserDialog({
     const filteredWorkstations = allWorkstations.filter(ws => {
         if (formData.role === "WINDOW_CLERK") return ws.type === WorkstationType.WINDOW;
         if (formData.role === "TRIAGE_NURSE") return ws.type === WorkstationType.TRIAGE;
-        if (formData.role === "CLINIC_CALLER") return ws.type === WorkstationType.CALLER;
+        if (formData.role === "CLINIC_CALLER") return ws.type === WorkstationType.CALLER && !ws.parentWorkstationId;
         return false;
     });
 
@@ -80,10 +80,25 @@ export function AddUserDialog({
             .map((user) => user.workstationId as string)
     );
 
-    const availableWorkstations = filteredWorkstations.filter((ws) => !occupiedStationIds.has(ws.id));
-
     const isWindowOrTriage = formData.role === "WINDOW_CLERK" || formData.role === "TRIAGE_NURSE";
     const isClinicCaller = formData.role === "CLINIC_CALLER";
+    const selectedDepartment = departments.find((dept) => dept.name === formData.department);
+    const availableWorkstations = filteredWorkstations.filter((ws) => {
+        if (!isClinicCaller) {
+            return !occupiedStationIds.has(ws.id);
+        }
+
+        if (!selectedDepartment) return false;
+
+        const departmentChild = allWorkstations.find((candidate) =>
+            candidate.type === WorkstationType.CALLER &&
+            candidate.parentWorkstationId === ws.id &&
+            candidate.departmentId === selectedDepartment.id
+        );
+
+        if (!departmentChild) return true;
+        return !occupiedStationIds.has(departmentChild.id);
+    });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -160,7 +175,7 @@ export function AddUserDialog({
                             <div className="col-span-3">
                                 <Select
                                     value={formData.role}
-                                    onValueChange={(val) => setFormData({ ...formData, role: val, workstationId: '' })}
+                                    onValueChange={(val) => setFormData({ ...formData, role: val, department: '', workstationId: '' })}
                                     required
                                 >
                                     <SelectTrigger className="w-full">
@@ -176,22 +191,50 @@ export function AddUserDialog({
                             </div>
                         </div>
 
+                        {/* Department Selector */}
+                        {(!isWindowOrTriage) && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="dept" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dept</Label>
+                                <div className="col-span-3">
+                                    <SearchableSelect
+                                        options={departments.map((dept) => ({ label: dept.name, value: dept.name }))}
+                                        value={formData.department}
+                                        onSelect={(val: string) => setFormData({ ...formData, department: val, workstationId: '' })}
+                                        placeholder="Search department..."
+                                        searchPlaceholder="Search department..."
+                                        emptyMessage="No department found."
+                                        className="font-normal"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         {/* Workstation Selector */}
                         {(isWindowOrTriage || isClinicCaller) && (
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="ws" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Station</Label>
+                                <Label htmlFor="ws" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    {isClinicCaller ? "Caller Lane" : "Station"}
+                                </Label>
                                 <div className="col-span-3">
                                     <Select
                                         value={formData.workstationId}
                                         onValueChange={(val) => setFormData({ ...formData, workstationId: val })}
-                                        disabled={availableWorkstations.length === 0}
+                                        disabled={isClinicCaller ? !selectedDepartment || availableWorkstations.length === 0 : availableWorkstations.length === 0}
                                         required
                                     >
                                         <SelectTrigger className="w-full">
-                                            <SelectValue placeholder={`Select ${formData.role === "WINDOW_CLERK" ? 'Window' : 'Station'}`} />
+                                            <SelectValue placeholder={
+                                                isClinicCaller
+                                                    ? (!selectedDepartment ? "Select department first" : "Select caller lane")
+                                                    : `Select ${formData.role === "WINDOW_CLERK" ? 'Window' : 'Station'}`
+                                            } />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {availableWorkstations.length === 0 ? (
+                                            {isClinicCaller && !selectedDepartment ? (
+                                                <div className="px-3 py-2 text-xs font-medium text-muted-foreground">
+                                                    Select a department first.
+                                                </div>
+                                            ) : availableWorkstations.length === 0 ? (
                                                 <div className="px-3 py-2 text-xs font-medium text-amber-700">
                                                     All stations are occupied. Add more station.
                                                 </div>
@@ -204,27 +247,12 @@ export function AddUserDialog({
                                             )}
                                         </SelectContent>
                                     </Select>
-                                    {availableWorkstations.length === 0 && (
+                                    {isClinicCaller && !selectedDepartment && (
+                                        <p className="mt-1 text-xs text-muted-foreground">Choose a department to see reusable caller lanes.</p>
+                                    )}
+                                    {selectedDepartment && availableWorkstations.length === 0 && (
                                         <p className="mt-1 text-xs text-amber-700">All stations are occupied. Add more station.</p>
                                     )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Department Selector */}
-                        {(!isWindowOrTriage) && (
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="dept" className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dept</Label>
-                                <div className="col-span-3">
-                                    <SearchableSelect
-                                        options={departments.map((dept) => ({ label: dept.name, value: dept.name }))}
-                                        value={formData.department}
-                                        onSelect={(val: string) => setFormData({ ...formData, department: val })}
-                                        placeholder="Search department..."
-                                        searchPlaceholder="Search department..."
-                                        emptyMessage="No department found."
-                                        className="font-normal"
-                                    />
                                 </div>
                             </div>
                         )}

@@ -1,10 +1,10 @@
+import { SseEventType } from '@nmmc/types';
 import { db } from '../../config/database.js';
 import { withClaimConflictRetry } from '../../lib/claim-retry.js';
 import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishDepartmentEvent, publishDepartmentMonitorEvent, publishSseEvent, SSE_TOPICS } from '../../lib/sse.js';
-import { SseEventType } from '@nmmc/types';
 import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
@@ -101,7 +101,6 @@ class ReleasingService {
         }
 
         const stationNo = user.workstation.stationNo;
-        const queueMode = ((user.workstation as unknown as { queueMode?: 'MIXED' | 'PRIORITY_ONLY' | 'REGULAR_ONLY' }).queueMode) ?? 'MIXED';
         const queueBusinessDay = getQueueBusinessDay();
 
         const baseWhere = {
@@ -126,33 +125,19 @@ class ReleasingService {
                     return null;
                 }
             } else {
-                if (queueMode === 'PRIORITY_ONLY') {
-                    nextVisit = await tx.visit.findFirst({
-                        where: { ...baseWhere, classification: 'PRIORITY' },
-                        orderBy: { createdAt: 'asc' },
-                        include: { patient: true }
-                    });
-                } else if (queueMode === 'REGULAR_ONLY') {
+                // Mixed mode: PRIORITY first, then REGULAR.
+                nextVisit = await tx.visit.findFirst({
+                    where: { ...baseWhere, classification: 'PRIORITY' },
+                    orderBy: { createdAt: 'asc' },
+                    include: { patient: true }
+                });
+
+                if (!nextVisit) {
                     nextVisit = await tx.visit.findFirst({
                         where: { ...baseWhere, classification: 'REGULAR' },
                         orderBy: { createdAt: 'asc' },
                         include: { patient: true }
                     });
-                } else {
-                    // Mixed mode fallback: PRIORITY first, then REGULAR.
-                    nextVisit = await tx.visit.findFirst({
-                        where: { ...baseWhere, classification: 'PRIORITY' },
-                        orderBy: { createdAt: 'asc' },
-                        include: { patient: true }
-                    });
-
-                    if (!nextVisit) {
-                        nextVisit = await tx.visit.findFirst({
-                            where: { ...baseWhere, classification: 'REGULAR' },
-                            orderBy: { createdAt: 'asc' },
-                            include: { patient: true }
-                        });
-                    }
                 }
             }
 
@@ -197,7 +182,6 @@ class ReleasingService {
                 visitId: nextVisit.id,
                 userId,
                 windowNumber: stationNo,
-                queueMode,
                 classification: nextVisit.classification
             });
 
@@ -209,6 +193,103 @@ class ReleasingService {
             await publishWindowMonitorDiff(previousMonitorSnapshot);
         }
         
+        return result;
+    }
+
+    async callPriorityClass(userId: string, priorityTemplateId: string) {
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            include: { workstation: true }
+        });
+        if (!user?.workstationId || !user.workstation) {
+            throw new AppError('You must be assigned to a workstation to call patients.', 400, 'CALLER_ASSIGNMENT_REQUIRED');
+        }
+
+        const normalized = priorityTemplateId.trim();
+        const template = await db.queueOptionTemplate.findUnique({
+            where: { id: normalized },
+            select: { id: true },
+        });
+
+        const matchedCategories = template
+            ? await db.priorityCategory.findMany({
+                where: { isPriority: true, templateId: template.id },
+                select: { id: true },
+            })
+            : await db.priorityCategory.findMany({
+                where: {
+                    isPriority: true,
+                    OR: [
+                        { code: normalized },
+                        { code: normalized.toUpperCase() },
+                        { name: normalized },
+                    ],
+                },
+                select: { id: true },
+            });
+
+        const matchedCategoryIds = matchedCategories.map((category) => category.id);
+        if (matchedCategoryIds.length === 0) {
+            throw new AppError('Priority class not found.', 404, 'PRIORITY_CLASS_NOT_FOUND');
+        }
+
+        const stationNo = user.workstation.stationNo;
+        const queueBusinessDay = getQueueBusinessDay();
+        const previousMonitorSnapshot = await monitorService.getWindowStatus();
+
+        const result = await withClaimConflictRetry(() => db.$transaction(async (tx) => {
+            const nextVisit = await tx.visit.findFirst({
+                where: {
+                    queueBusinessDay,
+                    status: 'WAITING_WINDOW',
+                    classification: 'PRIORITY',
+                    categories: { some: { categoryId: { in: matchedCategoryIds } } },
+                },
+                orderBy: { createdAt: 'asc' },
+                include: { patient: true }
+            });
+
+            if (!nextVisit) return null;
+
+            const claimed = await tx.visit.updateMany({
+                where: {
+                    id: nextVisit.id,
+                    status: 'WAITING_WINDOW',
+                },
+                data: {
+                    status: 'IN_WINDOW',
+                    windowClaimedById: userId,
+                    windowStartedAt: new Date(),
+                    calledAt: new Date(),
+                    calledByUserId: userId,
+                    calledAtStationId: user.workstationId,
+                    windowNumber: stationNo,
+                }
+            });
+
+            if (claimed.count === 0) {
+                throw new AppError('Patient was already claimed by another user. Try again.', 409, 'CLAIM_CONFLICT');
+            }
+
+            await tx.visitStatusHistory.create({
+                data: { visitId: nextVisit.id, status: 'IN_WINDOW', changedBy: userId }
+            });
+
+            return tx.visit.findUnique({
+                where: { id: nextVisit.id },
+                include: {
+                    patient: true,
+                    department: true,
+                    categories: { include: { category: true } }
+                }
+            });
+        }));
+
+        if (result) {
+            publishSseEvent([SSE_TOPICS.WINDOW], SseEventType.VISIT_UPSERT, { visit: result });
+            await publishWindowMonitorDiff(previousMonitorSnapshot);
+        }
+
         return result;
     }
 

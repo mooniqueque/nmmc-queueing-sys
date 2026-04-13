@@ -52,3 +52,13 @@ export const callNextWindowRequestSchema = z.object({
         overrideClassification: z.enum(['PRIORITY', 'REGULAR']).optional(),
     }).optional().default({}),
 });
+
+export const callPriorityClassRequestSchema = z.object({
+    body: z.object({
+        priorityTemplateId: z.string().min(1, 'priorityTemplateId is required').optional(),
+        priorityCategoryKey: z.string().min(1, 'priorityCategoryKey is required').optional(),
+    }).refine((data) => Boolean(data.priorityTemplateId || data.priorityCategoryKey), {
+        message: 'priorityTemplateId is required',
+        path: ['priorityTemplateId'],
+    }),
+});

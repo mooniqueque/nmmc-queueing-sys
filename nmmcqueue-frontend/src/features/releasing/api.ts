@@ -101,6 +101,16 @@ export async function callNextWindow(overrideClassification?: 'PRIORITY' | 'REGU
     return res.json();
 }
 
+export async function callPriorityClass(priorityTemplateId: string, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/releasing/call-priority-class`, {
+        method: "POST",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ priorityTemplateId }),
+    });
+    return res.json();
+}
+
 export async function getMyCurrentWindowVisit(options?: RequestInit) {
     const res = await fetch(`${API_URL}/releasing/my-current`, {
         cache: "no-store",

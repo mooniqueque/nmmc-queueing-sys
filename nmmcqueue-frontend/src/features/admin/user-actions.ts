@@ -57,7 +57,7 @@ export async function updateUserDepartmentAssignments(
     return result;
 }
 
-export async function updateUserWorkstation(userId: string, workstationId: string | null) {
+export async function updateUserWorkstation(userId: string, workstationId: string | null, departmentId?: string | null) {
     try {
         const response = await fetch(`${API_URL}/users/${userId}/workstation`, {
             method: "PUT",
@@ -65,7 +65,7 @@ export async function updateUserWorkstation(userId: string, workstationId: strin
                 ...(await getServerHeaders()),
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ workstationId }),
+            body: JSON.stringify({ workstationId, departmentId: departmentId ?? null }),
         });
 
         const result = await response.json();

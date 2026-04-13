@@ -2,10 +2,10 @@
 
 import { Card } from "@/components/ui/card";
 
-import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
 import { CallOverlay } from "@/features/monitoring/components/call-overlay";
-import { useCurrentTime } from "@/shared/hooks/use-current-time";
+import { useWindowMonitor } from "@/features/monitoring/hooks/use-window-monitor";
 import { API_URL } from "@/lib/api";
+import { useCurrentTime } from "@/shared/hooks/use-current-time";
 import { Play } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -17,9 +17,6 @@ interface DepartmentMonitorProps {
 export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     const currentTime = useCurrentTime();
     const { windows, upcoming, loading, currentAnnouncement } = useWindowMonitor(slug);
-    const stationCount = Math.max(windows.length, 1);
-    const isDense = stationCount >= 4;
-    const isVeryDense = stationCount >= 6;
     const [departmentName, setDepartmentName] = useState("LOADING...");
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -83,37 +80,37 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
 
             <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden max-w-[1800px] mx-auto w-full">
                 {/* LEFT COLUMN: CALLING LIST IN A CLEAN SHADCN CARD */}
-                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-xl border bg-card shadow-primary/5 rounded-4xl bg-white">
-                    <div className="flex justify-between px-8 py-5 bg-primary font-black text-white text-xl border-b-2 uppercase border-slate-100">
-                        <span>Lane Name</span>
+                <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-xl shadow-primary/5 border rounded-3xl bg-card">
+                    <div className="flex justify-between px-10 py-5 bg-primary text-primary-foreground font-bold uppercase tracking-tight text-3xl">
+                        <span>Service Window</span>
                         <span>Now Serving</span>
                     </div>
 
-                    <div className="flex-1 flex flex-col overflow-hidden w-full">
+                    <div className="flex-1 overflow-y-auto w-full">
                         {loading ? (
                             <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">Loading Monitor...</div>
                         ) : windows.length === 0 ? (
                             <div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-lg">No active stations</div>
                         ) : windows.map((window, index) => (
-                            <div key={index} className={`flex-1 min-h-0 flex flex-row items-center justify-between px-7 ${isVeryDense ? "py-2.5" : isDense ? "py-3" : "py-6"} border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors`}>
+                            <div key={index} className="flex flex-row items-center justify-between px-4 py-4 min-h-[84px] border-b-2 border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                                 <div className="flex flex-col">
-                                    <span className={`font-black text-slate-400 uppercase tracking-widest ${isVeryDense ? "text-[10px] mb-1" : "text-xs mb-1.5"}`}>
-                                        Station {window.stationNo}
-                                    </span>
-                                    <span className={`${isVeryDense ? "text-2xl" : isDense ? "text-3xl" : "text-4xl"} font-extrabold text-slate-800 tracking-tight leading-none`}>
+                                    <span className="text-5xl px-5 font-bold text-slate-800 tracking-tight">
                                         {window.windowName}
                                     </span>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right flex flex-col items-end justify-center min-h-[70px] px-10">
                                     {window.displayTicket ? (
-                                        <div className={`${isVeryDense ? "w-44 h-18" : isDense ? "w-52 h-22" : "w-60 h-24"} flex items-center justify-center rounded-lg bg-emerald-50/40 border border-emerald-100`}>
-                                            <span className={`${isVeryDense ? "text-3xl" : isDense ? "text-4xl" : "text-5xl"} font-black text-emerald-600 tracking-tight tabular-nums drop-shadow-sm leading-none whitespace-nowrap`}>
+                                        <>
+                                            <span className="text-7xl font-extrabold text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm leading-none flex gap-2">
                                                 {window.displayTicket}
                                             </span>
-                                        </div>
-                                    ) : (
-                                        <span className={`${isVeryDense ? "text-xl" : "text-2xl"} font-bold text-slate-300 uppercase tracking-widest italic py-2`}>Waiting...</span>
-                                    )}
+                                            {window.priorityClass && false && (
+                                                <span className="text-sm font-extrabold text-slate-400 uppercase tracking-[0.2em] mt-3">
+                                                    Class: {window.priorityClass}
+                                                </span>
+                                            )}
+                                        </>
+                                    ) : null}
                                 </div>
                             </div>
                         ))}
@@ -148,23 +145,23 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
                     </Card>
 
                     {/* UPCOMING WAITLIST - COMPACT FOR PUBLIC VIEWING */}
-                    <Card className="p-4 bg-white shadow-md border shadow-xl shadow-primary/5 rounded-xl flex flex-col justify-center shrink-0">
-                        <div className="flex items-center justify-between mb-3 border-b pb-2">
+                    <Card className="p-5 shadow-xl shadow-primary/5 border rounded-3xl bg-card">
+                        <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-2">
                             <div>
-                                <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Next in Line</h1>
+                                <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Next in Line</h1>
                             </div>
-                            <div className="px-4 py-1.5 bg-emerald-50 text-slate-700 rounded-full text-sm font-bold uppercase tracking-widest ring-1 ring-emerald-200">
-                                {upcoming.length} Next in Line
+                            <div className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-base font-bold uppercase tracking-widest ring-1 ring-emerald-200">
+                                {upcoming.length} Waiting
                             </div>
                         </div>
 
                         <div className="flex justify-start gap-4 flex-wrap">
                             {upcoming.length > 0 ? upcoming.map((num, i) => (
-                                <div key={i} className="px-6 py-2 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-lg text-slate-900 font-black text-4xl tracking-tighter tabular-nums drop-shadow-sm">
+                                <div key={i} className="px-6 py-2 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-lg text-slate-900 font-black text-5xl tracking-tighter tabular-nums drop-shadow-sm">
                                     {num}
                                 </div>
                             )) : (
-                                <span className="text-slate-400 font-medium italic text-lg py-2">No upcoming patients.</span>
+                                <span className="text-slate-400 font-medium italic text-xl py-2">No upcoming patients.</span>
                             )}
                         </div>
                     </Card>

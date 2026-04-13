@@ -1,6 +1,6 @@
-import { API_URL } from "@/lib/api";
 import { useAnnouncementQueue } from "@/features/monitoring/hooks/use-announcement-queue";
-import { SseEventType, SseMessage, SSE_TOPICS } from "@/shared/lib/sse";
+import { API_URL } from "@/lib/api";
+import { SSE_TOPICS, SseEventType, SseMessage } from "@/shared/lib/sse";
 import { useCallback, useEffect, useState } from "react";
 
 const BACKEND_URL = API_URL;

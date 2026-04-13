@@ -143,7 +143,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
         <div className="flex flex-col lg:flex-row h-[calc(100vh-65px)] w-full overflow-hidden bg-slate-50/60 p-4 lg:p-6 gap-5">
 
             {/* LEFT PANE: Sticky Sidebar Container */}
-            <div className="w-full lg:w-[35%] xl:w-[30%] h-full shrink-0 flex flex-col">
+            <div className="w-full lg:w-[35%] xl:w-[30%] shrink-0 flex flex-col min-h-0">
                 <TriageQueueSidebar
                     activeQueue={activeQueue}
                     noShowQueue={noShowQueue}
@@ -157,7 +157,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
             </div>
 
             {/* RIGHT PANE: Dynamic Workspace */}
-            <div className="flex-1 h-full overflow-y-auto custom-scrollbar flex flex-col pb-10">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col pb-10">
                 {activeTab === "REPORTS" ? (
                     <div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

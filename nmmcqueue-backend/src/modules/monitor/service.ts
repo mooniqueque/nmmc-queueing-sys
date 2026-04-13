@@ -1,6 +1,15 @@
 import { db } from '../../config/database.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 
+type MonitorCallerStation = {
+    id: string;
+    name: string;
+    stationNo: number;
+    type: string;
+    isActive: boolean;
+    departmentId: string | null;
+};
+
 class MonitorService {
     async getWindowStatus() {
         const queueBusinessDay = getQueueBusinessDay();
@@ -136,13 +145,13 @@ class MonitorService {
         ) => {
             if (!ticketNo) return null;
             const prefix = resolveQueueCode(classification, categories);
-            return `${prefix}-${String(ticketNo).padStart(3, '0')}`;
+            return `${prefix}-${String(ticketNo)}`;
         };
 
         const normalize = (value: string) => value.trim().toUpperCase();
 
-        // 2. Get all CALLER stations for this department (in order)
-        const stations = await db.workStation.findMany({
+        // 2. Get configured CALLER stations for this department (in order).
+        const configuredStations = await db.workStation.findMany({
             where: { departmentId, type: 'CALLER', isActive: true },
             orderBy: { stationNo: 'asc' }
         });
@@ -153,7 +162,10 @@ class MonitorService {
             select: { id: true, name: true, code: true, isPriority: true }
         });
 
-        // 3. Get ALL IN_PROGRESS patients (regardless of windowNumber)
+        // 3. Get all active callers for this department.
+        // We intentionally resolve the display lane from the actual claim record as a fallback,
+        // because legacy data can have caller users scoped to a department while the workstation
+        // itself is missing departmentId.
         const inProgressPatients = await db.visit.findMany({
             where: {
                 departmentId,
@@ -162,13 +174,85 @@ class MonitorService {
                 queueBusinessDay
             },
             orderBy: { calledAt: 'asc' },
-            select: { 
-                serviceTicket: true, 
+            select: {
+                calledAtStationId: true,
+                serviceTicket: true,
                 classification: true, 
                 calledAt: true,
-                categories: { include: { category: true } } 
+                categories: { include: { category: true } },
+                calledAtStation: {
+                    select: {
+                        id: true,
+                        name: true,
+                        stationNo: true,
+                        type: true,
+                        isActive: true,
+                        departmentId: true,
+                    },
+                },
+                calledByUser: {
+                    select: {
+                        id: true,
+                        name: true,
+                        workstation: {
+                            select: {
+                                id: true,
+                                name: true,
+                                stationNo: true,
+                                type: true,
+                                isActive: true,
+                                departmentId: true,
+                            },
+                        },
+                    },
+                },
             }
         });
+
+        const isUsableCallerStation = (station: MonitorCallerStation | null | undefined): station is MonitorCallerStation =>
+            Boolean(station && station.type === 'CALLER' && station.isActive);
+
+        const resolvePatientStation = (patient: (typeof inProgressPatients)[number]) => {
+            if (isUsableCallerStation(patient.calledAtStation)) {
+                return patient.calledAtStation;
+            }
+
+            if (isUsableCallerStation(patient.calledByUser?.workstation)) {
+                return patient.calledByUser.workstation;
+            }
+
+            return null;
+        };
+
+        const fallbackStationStart = (configuredStations.at(-1)?.stationNo ?? 0) + 1;
+        const dynamicStationEntries: Array<[string, MonitorCallerStation]> = [];
+        for (const [index, patient] of inProgressPatients.entries()) {
+            const resolvedStation = resolvePatientStation(patient);
+            if (resolvedStation) {
+                dynamicStationEntries.push([resolvedStation.id, resolvedStation]);
+                continue;
+            }
+
+            const callerUser = patient.calledByUser;
+            if (!callerUser?.id) {
+                continue;
+            }
+
+            const syntheticStation: MonitorCallerStation = {
+                id: `caller-user:${callerUser.id}`,
+                name: callerUser.name?.trim() || `Caller Station ${fallbackStationStart + index}`,
+                stationNo: fallbackStationStart + index,
+                type: 'CALLER',
+                isActive: true,
+                departmentId: departmentId ?? null,
+            };
+            dynamicStationEntries.push([syntheticStation.id, syntheticStation]);
+        }
+        const dynamicStations = Array.from(new Map<string, MonitorCallerStation>(dynamicStationEntries).values());
+
+        const stations = Array.from(new Map(
+            [...configuredStations, ...dynamicStations].map((station) => [station.id, station])
+        ).values()).sort((left, right) => left.stationNo - right.stationNo);
 
         // 4. Build lane configs from workstation names + lane options.
         const stationConfigs = stations.map((station) => {
@@ -203,8 +287,24 @@ class MonitorService {
             return patient.classification === 'PRIORITY' || hasPriorityCategory;
         };
 
-        // First pass: honor lane option/category hints per station.
+        // First pass: place patients on the exact caller station that claimed them when available.
         stationConfigs.forEach((config, index) => {
+            const patientIndex = remainingPatients.findIndex((patient) => {
+                const resolvedStation = resolvePatientStation(patient);
+                if (!resolvedStation) return false;
+                return resolvedStation.id === config.station.id;
+            });
+
+            if (patientIndex >= 0) {
+                assignedPatients[index] = remainingPatients[patientIndex];
+                remainingPatients.splice(patientIndex, 1);
+            }
+        });
+
+        // Second pass: honor lane option/category hints per station.
+        stationConfigs.forEach((config, index) => {
+            if (assignedPatients[index]) return;
+
             const patientIndex = remainingPatients.findIndex((patient) => {
                 if (config.laneOptionId) {
                     return patient.categories.some((visitCategory) =>
@@ -222,7 +322,7 @@ class MonitorService {
             }
         });
 
-        // Second pass: ensure in-progress patients are still displayed even without explicit lane matches.
+        // Third pass: ensure in-progress patients are still displayed even without explicit lane matches.
         stationConfigs.forEach((_, index) => {
             if (!assignedPatients[index] && remainingPatients.length > 0) {
                 assignedPatients[index] = remainingPatients.shift() ?? null;

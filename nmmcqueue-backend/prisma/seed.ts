@@ -19,6 +19,37 @@ async function main() {
     console.log("🌱 Seeding database...");
 
     try {
+        const queueOptionTemplates = [
+            { name: "REGULAR", code: "REG", isPriority: false, sortOrder: 1 },
+            { name: "SENIOR CITIZEN", code: "SNR", isPriority: true, sortOrder: 2 },
+            { name: "PERSON WITH DISABILITY", code: "PWD", isPriority: true, sortOrder: 3 },
+            { name: "PREGNANT", code: "PREG", isPriority: true, sortOrder: 4 },
+            { name: "CHILD", code: "CHD", isPriority: true, sortOrder: 5 },
+            { name: "ER-REFERRAL", code: "ER-REF", isPriority: true, sortOrder: 6 },
+        ];
+
+        // 0. Ensure canonical queue option templates exist
+        console.log("🧩 Synchronizing queue option templates...");
+        for (const template of queueOptionTemplates) {
+            await prisma.queueOptionTemplate.upsert({
+                where: { code: template.code },
+                update: {
+                    name: template.name,
+                    isPriority: template.isPriority,
+                    sortOrder: template.sortOrder,
+                    isActive: true,
+                },
+                create: {
+                    name: template.name,
+                    code: template.code,
+                    isPriority: template.isPriority,
+                    sortOrder: template.sortOrder,
+                    isActive: true,
+                },
+            });
+        }
+        console.log("✅ Queue option templates synchronized");
+
         // 1. Clear existing data
         console.log("🗑️  Clearing existing data...");
         // Delete efficiently

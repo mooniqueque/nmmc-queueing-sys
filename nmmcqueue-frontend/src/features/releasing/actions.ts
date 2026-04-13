@@ -90,6 +90,14 @@ export async function callNextWindow(overrideClassification?: 'PRIORITY' | 'REGU
     return result;
 }
 
+export async function callPriorityClass(priorityTemplateId: string) {
+    const result = await releasingApi.callPriorityClass(priorityTemplateId, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/releasing", "page");
+    return result;
+}
+
 export async function getMyCurrentWindowVisit() {
     return releasingApi.getMyCurrentWindowVisit({
         headers: await getServerHeaders(),

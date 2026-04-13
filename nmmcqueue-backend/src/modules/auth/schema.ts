@@ -56,6 +56,7 @@ export const updateUserDepartmentAssignmentsRequestSchema = z.object({
 export const updateUserWorkstationRequestSchema = z.object({
     body: z.object({
         workstationId: z.string().nullable(),
+        departmentId: z.string().nullable().optional(),
     }),
     params: z.object({
         id: z.string().min(1, 'User ID is required'),

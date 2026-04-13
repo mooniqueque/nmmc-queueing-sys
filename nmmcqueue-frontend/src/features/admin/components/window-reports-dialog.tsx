@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -8,20 +9,19 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAnalytics } from "@/features/shared/hooks/use-analytics";
 import { SessionUser } from "@/shared/types/auth";
-import { 
-    FileText, 
-    Printer, 
-    Users, 
-    User as UserIcon,
+import type { AnalyticsResponse } from "@nmmc/types";
+import {
+    Clock,
+    FileText,
+    Printer,
     Ticket,
-    Clock
+    User as UserIcon,
+    Users
 } from "@phosphor-icons/react";
-import { Badge } from "@/components/ui/badge";
-import { AnalyticsData } from "@/features/shared/hooks/use-analytics";
+import { useState } from "react";
 
 interface WindowReportsDialogProps {
     loggedInUser: SessionUser;
@@ -40,7 +40,7 @@ export function WindowReportsDialog({ loggedInUser }: WindowReportsDialogProps) 
         window.print();
     };
 
-    const renderStatsContent = (data: AnalyticsData, isLoading: boolean, isOverall: boolean) => {
+    const renderStatsContent = (data: AnalyticsResponse, isLoading: boolean, isOverall: boolean) => {
         if (isLoading) return (
             <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

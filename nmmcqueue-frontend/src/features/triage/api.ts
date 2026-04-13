@@ -102,3 +102,13 @@ export async function callSpecificTriage(visitId: string, options?: RequestInit)
     });
     return res.json();
 }
+
+export async function updateTriageAppointment(visitId: string, hasAppointment: boolean, options?: RequestInit) {
+    const res = await fetch(`${API_URL}/triage/${visitId}/appointment`, {
+        method: "PATCH",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ hasAppointment }),
+    });
+    return res.json();
+}

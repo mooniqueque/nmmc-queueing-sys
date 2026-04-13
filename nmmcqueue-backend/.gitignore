@@ -17,6 +17,9 @@ logs/
 .DS_Store
 *.pem
 
+# uploads
+/uploads/videos/
+
 # agents
 /.agent
 

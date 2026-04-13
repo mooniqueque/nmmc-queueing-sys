@@ -5,6 +5,17 @@ class MonitorService {
     async getWindowStatus() {
         const queueBusinessDay = getQueueBusinessDay();
 
+        const resolveQueueCode = (
+            classification: string | null | undefined,
+            categories?: Array<{ category?: { code?: string | null } | null }> | null,
+        ) => {
+            const explicitCode = categories
+                ?.map((entry) => entry.category?.code?.trim())
+                .find((code): code is string => Boolean(code));
+            if (explicitCode) return explicitCode.toUpperCase();
+            return classification === 'PRIORITY' ? 'PRIO' : 'REG';
+        };
+
         // Find all workstations of type WINDOW
         const windows = await db.workStation.findMany({
             where: { type: 'WINDOW', isActive: true },
@@ -40,9 +51,13 @@ class MonitorService {
             }
         }
 
-        const formatTicket = (ticketNo: number | null | undefined, classification: string | null | undefined) => {
+        const formatTicket = (
+            ticketNo: number | null | undefined,
+            classification: string | null | undefined,
+            categories?: Array<{ category?: { code?: string | null } | null }> | null,
+        ) => {
             if (!ticketNo) return null;
-            const prefix = classification === 'PRIORITY' ? 'PRIO' : 'REG';
+            const prefix = resolveQueueCode(classification, categories);
             return `${prefix}-${String(ticketNo)}`;
         };
 
@@ -51,7 +66,9 @@ class MonitorService {
             return {
                 windowName: window.name,
                 stationNo: window.stationNo,
-                triageTicket: currentVisit ? formatTicket(currentVisit.triageTicket, currentVisit.classification) : null,
+                triageTicket: currentVisit
+                    ? formatTicket(currentVisit.triageTicket, currentVisit.classification, currentVisit.categories)
+                    : null,
                 serviceTicket: null,
                 classification: currentVisit?.classification,
                 calledAt: currentVisit?.calledAt || null,
@@ -66,15 +83,36 @@ class MonitorService {
             },
             orderBy: { queueDate: 'asc' },
             take: 4,
-            select: { triageTicket: true, classification: true }
+            select: {
+                triageTicket: true,
+                classification: true,
+                categories: {
+                    include: {
+                        category: true,
+                    },
+                },
+            }
         });
-        const upcoming = waitlistVisits.map(v => formatTicket(v.triageTicket, v.classification) as string).filter(Boolean);
+        const upcoming = waitlistVisits
+            .map(v => formatTicket(v.triageTicket, v.classification, v.categories) as string)
+            .filter(Boolean);
 
         return { active: status, upcoming };
     }
 
     async getDepartmentStatus(slugOrId: string) {
         const queueBusinessDay = getQueueBusinessDay();
+
+        const resolveQueueCode = (
+            classification: string | null | undefined,
+            categories?: Array<{ category?: { code?: string | null } | null }> | null,
+        ) => {
+            const explicitCode = categories
+                ?.map((entry) => entry.category?.code?.trim())
+                .find((code): code is string => Boolean(code));
+            if (explicitCode) return explicitCode.toUpperCase();
+            return classification === 'PRIORITY' ? 'PRIO' : 'REG';
+        };
 
         // 1. Fetch Department Info by slug (or fallback to ID for compatibility)
         const department = await db.department.findFirst({
@@ -91,9 +129,13 @@ class MonitorService {
 
         const departmentId = department.id;
 
-        const formatTicket = (ticketNo: number | null | undefined, classification: string | null | undefined) => {
+        const formatTicket = (
+            ticketNo: number | null | undefined,
+            classification: string | null | undefined,
+            categories?: Array<{ category?: { code?: string | null } | null }> | null,
+        ) => {
             if (!ticketNo) return null;
-            const prefix = classification === 'PRIORITY' ? 'PRIO' : 'REG';
+            const prefix = resolveQueueCode(classification, categories);
             return `${prefix}-${String(ticketNo).padStart(3, '0')}`;
         };
 
@@ -194,7 +236,9 @@ class MonitorService {
                 windowName: config.station.name,
                 stationNo: config.station.stationNo,
                 triageTicket: null,
-                serviceTicket: patient ? formatTicket(patient.serviceTicket, patient.classification) : null,
+                serviceTicket: patient
+                    ? formatTicket(patient.serviceTicket, patient.classification, patient.categories)
+                    : null,
                 classification: patient?.classification,
                 calledAt: patient?.calledAt || null,
                 categories: patient?.categories.map(vc => vc.category)
@@ -210,9 +254,19 @@ class MonitorService {
             },
             orderBy: { queueDate: 'asc' },
             take: 4,
-            select: { serviceTicket: true, classification: true }
+            select: {
+                serviceTicket: true,
+                classification: true,
+                categories: {
+                    include: {
+                        category: true,
+                    },
+                },
+            }
         });
-        const upcoming = upcomingVisits.map(v => formatTicket(v.serviceTicket, v.classification) as string).filter(Boolean);
+        const upcoming = upcomingVisits
+            .map(v => formatTicket(v.serviceTicket, v.classification, v.categories) as string)
+            .filter(Boolean);
 
         return { active, upcoming };
 

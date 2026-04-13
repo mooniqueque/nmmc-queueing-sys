@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import type { HistoryItem } from "@/features/shared/hooks/use-analytics";
+import type { AnalyticsHistoryItem } from "@nmmc/types";
 import { ClockCounterClockwise } from "@phosphor-icons/react";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -15,7 +15,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
     IN_WINDOW: "secondary",
 };
 
-export function HistoryTable({ items }: { items: HistoryItem[] }) {
+export function HistoryTable({ items }: { items: AnalyticsHistoryItem[] }) {
     if (items.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -28,7 +28,7 @@ export function HistoryTable({ items }: { items: HistoryItem[] }) {
 
     return (
         <div className="flex flex-col divide-y divide-border">
-            {items.map((item) => (
+            {items.map((item: AnalyticsHistoryItem) => (
                 <div key={item.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
                     <div className="flex flex-col gap-0.5 min-w-0">
                         <div className="flex items-center gap-2">

@@ -6,6 +6,7 @@ import {
     assignTicketRequestSchema,
     callNextWindowRequestSchema,
     linkPatientRequestSchema,
+    updatePatientDemographicsRequestSchema,
     visitParamSchema,
 } from './schema.js';
 
@@ -19,4 +20,5 @@ releasingRouter.get('/my-current', releasingController.getMyCurrentVisit);
 releasingRouter.post('/:id/call', requireCapability('WINDOW_MUTATE'), validate(visitParamSchema), releasingController.callTicket);
 releasingRouter.post('/:id/noshow', requireCapability('WINDOW_MUTATE'), validate(visitParamSchema), releasingController.noShowTicket);
 releasingRouter.post('/:id/link-patient', requireCapability('WINDOW_MUTATE'), validate(linkPatientRequestSchema), releasingController.linkPatient);
+releasingRouter.put('/:id/patient-demographics', requireCapability('WINDOW_MUTATE'), validate(updatePatientDemographicsRequestSchema), releasingController.updatePatientDemographics);
 releasingRouter.post('/:id/assign', requireCapability('WINDOW_MUTATE'), validate(assignTicketRequestSchema), releasingController.assignTicket);

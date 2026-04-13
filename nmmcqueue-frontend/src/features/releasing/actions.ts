@@ -60,6 +60,28 @@ export async function linkPatient(visitId: string, hospitalId: string) {
     return result;
 }
 
+export async function updatePatientDemographics(
+    visitId: string,
+    data: {
+        firstName: string;
+        middleName?: string;
+        lastName: string;
+        address?: string;
+        dateOfBirth: string;
+        gender: string;
+        contactNo?: string;
+        civilStatus?: string;
+        birthPlace?: string;
+        religion?: string;
+    }
+) {
+    const result = await releasingApi.updatePatientDemographics(visitId, data, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/releasing", "page");
+    return result;
+}
+
 export async function callNextWindow(overrideClassification?: 'PRIORITY' | 'REGULAR') {
     const result = await releasingApi.callNextWindow(overrideClassification, {
         headers: await getServerHeaders(),

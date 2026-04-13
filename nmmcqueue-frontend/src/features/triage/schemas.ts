@@ -50,10 +50,15 @@ export const triageFormSchema = z.object({
 
     // Vitals
     bloodPressure: optionalBloodPressure,
+    bloodPressureNA: z.boolean().default(false),
     heartRate: optionalBoundedNumber(20, 260, "Heart rate"),
+    heartRateNA: z.boolean().default(false),
     respiratoryRate: optionalBoundedNumber(5, 80, "Respiratory rate"),
+    respiratoryRateNA: z.boolean().default(false),
     temperature: optionalBoundedNumber(30, 45, "Temperature"),
+    temperatureNA: z.boolean().default(false),
     oxygenSat: optionalBoundedNumber(50, 100, "Oxygen saturation"),
+    oxygenSatNA: z.boolean().default(false),
 
     // Symptoms
     hasFever: z.boolean().default(false),
@@ -66,7 +71,7 @@ export const triageFormSchema = z.object({
     chiefComplaint: z.string().min(5, "Chief complaint is required for triage"),
     medicalHistory: z.string().optional(),
     triageRemarks: z.string().optional(),
-    disposition: z.enum(["EMERGENT", "URGENT", "NON-URGENT"], { message: "Acuity is required" }),
+    disposition: z.enum(["EMERGENT", "URGENT", "NON-URGENT", ""]).refine((val) => val !== "", { message: "Acuity is required" }),
     priorityClass: z.string().default("REGULAR"),
     queueOptionId: z.string().optional(),
     departmentId: z.string({ message: "Clinical department is required" }).min(1, "Clinical department is required"),
@@ -108,6 +113,23 @@ export const triageFormSchema = z.object({
                     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please provide a valid birth date (year >= 1900)", path: ["dateOfBirth"] });
                 }
             }
+        }
+
+        // Vital Signs Strict Validation
+        if (!data.bloodPressureNA && !data.bloodPressure) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Blood pressure is required (or mark as N/A)", path: ["bloodPressure"] });
+        }
+        if (!data.heartRateNA && !data.heartRate) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Heart rate is required (or mark as N/A)", path: ["heartRate"] });
+        }
+        if (!data.respiratoryRateNA && !data.respiratoryRate) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Respiratory rate is required (or mark as N/A)", path: ["respiratoryRate"] });
+        }
+        if (!data.temperatureNA && !data.temperature) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Temperature is required (or mark as N/A)", path: ["temperature"] });
+        }
+        if (!data.oxygenSatNA && !data.oxygenSat) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Oxygen saturation is required (or mark as N/A)", path: ["oxygenSat"] });
         }
     });
 

@@ -1,10 +1,10 @@
-import MonitorSettings from "@/features/monitoring/components/monitor-settings";
+import { redirect } from "next/navigation";
 
 export const metadata = {
     title: "Monitor Settings | NMMC Queue",
     description: "Manage department monitor video loops",
 };
 
-export default function AdminMonitorSettingsPage() {
-    return <MonitorSettings />;
+export default async function AdminMonitorSettingsPage() {
+    redirect("/admin-monitor");
 }

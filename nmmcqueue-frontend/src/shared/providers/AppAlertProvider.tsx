@@ -10,14 +10,14 @@ function getToastClass(level: AppAlertPayload["level"]) {
     const base = "rounded-xl border px-4 py-3 shadow-lg";
 
     if (level === "success") {
-        return `${base} border-primary/30 bg-primary/10 text-primary`;
+        return `${base} border-emerald-200 bg-emerald-50 text-emerald-800`;
     }
 
     if (level === "error") {
-        return `${base} border-destructive/35 bg-destructive/10 text-destructive`;
+        return `${base} border-rose-200 bg-rose-50 text-rose-800`;
     }
 
-    return `${base} border-border/70 bg-muted/35 text-card-foreground`;
+    return `${base} border-sky-200 bg-sky-50 text-sky-800`;
 }
 
 export function AppAlertProvider({ children }: { children: ReactNode }) {
@@ -60,7 +60,7 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
             <Toaster
                 position="top-right"
                 closeButton
-                richColors={false}
+                richColors
                 toastOptions={{
                     classNames: {
                         title: "text-sm font-semibold tracking-tight",

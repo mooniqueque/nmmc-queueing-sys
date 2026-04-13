@@ -159,15 +159,15 @@ export default function ReportsDashboardClient({
         title="Reports Dashboard"
       />
 
-      <main className="flex-1 p-6 lg:p-10 space-y-8 overflow-y-auto">
+      <main className="flex-1 p-6 lg:p-8 space-y-8 overflow-y-auto">
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Filters</CardTitle>
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Filters</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">From</p>
+                <p className="text-xs font-medium text-muted-foreground">From</p>
                 <Input
                   type="date"
                   value={filters.fromDate}
@@ -181,7 +181,7 @@ export default function ReportsDashboardClient({
               </div>
 
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">To</p>
+                <p className="text-xs font-medium text-muted-foreground">To</p>
                 <Input
                   type="date"
                   value={filters.toDate}
@@ -195,7 +195,7 @@ export default function ReportsDashboardClient({
               </div>
 
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Department</p>
+                <p className="text-xs font-medium text-muted-foreground">Department</p>
                 <Select
                   value={filters.departmentId}
                   onValueChange={(value) =>
@@ -220,7 +220,7 @@ export default function ReportsDashboardClient({
               </div>
 
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status</p>
+                <p className="text-xs font-medium text-muted-foreground">Status</p>
                 <Select
                   value={filters.status}
                   onValueChange={(value) =>
@@ -246,12 +246,12 @@ export default function ReportsDashboardClient({
             </div>
 
             <div className="flex items-center justify-between border-t border-muted/3 mb-4">
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Last synchronized: {new Date(snapshot.generatedAt).toLocaleString()}
               </p>
               <div className="flex items-center pt-1 gap-2 mb-4">
                 <div className={cn("size-2 rounded-full", isSyncing ? "bg-primary animate-pulse" : "bg-muted-foreground/30")} />
-                <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                <p className="text-xs font-medium text-primary">
                   {isSyncing ? "Syncing..." : "Live sync active"}
                 </p>
               </div>
@@ -299,7 +299,7 @@ export default function ReportsDashboardClient({
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <Card>
             <CardHeader>
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Patients per Department</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Patients per Department</CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer config={departmentChartConfig} className="h-72 w-full">
@@ -309,7 +309,7 @@ export default function ReportsDashboardClient({
                     dataKey="department"
                     tickLine={false}
                     axisLine={false}
-                    className="text-[10px] uppercase font-bold text-muted-foreground"
+                    className="text-xs font-medium text-muted-foreground"
                     interval={0}
                     angle={-20}
                     textAnchor="end"
@@ -325,7 +325,7 @@ export default function ReportsDashboardClient({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Queue Volume by Hour</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Queue Volume by Hour</CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer config={hourlyChartConfig} className="h-72 w-full">
@@ -335,7 +335,7 @@ export default function ReportsDashboardClient({
                     dataKey="hour"
                     tickLine={false}
                     axisLine={false}
-                    className="text-[10px] uppercase font-bold text-muted-foreground"
+                    className="text-xs font-medium text-muted-foreground"
                   />
                   <YAxis hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
@@ -354,7 +354,7 @@ export default function ReportsDashboardClient({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Status Distribution</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Status Distribution</CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer config={statusChartConfig} className="h-72 w-full">
@@ -381,7 +381,7 @@ export default function ReportsDashboardClient({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Daily Queue Trend</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Daily Queue Trend</CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer config={trendChartConfig} className="h-72 w-full">
@@ -391,7 +391,7 @@ export default function ReportsDashboardClient({
                     dataKey="day"
                     tickLine={false}
                     axisLine={false}
-                    className="text-[10px] uppercase font-bold text-muted-foreground"
+                    className="text-xs font-medium text-muted-foreground"
                   />
                   <YAxis hide />
                   <ChartTooltip content={<ChartTooltipContent />} />

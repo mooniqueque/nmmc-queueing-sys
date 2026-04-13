@@ -2,9 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Switch } from "@/components/ui/switch";
 import { getDepartments } from "@/features/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { cn } from "@/shared/lib/utils";
@@ -18,7 +18,6 @@ type DepartmentAccessState = {
     departmentId: string;
     department: Department;
     isAssigned: boolean;
-    isEnabled: boolean;
 };
 
 type DepartmentAccessResponse = {
@@ -46,7 +45,6 @@ function buildDepartmentState(
             departmentId: department.id,
             department,
             isAssigned: Boolean(assigned),
-            isEnabled: assigned?.isEnabled ?? false,
         };
     });
 }
@@ -134,31 +132,17 @@ export function ManageTriageDepartmentsDrawer({
         onOpenChange(nextOpen);
     };
 
-    const updateDepartmentState = (
-        departmentId: string,
-        updater: (current: DepartmentAccessState) => DepartmentAccessState
-    ) => {
+    const updateDepartmentState = (departmentId: string, isAssigned: boolean) => {
         setDepartmentState((currentState) =>
             currentState.map((entry) => {
                 if (entry.departmentId !== departmentId) return entry;
-                return updater(entry);
+                return { ...entry, isAssigned };
             })
         );
     };
 
     const handleAssignedChange = (departmentId: string, isAssigned: boolean) => {
-        updateDepartmentState(departmentId, (current) => ({
-            ...current,
-            isAssigned,
-            isEnabled: isAssigned ? true : false,
-        }));
-    };
-
-    const handleEnabledChange = (departmentId: string, isEnabled: boolean) => {
-        updateDepartmentState(departmentId, (current) => ({
-            ...current,
-            isEnabled,
-        }));
+        updateDepartmentState(departmentId, isAssigned);
     };
 
     const handleSave = async () => {
@@ -168,7 +152,7 @@ export function ManageTriageDepartmentsDrawer({
             .filter((entry) => entry.isAssigned)
             .map((entry) => ({
                 departmentId: entry.departmentId,
-                isEnabled: entry.isEnabled,
+                isEnabled: true,
             }));
 
         setIsSaving(true);
@@ -191,7 +175,7 @@ export function ManageTriageDepartmentsDrawer({
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
             <SheetContent className="flex w-full flex-col p-0 gap-0 sm:max-w-3xl bg-white shadow-2xl">
-                <div className="flex-shrink-0 px-8 pt-6 pb-4">
+                <div className="flex-none px-8 pt-6 pb-4">
                     <SheetHeader className="text-left p-0">
                         <div className="flex items-center gap-4">
                             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
@@ -218,14 +202,14 @@ export function ManageTriageDepartmentsDrawer({
                                 </div>
                                 <div className="rounded-lg border border-slate-200 bg-white p-4 flex flex-col justify-center">
                                     <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status</p>
-                                    <p className="mt-1 text-[15px] font-bold text-slate-800">{assignedCount} Departments</p>
+                                    <p className="mt-1 text-[15px] font-bold text-slate-800">Currently Assigned: {assignedCount} / {departmentState.length}</p>
                                 </div>
                             </div>
                         ) : null}
                     </SheetHeader>
                 </div>
 
-                <div className="flex-shrink-0 px-10 pt-2 pb-2">
+                <div className="flex-none px-10 pt-2 pb-2">
                     <div className="relative">
                         <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <Input
@@ -241,7 +225,7 @@ export function ManageTriageDepartmentsDrawer({
                     <div className="flex items-center justify-between px-1">
                         <span className="text-[13px] font-bold uppercase tracking-widest text-slate-400">Department Access List</span>
                         <Badge variant="secondary" className="bg-slate-100 hover:bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-full text-[11px] border">
-                            {assignedCount} / {departmentState.length} Selected
+                            Currently Assigned: {assignedCount} / {departmentState.length}
                         </Badge>
                     </div>
 
@@ -258,36 +242,48 @@ export function ManageTriageDepartmentsDrawer({
                             filteredDepartments.map((entry) => (
                                 <div
                                     key={entry.departmentId}
-                                    className="rounded-xl border border-slate-300 bg-white p-4"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => handleAssignedChange(entry.departmentId, !entry.isAssigned)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === " " || event.key === "Enter") {
+                                            event.preventDefault();
+                                            handleAssignedChange(entry.departmentId, !entry.isAssigned);
+                                        }
+                                    }}
+                                    className={cn(
+                                        "rounded-xl border bg-white p-4 cursor-pointer transition-colors",
+                                        entry.isAssigned ? "border-emerald-300 bg-emerald-50/50" : "border-slate-300"
+                                    )}
                                 >
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                         <div className="flex items-center gap-3">
+                                            <Checkbox
+                                                checked={entry.isAssigned}
+                                                onCheckedChange={(checked) => handleAssignedChange(entry.departmentId, Boolean(checked))}
+                                                onClick={(event) => event.stopPropagation()}
+                                                aria-label={`Toggle access for ${entry.department.name}`}
+                                                disabled={isSaving}
+                                            />
                                             <p className="text-[13px] font-bold text-slate-800 uppercase">{entry.department.name}</p>
                                             <Badge variant="secondary" className="bg-slate-200 hover:bg-slate-200/60 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded border border-slate-300 px-2 py-0.5">
                                                 {entry.department.code}
                                             </Badge>
                                         </div>
 
-                                        <div className="flex items-center gap-8 sm:pr-2">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Assigned</span>
-                                                <Switch
-                                                    checked={entry.isAssigned}
-                                                    onCheckedChange={(checked) => handleAssignedChange(entry.departmentId, checked)}
-                                                    disabled={isSaving}
-                                                    className="data-[state=checked]:bg-emerald-600"
-                                                />
-                                            </div>
-
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Enabled</span>
-                                                <Switch
-                                                    checked={entry.isAssigned && entry.isEnabled}
-                                                    onCheckedChange={(checked) => handleEnabledChange(entry.departmentId, checked)}
-                                                    disabled={!entry.isAssigned || isSaving}
-                                                    className="data-[state=checked]:bg-emerald-600"
-                                                />
-                                            </div>
+                                        <div className="flex items-center gap-3 sm:pr-2">
+                                            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Access Status</span>
+                                            <Badge
+                                                variant="secondary"
+                                                className={cn(
+                                                    "text-[10px] font-bold uppercase tracking-widest rounded border px-2 py-0.5",
+                                                    entry.isAssigned
+                                                        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                                        : "bg-slate-100 text-slate-500 border-slate-200"
+                                                )}
+                                            >
+                                                {entry.isAssigned ? "Enabled" : "Disabled"}
+                                            </Badge>
                                         </div>
                                     </div>
                                 </div>
@@ -296,7 +292,7 @@ export function ManageTriageDepartmentsDrawer({
                     </div>
                 </div>
 
-                <div className="flex-shrink-0 border-t border-slate-100 px-10 py-6 bg-slate-50/50">
+                <div className="flex-none border-t border-slate-100 px-10 py-6 bg-slate-50/50">
                     <div className="grid grid-cols-[1fr_2fr] gap-4 w-full">
                         <Button variant="outline" className="h-12 w-full rounded-xl font-bold text-slate-600 border-slate-200 shadow-sm" onClick={() => handleOpenChange(false)} disabled={isSaving}>
                             Cancel

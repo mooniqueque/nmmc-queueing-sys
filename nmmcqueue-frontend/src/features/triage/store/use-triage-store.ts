@@ -22,7 +22,7 @@ export const useTriageStore = create<TriageState>((set) => ({
 
   setManualEntry: (isManualEntry) => set({ 
     isManualEntry, 
-    selectedPatient: isManualEntry ? null : undefined, // Clearing selection if manual
+    selectedPatient: null, // Clearing selection when toggling manual mode
     isPanelOpen: true,
     submitError: ""
   }),

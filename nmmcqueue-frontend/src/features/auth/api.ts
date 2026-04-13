@@ -96,3 +96,31 @@ export async function updateUserDepartmentAssignments(
     });
     return res.json();
 }
+
+export async function updateUserInfo(
+    userId: string,
+    data: { name: string; email: string },
+    options?: RequestInit
+) {
+    const res = await fetch(`${API_URL}/users/${userId}/info`, {
+        method: "PUT",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify(data),
+    });
+    return res.json();
+}
+
+export async function adminResetPassword(
+    userId: string,
+    password: string,
+    options?: RequestInit
+) {
+    const res = await fetch(`${API_URL}/users/${userId}/reset-password`, {
+        method: "POST",
+        ...options,
+        headers: { "Content-Type": "application/json", ...options?.headers },
+        body: JSON.stringify({ password }),
+    });
+    return res.json();
+}

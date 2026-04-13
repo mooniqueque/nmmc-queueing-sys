@@ -23,3 +23,11 @@ export async function deleteDepartment(id: string) {
     if (result.success) revalidatePath("/admin-departments");
     return result;
 }
+
+export async function updateDepartmentStatus(id: string, status: "OPEN" | "CLOSED" | "FULL") {
+    const result = await callerApi.updateDepartmentStatus(id, status, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/admin-departments");
+    return result;
+}

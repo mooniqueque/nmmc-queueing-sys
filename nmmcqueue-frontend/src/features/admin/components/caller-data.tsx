@@ -27,7 +27,7 @@ export default async function CallerData() {
         const { getClinicQueues } = await import('@/features/admin/clinic-queue-actions');
         // Fetch all pending at once for the initial load if no specific department provided
         const pendingRes = await getClinicQueues();
-        if (pendingRes.success) initialQueueData = pendingRes.data;
+        if (pendingRes.success) initialQueueData = pendingRes.data ?? [];
 
     } catch {
         // Build-time handle

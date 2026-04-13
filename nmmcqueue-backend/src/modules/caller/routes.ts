@@ -8,7 +8,10 @@ import {
     createDepartmentRequestSchema,
     createQueueOptionRequestSchema,
     departmentIdParamSchema,
+    initializeDefaultQueueOptionsRequestSchema,
+    repairDefaultQueueOptionsRequestSchema,
     transferPatientRequestSchema,
+    updateDepartmentStatusRequestSchema,
 } from './schema.js';
 
 export const callerRouter = Router();
@@ -21,6 +24,9 @@ callerRouter.get('/departments', requireAuth, callerController.getDepartments);
 // Admin-only management routes (mutations)
 callerRouter.post('/departments', requireRole(['ADMIN']), validate(createDepartmentRequestSchema), callerController.createDepartment);
 callerRouter.delete('/departments/:id', requireRole(['ADMIN']), validate(departmentIdParamSchema), callerController.deleteDepartment);
+callerRouter.patch('/departments/:id/status', requireRole(['ADMIN']), validate(updateDepartmentStatusRequestSchema), callerController.updateDepartmentStatus);
+callerRouter.post('/departments/:id/queue-options/defaults', requireRole(['ADMIN']), validate(initializeDefaultQueueOptionsRequestSchema), callerController.initializeDepartmentQueueDefaults);
+callerRouter.post('/queue-options/repair-defaults', requireRole(['ADMIN']), validate(repairDefaultQueueOptionsRequestSchema), callerController.repairDefaultQueueOptions);
 callerRouter.post('/queue-options', requireRole(['ADMIN']), validate(createQueueOptionRequestSchema), callerController.createQueueOption);
 callerRouter.delete('/queue-options/:id', requireRole(['ADMIN']), validate(departmentIdParamSchema), callerController.deleteQueueOption);
 

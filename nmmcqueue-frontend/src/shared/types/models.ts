@@ -6,7 +6,6 @@ export enum UserRole {
 }
 
 export enum VisitStatus {
-    KIOSK_SUBMITTED = "KIOSK_SUBMITTED",
     WAITING_TRIAGE = "WAITING_TRIAGE",
     IN_TRIAGE = "IN_TRIAGE",
     WAITING_WINDOW = "WAITING_WINDOW",
@@ -41,14 +40,26 @@ export interface VisitPriorityCategory {
 export enum WorkstationType {
     WINDOW = "WINDOW",
     TRIAGE = "TRIAGE",
-    CALLER = "CALLER",
-    KIOSK = "KIOSK"
+    CALLER = "CALLER"
+}
+
+export enum WorkstationQueueMode {
+    MIXED = "MIXED",
+    PRIORITY_ONLY = "PRIORITY_ONLY",
+    REGULAR_ONLY = "REGULAR_ONLY",
+}
+
+export enum DepartmentStatus {
+    OPEN = "OPEN",
+    CLOSED = "CLOSED",
+    FULL = "FULL",
 }
 
 export interface WorkStation {
     id: string;
     name: string;
     type: WorkstationType;
+    queueMode?: WorkstationQueueMode;
     stationNo: number;
     isActive: boolean;
     departmentId?: string;
@@ -60,6 +71,7 @@ export interface Department {
     id: string;
     name: string;
     code: string;
+    status?: DepartmentStatus;
     videoUrl?: string;
     createdAt: Date;
     updatedAt: Date;

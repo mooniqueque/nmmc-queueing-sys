@@ -1,8 +1,8 @@
 "use server";
 import * as authApi from "@/features/auth/api";
+import { API_URL } from "@/lib/api";
 import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
-import { API_URL } from "@/lib/api";
 
 export async function getAllUsers() {
     return authApi.getAllUsers({ headers: await getServerHeaders() });
@@ -57,16 +57,45 @@ export async function updateUserDepartmentAssignments(
     return result;
 }
 
-export async function updateUserWorkstation(userId: string, workstationId: string) {
-    const response = await fetch(`${API_URL}/users/${userId}/workstation`, {
-        method: "PUT",
-        headers: {
-            ...(await getServerHeaders()),
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ workstationId }),
+export async function updateUserWorkstation(userId: string, workstationId: string | null) {
+    try {
+        const response = await fetch(`${API_URL}/users/${userId}/workstation`, {
+            method: "PUT",
+            headers: {
+                ...(await getServerHeaders()),
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ workstationId }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            revalidatePath("/admin-dashboard");
+            return result;
+        }
+
+        return {
+            ...result,
+            success: false,
+            error: result?.error || result?.message || "Failed to update workstation.",
+        };
+    } catch {
+        return { success: false, error: "Failed to update workstation." };
+    }
+}
+
+export async function updateUserInfo(userId: string, data: { name: string; email: string }) {
+    const result = await authApi.updateUserInfo(userId, data, {
+        headers: await getServerHeaders(),
     });
-    const result = await response.json();
+    if (result.success) revalidatePath("/admin-dashboard");
+    return result;
+}
+
+export async function adminResetPassword(userId: string, data: { password: string }) {
+    const result = await authApi.adminResetPassword(userId, data.password, {
+        headers: await getServerHeaders(),
+    });
     if (result.success) revalidatePath("/admin-dashboard");
     return result;
 }

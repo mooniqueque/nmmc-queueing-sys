@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
     Select,
     SelectContent,
@@ -19,8 +20,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { notify } from "@/shared/lib/notify";
+import { UserData } from "@/shared/types/auth";
 import { Department, WorkStation, WorkstationType } from "@/shared/types/models";
 import { UserPlus } from '@phosphor-icons/react';
 import { useRouter } from "next/navigation";
@@ -33,7 +34,13 @@ import { getWorkstations } from '../workstation-actions';
  * Handles the registration of new staff members.
  * Separates the complex form logic and state from the main dashboard.
  */
-export function AddUserDialog({ departments = [] }: { departments?: Department[] }) {
+export function AddUserDialog({
+    departments = [],
+    users = [],
+}: {
+    departments?: Department[];
+    users?: UserData[];
+}) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,6 +69,19 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
         return false;
     });
 
+    const occupiedStationIds = new Set(
+        users
+            .filter(
+                (user) =>
+                    user.isActive &&
+                    Boolean(user.workstationId) &&
+                    (user.role === "WINDOW_CLERK" || user.role === "TRIAGE_NURSE" || user.role === "CLINIC_CALLER")
+            )
+            .map((user) => user.workstationId as string)
+    );
+
+    const availableWorkstations = filteredWorkstations.filter((ws) => !occupiedStationIds.has(ws.id));
+
     const isWindowOrTriage = formData.role === "WINDOW_CLERK" || formData.role === "TRIAGE_NURSE";
     const isClinicCaller = formData.role === "CLINIC_CALLER";
 
@@ -75,8 +95,10 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
                 setFormData({ name: '', email: '', employeeID: '', role: '', department: '', workstationId: '' });
                 router.refresh();
             } else {
-                notify.error(result.error || "Failed to create user.");
+                notify.error(result.error || result.message || "Failed to create user.");
             }
+        } catch {
+            notify.error("An error occurred while creating user.");
         } finally {
             setIsSubmitting(false);
         }
@@ -138,7 +160,7 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
                             <div className="col-span-3">
                                 <Select
                                     value={formData.role}
-                                    onValueChange={(val) => setFormData({ ...formData, role: val })}
+                                    onValueChange={(val) => setFormData({ ...formData, role: val, workstationId: '' })}
                                     required
                                 >
                                     <SelectTrigger className="w-full">
@@ -162,19 +184,29 @@ export function AddUserDialog({ departments = [] }: { departments?: Department[]
                                     <Select
                                         value={formData.workstationId}
                                         onValueChange={(val) => setFormData({ ...formData, workstationId: val })}
+                                        disabled={availableWorkstations.length === 0}
                                         required
                                     >
                                         <SelectTrigger className="w-full">
                                             <SelectValue placeholder={`Select ${formData.role === "WINDOW_CLERK" ? 'Window' : 'Station'}`} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {filteredWorkstations.map(ws => (
-                                                <SelectItem key={ws.id} value={ws.id}>
-                                                    {ws.name} ({ws.stationNo})
-                                                </SelectItem>
-                                            ))}
+                                            {availableWorkstations.length === 0 ? (
+                                                <div className="px-3 py-2 text-xs font-medium text-amber-700">
+                                                    All stations are occupied. Add more station.
+                                                </div>
+                                            ) : (
+                                                availableWorkstations.map(ws => (
+                                                    <SelectItem key={ws.id} value={ws.id}>
+                                                        {ws.name} ({ws.stationNo})
+                                                    </SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
+                                    {availableWorkstations.length === 0 && (
+                                        <p className="mt-1 text-xs text-amber-700">All stations are occupied. Add more station.</p>
+                                    )}
                                 </div>
                             </div>
                         )}

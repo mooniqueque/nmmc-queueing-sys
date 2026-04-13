@@ -1,8 +1,12 @@
 import DepartmentSettings from "@/features/admin/components/admin-settings/departments";
 import { getDepartments } from "@/features/admin/department-actions";
-import { getQueueOptionsByDepartment } from "@/features/admin/queue-option-actions";
+import { getQueueOptionsByDepartment, initializeDepartmentQueueDefaults } from "@/features/admin/queue-option-actions";
 import { getAllUsers } from "@/features/admin/user-actions";
+import { auth } from "@/lib/database/auth";
+import { AdminHeader } from "@/shared/layouts";
+import { SessionUser } from "@/shared/types/auth";
 import { Department } from "@/shared/types/models";
+import { headers } from "next/headers";
 import { connection } from "next/server";
 
 type AdminUserRow = {
@@ -38,7 +42,12 @@ export default async function DepartmentsData() {
     let queueOptionsByDepartment = {};
     let users: AdminUserRow[] = [];
 
+    let user: SessionUser | undefined;
+
     try {
+        const session = await auth.api.getSession({ headers: await headers() });
+        user = session?.user as unknown as SessionUser;
+
         const [response, allUsers] = await Promise.all([
             getDepartments(),
             getAllUsers(),
@@ -50,6 +59,22 @@ export default async function DepartmentsData() {
         queueOptionsByDepartment = await getQueueOptionsByDepartment(
             departments.map((department: Department) => department.name)
         );
+
+        const emptyDepartments = departments.filter((department) => {
+            const key = normalizeDepartmentKey(department.name);
+            const options = (queueOptionsByDepartment as Record<string, unknown[]>)[key] ?? [];
+            return options.length === 0;
+        });
+
+        if (emptyDepartments.length > 0) {
+            await Promise.all(
+                emptyDepartments.map((department) => initializeDepartmentQueueDefaults(department.id))
+            );
+
+            queueOptionsByDepartment = await getQueueOptionsByDepartment(
+                departments.map((department: Department) => department.name)
+            );
+        }
     } catch {
         // Build-time handle
     }
@@ -72,12 +97,15 @@ export default async function DepartmentsData() {
     );
 
     return (
-        <div className="mx-auto mt-4 max-w-7xl p-6">
-            <DepartmentSettings
-                initialDepartments={departments as Department[]}
-                initialQueueOptionsByDepartment={queueOptionsByDepartment}
-                initialDepartmentInsights={initialDepartmentInsights}
-            />
+        <div className="flex flex-1 flex-col">
+            {user && <AdminHeader user={user} title="Manage Departments" />}
+            <main className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full">
+                <DepartmentSettings
+                    initialDepartments={departments as Department[]}
+                    initialQueueOptionsByDepartment={queueOptionsByDepartment}
+                    initialDepartmentInsights={initialDepartmentInsights}
+                />
+            </main>
         </div>
     );
 }

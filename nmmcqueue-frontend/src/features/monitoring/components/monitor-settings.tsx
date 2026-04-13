@@ -104,11 +104,7 @@ export default function MonitorSettings() {
     };
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto py-8 px-4">
-            <div className="flex flex-col gap-1">
-                <h1 className="text-3xl font-black text-emerald-950 uppercase tracking-tight">Monitor Settings</h1>
-                <p className="text-slate-500 font-medium">Manage promotional and informational video loops for the Triage and Clinical Department monitors.</p>
-            </div>
+        <div className="space-y-6">
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* CONFIGURATION PANEL */}
@@ -192,7 +188,7 @@ export default function MonitorSettings() {
                                     <span className="font-bold text-slate-700 text-sm">
                                         {file ? file.name : "Choose MP4 Video"}
                                     </span>
-                                    <span className="text-xs text-slate-400 mt-1 uppercase font-black tracking-widest">Click to browse</span>
+                                    <span className="text-xs text-slate-400 mt-1 uppercase font-bold tracking-widest">Click to browse</span>
                                 </Label>
                             </div>
                         </div>
@@ -257,14 +253,14 @@ export default function MonitorSettings() {
                         ) : (
                             <div className="flex flex-col items-center gap-4 text-white/20 select-none">
                                 <VideoCamera size={80} weight="thin" />
-                                <p className="font-black uppercase tracking-[0.2em] text-sm italic">No Video Assigned</p>
+                                <p className="font-bold uppercase tracking-[0.2em] text-sm italic">No Video Assigned</p>
                             </div>
                         )}
                         
                         {/* Status Overlay */}
                         <div className="absolute top-4 left-4 flex gap-2">
                             <div className="bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1 rounded-md">
-                                <span className="text-[10px] text-white/60 font-black uppercase tracking-widest leading-none block mb-0.5">Department</span>
+                                <span className="text-[10px] text-white/60 font-bold uppercase tracking-widest leading-none block mb-0.5">Department</span>
                                 <span className="text-xs text-white font-bold">{selectedDept?.name || "NONE"}</span>
                             </div>
                         </div>

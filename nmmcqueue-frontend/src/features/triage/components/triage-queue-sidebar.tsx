@@ -2,8 +2,6 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReportDatePicker } from "@/features/shared/components/operational-report-panel";
 import { Clock } from "@phosphor-icons/react";
 import { BarChart2 } from "lucide-react";
@@ -43,101 +41,103 @@ export function TriageQueueSidebar({
     }, []);
 
     return (
-        <Card className="h-full bg-white rounded-2xl shadow-sm border border-slate-100">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/70">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <CardTitle className="text-lg font-extrabold text-gray-800 tracking-wider uppercase">
-                            WaitList
-                        </CardTitle>
-                    </div>
+        <div className="flex flex-col w-full bg-card rounded-2xl border border-border overflow-hidden shrink-0 h-[calc(100vh-24px)] sm:h-[calc(100vh-32px)] lg:h-[calc(100vh-48px)]">
+            {/* Header */}
+            <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center shrink-0">
+                <div>
+                    <h2 className="text-2xl font-semibold tracking-tight text-foreground">Waitlist</h2>
+                </div>
+                <div className="flex items-center gap-2">
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => setActiveTab(activeTab === "REPORTS" ? "ACTIVE" : "REPORTS")}
-                        className="text-slate-600 border-slate-200 hover:bg-slate-50 rounded-lg"
+                        className="h-10 px-4 text-sm font-semibold border-orange-200 bg-yellow-100 hover:bg-yellow-50 rounded-lg"
                     >
                         <BarChart2 className="w-4 h-4 mr-2" />
                         Reports
                     </Button>
                 </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-5">
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabType)} className="w-full">
-                    <TabsList className="w-full flex bg-transparent border-b border-slate-200 h-auto p-0 gap-0 rounded-none">
-                        <TabsTrigger
-                            value="ACTIVE"
-                            disabled={isLocked}
-                            className="flex-1 flex items-center justify-center gap-1 rounded-none px-2 py-3 text-[11px] font-bold uppercase tracking-wide bg-transparent text-slate-500 shadow-none data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-                        >
-                            <span className="truncate">Active Queue</span>
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">
-                                {activeQueue.length}
-                            </span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="NO_SHOW"
-                            disabled={isLocked}
-                            className="flex-1 flex items-center justify-center gap-1 rounded-none px-2 py-3 text-[11px] font-bold uppercase tracking-wide bg-transparent text-slate-500 shadow-none data-[state=active]:text-emerald-700 data-[state=active]:border-b-2 data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-                        >
-                            <span className="truncate">No Show</span>
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">
-                                {noShowQueue.length}
-                            </span>
-                        </TabsTrigger>
-                    </TabsList>
+            </div>
 
-                    <TabsContent value="ACTIVE" className="mt-4 focus-visible:outline-none">
-                        <div className="space-y-3 max-h-[calc(100vh-18rem)] overflow-y-auto pr-1 custom-scrollbar">
-                            {activeQueue.length === 0 ? (
-                                <EmptyQueueState label="No active patients" />
-                            ) : (
-                                activeQueue.map((visit) => (
-                                    <QueueCard key={visit.id} visit={visit} nowMs={nowMs} />
-                                ))
-                            )}
-                        </div>
-                    </TabsContent>
+            {/* Tabs */}
+            <div className="flex border-b border-border bg-background">
+                <button
+                    onClick={() => setActiveTab("ACTIVE")}
+                    disabled={isLocked}
+                    className={`flex-1 py-4 text-sm font-semibold transition-all relative ${
+                        activeTab === "ACTIVE" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                    Active Queue ({activeQueue.length})
+                    {activeTab === "ACTIVE" && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab("NO_SHOW")}
+                    disabled={isLocked}
+                    className={`flex-1 py-4 text-sm text-red-800 font-semibold transition-all relative ${
+                        activeTab === "NO_SHOW" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                >
+                    No Shows ({noShowQueue.length})
+                    {activeTab === "NO_SHOW" && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-destructive" />
+                    )}
+                </button>
+            </div>
 
-                    <TabsContent value="NO_SHOW" className="mt-4 focus-visible:outline-none">
-                        <div className="space-y-3 max-h-[calc(100vh-18rem)] overflow-y-auto pr-1 custom-scrollbar">
-                            {noShowQueue.length === 0 ? (
-                                <EmptyQueueState label="No missed patients" />
-                            ) : (
-                                noShowQueue.map((visit) => (
-                                    <QueueCard
-                                        key={visit.id}
-                                        visit={visit}
-                                        nowMs={nowMs}
-                                        action={
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => onCallNoShow(visit.id)}
-                                                className="h-7 px-3 text-[10px] font-bold uppercase tracking-widest text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                                            >
-                                                Call Patient
-                                            </Button>
-                                        }
-                                    />
-                                ))
-                            )}
+            {/* List Body */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
+                {activeTab === "ACTIVE" && (
+                    <div className="p-4 sm:p-5 space-y-3">
+                        {activeQueue.length === 0 ? (
+                            <EmptyQueueState label="No active patients" />
+                        ) : (
+                            activeQueue.map((visit) => (
+                                <QueueCard key={visit.id} visit={visit} nowMs={nowMs} />
+                            ))
+                        )}
+                    </div>
+                )}
+                {activeTab === "NO_SHOW" && (
+                    <div className="p-4 sm:p-5 space-y-3">
+                        {noShowQueue.length === 0 ? (
+                            <EmptyQueueState label="No missed patients" />
+                        ) : (
+                            noShowQueue.map((visit) => (
+                                <QueueCard
+                                    key={visit.id}
+                                    visit={visit}
+                                    nowMs={nowMs}
+                                    action={
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => onCallNoShow(visit.id)}
+                                            className="h-7 px-3 text-[10px] font-bold uppercase tracking-widest text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                        >
+                                            Call Patient
+                                        </Button>
+                                    }
+                                />
+                            ))
+                        )}
+                    </div>
+                )}
+                {activeTab === "REPORTS" && (
+                    <div className="p-4 sm:p-5 space-y-4">
+                        <div className="text-sm font-semibold text-muted-foreground">
+                            Reports Filter
                         </div>
-                    </TabsContent>
-
-                    <TabsContent value="REPORTS" className="mt-4 focus-visible:outline-none">
-                        <div className="space-y-4">
-                            <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                                Reports Filter
-                            </div>
-                            <ReportDatePicker value={reportDate} onChange={setReportDate} />
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
-        </Card>
+                        <ReportDatePicker value={reportDate} onChange={setReportDate} />
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -157,15 +157,15 @@ function QueueCard({
     return (
         <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm flex items-start justify-between gap-3 transition-colors hover:bg-slate-50 cursor-pointer">
             <div className="min-w-0">
-                <div className="text-sm font-medium uppercase tracking-wider text-gray-700">
-                    {visit.triageTicket ? `#${visit.triageTicket}` : "#"}
+                <div className="text-base font-semibold text-gray-700">
+                    {visit.triageTicket || ""}
                 </div>
-                <div className="text-lg font-extrabold text-gray-900 leading-snug break-all">
+                <div className="text-xl font-semibold text-gray-900 leading-snug break-all">
                     {visit.patient.lastName}, {visit.patient.firstName}
                 </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-                <Badge variant="outline" className="text-sm font-medium text-slate-600 bg-slate-50 border-slate-200 px-2 py-0.5 whitespace-nowrap rounded-full">
+                <Badge variant="outline" className="text-base font-medium text-slate-600 bg-slate-50 border-slate-200 px-2.5 py-0.5 whitespace-nowrap rounded-full">
                     <Clock size={12} weight="bold" /> {waitStr}
                 </Badge>
                 {action}
@@ -177,7 +177,7 @@ function QueueCard({
 function EmptyQueueState({ label }: { label: string }) {
     return (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center shadow-sm">
-            <div className="text-xs font-black uppercase tracking-widest text-slate-500">{label}</div>
+            <div className="text-base font-semibold text-slate-600">{label}</div>
         </div>
     );
 }

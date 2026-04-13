@@ -78,6 +78,8 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --admin-surface-bg: oklch(0.985 0 0);
+  --admin-surface-panel: oklch(1 0 0);
 }
 
 .dark {
@@ -117,6 +119,33 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  .admin-shadcn-surface {
+    background-color: var(--admin-surface-bg);
+  }
+
+  /* Keep admin pages slightly larger for better readability across the whole admin area. */
+  .admin-readable-scale {
+    zoom: 1.08;
+  }
+
+  @media (max-width: 1536px) {
+    .admin-readable-scale {
+      zoom: 1.04;
+    }
+  }
+
+  @media (max-width: 1280px) {
+    .admin-readable-scale {
+      zoom: 1.02;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .admin-readable-scale {
+      zoom: 1;
+    }
   }
 
   body {

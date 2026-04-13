@@ -32,6 +32,11 @@ class CallerController {
         }
     });
 
+    updateDepartmentStatus = asyncHandler(async (req: Request, res: Response) => {
+        const data = await callerService.updateDepartmentStatus(req.params.id, req.body.status);
+        res.status(200).json({ success: true, data });
+    });
+
     deleteDepartment = asyncHandler(async (req: Request, res: Response) => {
         try {
             await callerService.deleteDepartment(req.params.id);
@@ -59,6 +64,16 @@ class CallerController {
     deleteQueueOption = asyncHandler(async (req: Request, res: Response) => {
         await callerService.deleteQueueOption(req.params.id);
         res.status(200).json({ success: true });
+    });
+
+    initializeDepartmentQueueDefaults = asyncHandler(async (req: Request, res: Response) => {
+        const data = await callerService.initializeDepartmentQueueDefaults(req.params.id);
+        res.status(200).json({ success: true, data });
+    });
+
+    repairDefaultQueueOptions = asyncHandler(async (req: Request, res: Response) => {
+        const data = await callerService.repairDefaultQueueOptions();
+        res.status(200).json({ success: true, data });
     });
 
     callPatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

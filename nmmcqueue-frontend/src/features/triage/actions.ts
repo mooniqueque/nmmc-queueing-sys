@@ -1,6 +1,6 @@
 "use server";
-import { getServerHeaders } from "@/lib/api/server";
 import * as triageApi from "@/features/triage/api";
+import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
 
 export async function submitTriageForm(
@@ -73,6 +73,14 @@ export async function getMyAccessibleDepartments() {
 
 export async function callSpecificTriage(visitId: string) {
     const result = await triageApi.callSpecificTriage(visitId, {
+        headers: await getServerHeaders(),
+    });
+    if (result.success) revalidatePath("/triage");
+    return result;
+}
+
+export async function updateTriageAppointment(visitId: string, hasAppointment: boolean) {
+    const result = await triageApi.updateTriageAppointment(visitId, hasAppointment, {
         headers: await getServerHeaders(),
     });
     if (result.success) revalidatePath("/triage");

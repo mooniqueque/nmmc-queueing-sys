@@ -1,7 +1,7 @@
 "use server";
+import { API_URL } from "@/lib/api";
 import { getServerHeaders } from "@/lib/api/server";
 import { revalidatePath } from "next/cache";
-import { API_URL } from "@/lib/api";
 
 const BACKEND_URL = API_URL;
 
@@ -17,7 +17,7 @@ export async function getWorkstations() {
     }
 }
 
-export async function createWorkstation(data: { type: string, customName?: string, departmentId?: string, count?: number }) {
+export async function createWorkstation(data: { type: string, queueMode?: string, customName?: string, departmentId?: string, count?: number }) {
     try {
         const response = await fetch(`${BACKEND_URL}/workstations`, {
             method: "POST",
@@ -28,7 +28,7 @@ export async function createWorkstation(data: { type: string, customName?: strin
             body: JSON.stringify(data),
         });
         const result = await response.json();
-        if (result.success) revalidatePath("/admin-dashboard/settings");
+        if (result.success) revalidatePath("/admin-workstations");
         return result;
     } catch (error) {
         console.error("Create WS Error:", error);
@@ -36,7 +36,7 @@ export async function createWorkstation(data: { type: string, customName?: strin
     }
 }
 
-export async function updateWorkstation(id: string, data: Partial<{ name: string, type: string, stationNo: number, departmentId?: string }>) {
+export async function updateWorkstation(id: string, data: Partial<{ name: string, type: string, queueMode: string, stationNo: number, departmentId?: string }>) {
     try {
         const response = await fetch(`${BACKEND_URL}/workstations/${id}`, {
             method: "PUT",
@@ -47,7 +47,7 @@ export async function updateWorkstation(id: string, data: Partial<{ name: string
             body: JSON.stringify(data),
         });
         const result = await response.json();
-        if (result.success) revalidatePath("/admin-dashboard/settings");
+        if (result.success) revalidatePath("/admin-workstations");
         return result;
     } catch (error) {
         console.error("Update WS Error:", error);
@@ -62,7 +62,7 @@ export async function deleteWorkstation(id: string) {
             headers: await getServerHeaders(),
         });
         const result = await response.json();
-        if (result.success) revalidatePath("/admin-dashboard/settings");
+        if (result.success) revalidatePath("/admin-workstations");
         return result;
     } catch (error) {
         console.error("Delete WS Error:", error);

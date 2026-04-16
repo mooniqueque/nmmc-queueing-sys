@@ -1,8 +1,8 @@
-import { performance } from 'node:perf_hooks';
 import { SseEventType } from '@nmmc/types';
+import { performance } from 'node:perf_hooks';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SSE_TOPICS, publishSseEvent } from '../../lib/sse.js';
 import { withClaimConflictRetry } from '../../lib/claim-retry.js';
+import { SSE_TOPICS, publishSseEvent } from '../../lib/sse.js';
 
 type VisitStatus = 'WAITING_TRIAGE' | 'IN_TRIAGE' | 'WAITING_WINDOW' | 'IN_WINDOW' | 'WAITING_CLINIC' | 'IN_PROGRESS' | 'COMPLETED';
 

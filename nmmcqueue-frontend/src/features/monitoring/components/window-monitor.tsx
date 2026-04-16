@@ -71,7 +71,7 @@ export default function WindowMonitor() {
                 </div>
             </header>
 
-            <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10 overflow-hidden max-w-[1800px] mx-auto w-full">
+            <main className="flex-1 px-10 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10 overflow-hidden max-w-450 mx-auto w-full">
                 {/* LEFT COLUMN: CALLING LIST IN A CLEAN SHADCN CARD */}
                 <Card className="lg:col-span-5 flex flex-col h-full overflow-hidden shadow-xl shadow-primary/5 border rounded-3xl bg-card">
                     <div className="flex justify-between px-10 py-5 bg-primary text-primary-foreground font-bold uppercase tracking-tight text-3xl">

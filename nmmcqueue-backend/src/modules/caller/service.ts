@@ -328,7 +328,17 @@ class CallerService {
         await publishDepartmentStatusUpdate(updated.id, status);
         return updated;
     }
-    async deleteDepartment(id: string) { await db.department.delete({ where: { id } }); }
+    async deleteDepartment(id: string) {
+        try {
+            await db.department.delete({ where: { id } });
+        } catch (error: unknown) {
+            if (typeof error === 'object' && error && 'code' in error && (error as { code?: string }).code === 'P2003') {
+                throw new AppError('Cannot delete department with active visits.', 409, 'DEPARTMENT_DELETE_HAS_VISITS');
+            }
+
+            throw error;
+        }
+    }
     async getQueueOptions(departmentName: string) {
         const dept = await db.department.findUnique({
             where: { name: departmentName.trim().toUpperCase() },

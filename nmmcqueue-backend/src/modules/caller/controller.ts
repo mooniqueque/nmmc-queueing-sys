@@ -42,6 +42,10 @@ class CallerController {
             await callerService.deleteDepartment(req.params.id);
             res.status(200).json({ success: true });
         } catch (error) {
+            if (error instanceof AppError) {
+                throw error;
+            }
+
             throw new AppError("Could not delete. It might be linked to active visits.", 400);
         }
     });

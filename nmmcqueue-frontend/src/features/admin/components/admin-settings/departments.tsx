@@ -376,9 +376,6 @@ export default function DepartmentSettings({
                                         </div>
                                     </div>
 
-                                    <div className="shrink-0 flex items-center justify-center rounded-md border bg-background p-2 text-muted-foreground transition-colors group-hover:text-emerald-700">
-                                        <Gear size={18} weight="bold" />
-                                    </div>
                                 </CardContent>
                             </Card>
                         );

@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { AUTH_GET_SESSION_URL, hasSessionUser, type SessionLike } from "./lib/config/auth-endpoints";
+import { AUTH_GET_VERIFIED_SESSION_URL, hasSessionUser, type SessionLike } from "./lib/config/auth-endpoints";
 
 export default async function middleware(request: NextRequest) {
     let session: SessionLike | null = null;
     try {
-        const response = await fetch(AUTH_GET_SESSION_URL, {
+        const response = await fetch(AUTH_GET_VERIFIED_SESSION_URL, {
             headers: {
                 cookie: request.headers.get("cookie") || "",
             },

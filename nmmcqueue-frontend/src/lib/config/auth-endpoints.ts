@@ -11,6 +11,7 @@ if (!apiUrl) {
 export const API_URL = trimTrailingSlash(apiUrl);
 export const AUTH_BASE_URL = `${API_URL}/auth`;
 export const AUTH_GET_SESSION_URL = `${AUTH_BASE_URL}/get-session`;
+export const AUTH_GET_VERIFIED_SESSION_URL = `${AUTH_BASE_URL}/get-session-verified`;
 
 export interface SessionUserLike {
     role?: string;

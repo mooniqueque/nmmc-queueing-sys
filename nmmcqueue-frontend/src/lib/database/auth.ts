@@ -4,7 +4,7 @@
  * Use authClient from "@/lib/database/auth-client" for client components instead.
  */
 
-import { AUTH_GET_SESSION_URL, hasSessionUser, type SessionLike } from "@/lib/config/auth-endpoints";
+import { AUTH_GET_VERIFIED_SESSION_URL, hasSessionUser, type SessionLike } from "@/lib/config/auth-endpoints";
 
 interface SessionUser {
     id: string;
@@ -23,7 +23,7 @@ export const auth = {
     api: {
         getSession: async (opts: { headers: Headers | Record<string, string> }): Promise<Session | null> => {
             try {
-                const res = await fetch(AUTH_GET_SESSION_URL, {
+                const res = await fetch(AUTH_GET_VERIFIED_SESSION_URL, {
                     headers: opts.headers as Record<string, string>,
                     cache: "no-store",
                 });

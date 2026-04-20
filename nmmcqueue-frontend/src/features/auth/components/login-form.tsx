@@ -1,6 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/database/auth-client";
+import { AUTH_GET_VERIFIED_SESSION_URL } from "@/lib/config/auth-endpoints";
 import { notify } from "@/shared/lib/notify";
 import { CircleNotch, Eye, EyeClosed } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
@@ -53,6 +54,18 @@ export default function LoginForm() {
 
             if (error) {
                 notify.error(error.message || "Invalid Username or Password");
+                return;
+            }
+
+            const verifiedSessionResponse = await fetch(AUTH_GET_VERIFIED_SESSION_URL, {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+            });
+
+            if (!verifiedSessionResponse.ok) {
+                await authClient.signOut();
+                notify.error("Account is inactive or no longer authorized.");
                 return;
             }
 

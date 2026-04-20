@@ -333,21 +333,6 @@ class AuthController {
 
     toggleUserStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         if (req.user.role !== 'ADMIN') throw new AppError('Unauthorized', 401);
-        if (req.body.status === true) {
-            const targetUser = await db.user.findUnique({
-                where: { id: req.params.id },
-                select: { id: true, role: true, workstationId: true },
-            });
-
-            if (!targetUser) throw new AppError('User not found', 404);
-
-            await this.resolveEffectiveWorkstation({
-                workstationId: targetUser.workstationId,
-                role: targetUser.role,
-                userId: targetUser.id,
-            });
-        }
-
         await db.user.update({ where: { id: req.params.id }, data: { isActive: req.body.status } });
         res.status(200).json({ success: true });
     });

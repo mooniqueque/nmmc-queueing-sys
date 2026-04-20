@@ -24,7 +24,11 @@ export const updateUserRoleRequestSchema = z.object({
 
 export const toggleUserStatusRequestSchema = z.object({
     body: z.object({
-        status: z.boolean(),
+        status: z.preprocess((value) => {
+            if (value === 'true') return true;
+            if (value === 'false') return false;
+            return value;
+        }, z.boolean()),
     }),
     params: z.object({
         id: z.string().min(1, 'User ID is required'),

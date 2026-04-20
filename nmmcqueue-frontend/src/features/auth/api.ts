@@ -54,11 +54,12 @@ export async function toggleUserStatus(
     status: boolean,
     options?: RequestInit
 ) {
+    const normalizedStatus = status === true;
     const res = await fetch(`${API_URL}/users/${userId}/status`, {
         method: "PUT",
         ...options,
         headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: normalizedStatus }),
     });
     return res.json();
 }

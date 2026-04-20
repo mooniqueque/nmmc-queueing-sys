@@ -28,6 +28,10 @@ export interface PriorityCategory {
     name: string;
     code: string;
     isPriority: boolean;
+    templateId?: string;
+    template?: {
+        sortOrder: number;
+    };
     departmentId?: string;
     parentId?: string;
     children?: PriorityCategory[];
@@ -67,6 +71,14 @@ export interface WorkStation {
     isActive: boolean;
     departmentId?: string;
     department?: Department;
+    parentWorkstationId?: string | null;
+    parentWorkstation?: {
+        id: string;
+        name: string;
+        stationNo: number;
+        type: WorkstationType;
+    } | null;
+    childWorkstations?: WorkStation[];
     pairedStationId?: string;
 }
 

@@ -5,6 +5,7 @@ import { releasingController } from './controller.js';
 import {
     assignTicketRequestSchema,
     callNextWindowRequestSchema,
+    callPriorityClassRequestSchema,
     linkPatientRequestSchema,
     updatePatientDemographicsRequestSchema,
     visitParamSchema,
@@ -16,6 +17,7 @@ releasingRouter.use(requireCapability('WINDOW_VIEW'));
 
 releasingRouter.get('/pending', releasingController.getPendingQueue);
 releasingRouter.post('/call-next', requireCapability('WINDOW_MUTATE'), validate(callNextWindowRequestSchema), releasingController.callNextWindow);
+releasingRouter.post('/call-priority-class', requireCapability('WINDOW_MUTATE'), validate(callPriorityClassRequestSchema), releasingController.callPriorityClass);
 releasingRouter.get('/my-current', releasingController.getMyCurrentVisit);
 releasingRouter.post('/:id/call', requireCapability('WINDOW_MUTATE'), validate(visitParamSchema), releasingController.callTicket);
 releasingRouter.post('/:id/noshow', requireCapability('WINDOW_MUTATE'), validate(visitParamSchema), releasingController.noShowTicket);

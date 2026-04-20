@@ -56,7 +56,6 @@ export function WorkstationList({
     const [createType, setCreateType] = useState<"CALLER" | "TRIAGE" | "WINDOW">("WINDOW");
     const [createCustomName, setCreateCustomName] = useState("");
     const [createCount, setCreateCount] = useState<number>(1);
-    const [createDepartmentId, setCreateDepartmentId] = useState<string>("none");
     const [isCreating, setIsCreating] = useState(false);
     const [pendingEditStation, setPendingEditStation] = useState<WorkStation | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -100,6 +99,9 @@ export function WorkstationList({
         };
 
         for (const station of workstations) {
+            if (station.type === "CALLER" && station.parentWorkstationId) {
+                continue;
+            }
             if (!byType[station.type]) continue;
             byType[station.type].push(station);
         }
@@ -176,7 +178,6 @@ export function WorkstationList({
         setCreateType(type);
         setCreateCustomName("");
         setCreateCount(1);
-        setCreateDepartmentId("none");
         setIsCreateDialogOpen(true);
     };
 
@@ -185,7 +186,6 @@ export function WorkstationList({
         const result = await createWorkstation({
             type: createType,
             customName: createCustomName.trim() || undefined,
-            departmentId: createType === "CALLER" && createDepartmentId !== "none" ? createDepartmentId : undefined,
             count: createCount,
         });
 
@@ -211,9 +211,18 @@ export function WorkstationList({
     };
 
     const renderWorkstationRow = (ws: WorkStation) => {
-        const assignedNames = assignedNamesByStation.get(ws.id) ?? [];
+        const relevantStationIds = ws.type === "CALLER"
+            ? [ws.id, ...(ws.childWorkstations?.map((child) => child.id) ?? [])]
+            : [ws.id];
+        const assignedNames = relevantStationIds.flatMap((stationId) => assignedNamesByStation.get(stationId) ?? []);
+        const assignedCount = relevantStationIds.reduce((sum, stationId) => sum + (assignedCounts.get(stationId) ?? 0), 0);
         const visibleNames = assignedNames.slice(0, 2);
         const remainingCount = Math.max(assignedNames.length - visibleNames.length, 0);
+        const callerDepartments = ws.type === "CALLER"
+            ? (ws.childWorkstations ?? [])
+                .map((child) => child.department?.name)
+                .filter((name): name is string => Boolean(name))
+            : [];
 
         return (
             <tr
@@ -261,6 +270,18 @@ export function WorkstationList({
                                 {ws.department.name}
                             </span>
                         )}
+                        {ws.type === "CALLER" && callerDepartments.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                                {callerDepartments.slice(0, 3).map((departmentName) => (
+                                    <span key={`${ws.id}-${departmentName}`} className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                        {departmentName}
+                                    </span>
+                                ))}
+                                {callerDepartments.length > 3 && (
+                                    <span className="text-[11px] text-muted-foreground">+{callerDepartments.length - 3} more</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </td>
                 <td className="px-6 py-4">
@@ -279,9 +300,9 @@ export function WorkstationList({
                 <td className="px-6 py-4">
                     <div className="space-y-1">
                         <span className="text-xs font-medium text-muted-foreground">
-                            {assignedCounts.get(ws.id) ?? 0} user(s)
+                            {assignedCount} user(s)
                         </span>
-                        {ws.type === "WINDOW" && (
+                        {(ws.type === "WINDOW" || ws.type === "CALLER") && (
                             <div className="text-xs text-foreground/80 leading-5">
                                 {visibleNames.length > 0 ? visibleNames.join(", ") : "No assigned user"}
                                 {remainingCount > 0 && (
@@ -487,22 +508,9 @@ export function WorkstationList({
                         </div>
 
                         {createType === "CALLER" && (
-                            <div className="space-y-2">
-                                <Label>Linked Department (optional)</Label>
-                                <Select value={createDepartmentId} onValueChange={setCreateDepartmentId} disabled={isCreating}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Generic Caller (All Departments)" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Generic Caller (All Departments)</SelectItem>
-                                        {departments.map((department) => (
-                                            <SelectItem key={department.id} value={department.id}>
-                                                {department.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <p className="text-xs text-muted-foreground leading-6">
+                                Caller workstations are now reusable parent lanes. Department-specific child stations will be created automatically when you assign a clinic caller to a department.
+                            </p>
                         )}
 
                         <div className="space-y-2">

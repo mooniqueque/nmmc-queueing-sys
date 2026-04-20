@@ -171,6 +171,9 @@ model WorkStation {
   isActive     Boolean         @default(true)
   departmentId String?
   department   Department?     @relation(fields: [departmentId], references: [id])
+  parentWorkstationId String?
+  parentWorkstation   WorkStation? @relation("WorkstationHierarchy", fields: [parentWorkstationId], references: [id])
+  childWorkstations   WorkStation[] @relation("WorkstationHierarchy")
   users           User[]
   originatedVisits Visit[]      @relation("KioskVisits")
   triageVisits     Visit[]      @relation("TriageVisits")
@@ -289,8 +292,10 @@ model PriorityCategory {
   name         String
   code         String
   isPriority   Boolean            @default(false)
+  templateId   String?
   departmentId String?
   department   Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  template     QueueOptionTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   parentId     String?
   parent       PriorityCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children     PriorityCategory[] @relation("CategoryHierarchy")
@@ -298,7 +303,26 @@ model PriorityCategory {
 
   @@unique([departmentId, code])
   @@unique([departmentId, name])
+  @@unique([departmentId, templateId])
+  @@index([templateId])
   @@map("priority_category")
+}
+
+model QueueOptionTemplate {
+  id         String             @id @default(cuid())
+  name       String
+  code       String
+  isPriority Boolean            @default(false)
+  sortOrder  Int
+  isActive   Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  categories PriorityCategory[]
+
+  @@unique([code])
+  @@unique([name])
+  @@unique([sortOrder])
+  @@map("queue_option_template")
 }
 
 model VisitPriorityCategory {

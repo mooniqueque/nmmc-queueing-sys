@@ -16,8 +16,11 @@ export interface SessionUser {
     role: string;
     workstationId?: string;
     workstation?: {
+        id?: string;
         name: string;
         stationNo: number;
+        departmentId?: string;
+        parentWorkstationId?: string | null;
         pairedStationId?: string;
     };
 }
@@ -35,8 +38,11 @@ export interface UserData {
     employeeID: string;
     workstationId?: string;
     workstation?: {
+        id?: string;
         name: string;
         stationNo: number;
+        departmentId?: string;
+        parentWorkstationId?: string | null;
         pairedStationId?: string;
     };
     departmentAccess?: DepartmentAccessSummary[];

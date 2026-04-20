@@ -22,22 +22,187 @@ const getRequiredStationType = (role: string) => {
 };
 
 class AuthController {
-    private async ensureWorkstationRules(params: {
+    private async findDepartmentByAnyIdentifier(params: {
+        departmentId?: string | null;
+        departmentName?: string | null;
+    }) {
+        const normalizedId = params.departmentId?.trim();
+        if (normalizedId) {
+            const department = await db.department.findUnique({
+                where: { id: normalizedId },
+                select: { id: true, name: true, code: true },
+            });
+            if (department) return department;
+        }
+
+        const normalizedName = params.departmentName?.trim().toUpperCase();
+        if (!normalizedName) return null;
+
+        return db.department.findUnique({
+            where: { name: normalizedName },
+            select: { id: true, name: true, code: true },
+        });
+    }
+
+    private async getPreferredCallerDepartment(userId: string) {
+        const assignedDepartment = await db.userDepartmentAccess.findFirst({
+            where: { userId, isEnabled: true },
+            include: {
+                department: {
+                    select: { id: true, name: true, code: true },
+                },
+            },
+            orderBy: {
+                department: {
+                    name: 'asc',
+                },
+            },
+        });
+
+        if (assignedDepartment?.department) {
+            return assignedDepartment.department;
+        }
+
+        const user = await db.user.findUnique({
+            where: { id: userId },
+            select: {
+                departmentId: true,
+                department: true,
+                workstation: {
+                    select: {
+                        department: {
+                            select: { id: true, name: true, code: true },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (user?.workstation?.department) {
+            return user.workstation.department;
+        }
+
+        if (user?.departmentId || user?.department) {
+            return this.findDepartmentByAnyIdentifier({
+                departmentId: user.departmentId ?? undefined,
+                departmentName: user.department ?? undefined,
+            });
+        }
+
+        return null;
+    }
+
+    private async ensureStationAvailable(params: {
+        workstationId?: string | null;
+        userId?: string;
+        stationName: string;
+        stationNo: number;
+    }) {
+        const { workstationId, userId, stationName, stationNo } = params;
+        const occupiedBy = await db.user.findFirst({
+            where: {
+                workstationId,
+                isActive: true,
+                role: { in: [...STATION_LOCKED_ROLES] as any[] },
+                ...(userId ? { id: { not: userId } } : {}),
+            },
+            select: { id: true, name: true, email: true },
+        });
+
+        if (occupiedBy) {
+            throw new AppError(
+                `${stationName} (#${stationNo}) is already assigned to ${occupiedBy.name} (${occupiedBy.email}). Please choose another station.`,
+                409,
+                'WORKSTATION_ALREADY_ASSIGNED'
+            );
+        }
+    }
+
+    private async getOrCreateCallerChildStation(params: {
+        parentStation: {
+            id: string;
+            name: string;
+            stationNo: number;
+            queueMode?: string | null;
+        };
+        department: {
+            id: string;
+            name: string;
+            code: string;
+        };
+    }) {
+        const { parentStation, department } = params;
+        const existing = await db.workStation.findFirst({
+            where: {
+                parentWorkstationId: parentStation.id,
+                departmentId: department.id,
+            },
+            select: {
+                id: true,
+                name: true,
+                stationNo: true,
+                type: true,
+                departmentId: true,
+            },
+        });
+
+        if (existing) {
+            return existing;
+        }
+
+        return db.workStation.create({
+            data: {
+                name: `${parentStation.name} - ${department.code}`,
+                type: 'CALLER',
+                queueMode: (parentStation.queueMode as 'MIXED' | 'PRIORITY_ONLY' | 'REGULAR_ONLY' | null | undefined) ?? 'MIXED',
+                stationNo: parentStation.stationNo,
+                departmentId: department.id,
+                parentWorkstationId: parentStation.id,
+            },
+            select: {
+                id: true,
+                name: true,
+                stationNo: true,
+                type: true,
+                departmentId: true,
+            },
+        });
+    }
+
+    private async resolveEffectiveWorkstation(params: {
         workstationId?: string | null;
         role?: string | null;
         userId?: string;
+        departmentId?: string | null;
+        departmentName?: string | null;
     }) {
-        const { workstationId, role, userId } = params;
+        const { workstationId, role, userId, departmentId, departmentName } = params;
 
         if (isStationLockedRole(role) && !workstationId) {
             throw new AppError('A workstation is required for this role.', 400, 'WORKSTATION_REQUIRED');
         }
 
-        if (!workstationId) return;
+        if (!workstationId) return null;
 
         const station = await db.workStation.findUnique({
             where: { id: workstationId },
-            select: { id: true, name: true, stationNo: true, type: true },
+            select: {
+                id: true,
+                name: true,
+                stationNo: true,
+                type: true,
+                queueMode: true,
+                departmentId: true,
+                parentWorkstationId: true,
+                parentWorkstation: {
+                    select: {
+                        id: true,
+                        name: true,
+                        stationNo: true,
+                        queueMode: true,
+                    },
+                },
+            },
         });
 
         if (!station) {
@@ -53,25 +218,60 @@ class AuthController {
             );
         }
 
-        if (!isStationLockedRole(role)) return;
+        if (!isStationLockedRole(role)) {
+            return station.id;
+        }
 
-        const occupiedBy = await db.user.findFirst({
-            where: {
-                workstationId,
-                isActive: true,
-                role: { in: [...STATION_LOCKED_ROLES] as any[] },
-                ...(userId ? { id: { not: userId } } : {}),
-            },
-            select: { id: true, name: true, email: true },
-        });
+        if (role !== 'CLINIC_CALLER') {
+            await this.ensureStationAvailable({
+                workstationId: station.id,
+                userId,
+                stationName: station.name,
+                stationNo: station.stationNo,
+            });
+            return station.id;
+        }
 
-        if (occupiedBy) {
+        const resolvedDepartment = await this.findDepartmentByAnyIdentifier({
+            departmentId: departmentId ?? undefined,
+            departmentName: departmentName ?? undefined,
+        }) ?? (userId ? await this.getPreferredCallerDepartment(userId) : null);
+
+        if (!resolvedDepartment) {
             throw new AppError(
-                `${station.name} (#${station.stationNo}) is already assigned to ${occupiedBy.name} (${occupiedBy.email}). Please choose another station.`,
-                409,
-                'WORKSTATION_ALREADY_ASSIGNED'
+                'Clinic caller workstation assignment requires a department.',
+                400,
+                'CALLER_DEPARTMENT_REQUIRED'
             );
         }
+
+        let effectiveStationId = station.id;
+        let effectiveStationName = station.name;
+        let effectiveStationNo = station.stationNo;
+        if (!station.departmentId && !station.parentWorkstationId) {
+            const childStation = await this.getOrCreateCallerChildStation({
+                parentStation: station,
+                department: resolvedDepartment,
+            });
+            effectiveStationId = childStation.id;
+            effectiveStationName = childStation.name;
+            effectiveStationNo = childStation.stationNo;
+        } else if (station.departmentId && station.departmentId !== resolvedDepartment.id) {
+            throw new AppError(
+                'Selected caller station belongs to a different department.',
+                409,
+                'WORKSTATION_DEPARTMENT_MISMATCH'
+            );
+        }
+
+        await this.ensureStationAvailable({
+            workstationId: effectiveStationId,
+            userId,
+            stationName: effectiveStationName,
+            stationNo: effectiveStationNo,
+        });
+
+        return effectiveStationId;
     }
 
     adminCreateUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -89,9 +289,11 @@ class AuthController {
             departmentId = dept?.id;
         }
 
-        await this.ensureWorkstationRules({
+        const effectiveWorkstationId = await this.resolveEffectiveWorkstation({
             workstationId: normalizedWorkstationId,
             role,
+            departmentId,
+            departmentName: department,
         });
 
         await auth.api.signUpEmail({
@@ -103,7 +305,7 @@ class AuthController {
                 role: role as any, 
                 department,
                 departmentId: (departmentId as string) || undefined,
-                workstationId: normalizedWorkstationId,
+                workstationId: effectiveWorkstationId || undefined,
                 birthDate: new Date().toISOString(), contactNumber: '09000000000',
             } as any,
         });
@@ -119,7 +321,7 @@ class AuthController {
 
         if (!targetUser) throw new AppError('User not found', 404);
 
-        await this.ensureWorkstationRules({
+        await this.resolveEffectiveWorkstation({
             workstationId: targetUser.workstationId,
             role: req.body.role,
             userId: req.params.id,
@@ -139,7 +341,7 @@ class AuthController {
 
             if (!targetUser) throw new AppError('User not found', 404);
 
-            await this.ensureWorkstationRules({
+            await this.resolveEffectiveWorkstation({
                 workstationId: targetUser.workstationId,
                 role: targetUser.role,
                 userId: targetUser.id,
@@ -278,6 +480,52 @@ class AuthController {
 
         await db.$transaction(operations);
 
+        if (user.role === 'CLINIC_CALLER') {
+            const activeDepartmentId = validAssignments.find((assignment) => assignment.isEnabled)?.departmentId ?? null;
+
+            if (!activeDepartmentId) {
+                await db.user.update({
+                    where: { id: req.params.id },
+                    data: {
+                        departmentId: null,
+                        department: null,
+                        workstationId: null,
+                    },
+                });
+            } else {
+                const activeDepartment = await db.department.findUnique({
+                    where: { id: activeDepartmentId },
+                    select: { id: true, name: true },
+                });
+
+                const currentUser = await db.user.findUnique({
+                    where: { id: req.params.id },
+                    select: {
+                        workstationId: true,
+                    },
+                });
+
+                let nextWorkstationId = currentUser?.workstationId ?? null;
+                if (currentUser?.workstationId) {
+                    nextWorkstationId = await this.resolveEffectiveWorkstation({
+                        workstationId: currentUser.workstationId,
+                        role: 'CLINIC_CALLER',
+                        userId: req.params.id,
+                        departmentId: activeDepartmentId,
+                    });
+                }
+
+                await db.user.update({
+                    where: { id: req.params.id },
+                    data: {
+                        departmentId: activeDepartmentId,
+                        department: activeDepartment?.name ?? null,
+                        workstationId: nextWorkstationId,
+                    },
+                });
+            }
+        }
+
         res.status(200).json({ success: true });
     });
 
@@ -331,16 +579,18 @@ class AuthController {
         if (!targetUser) throw new AppError('User not found', 404);
 
         const workstationId = req.body.workstationId || null;
+        const departmentId = req.body.departmentId || null;
 
-        await this.ensureWorkstationRules({
+        const effectiveWorkstationId = await this.resolveEffectiveWorkstation({
             workstationId,
             role: targetUser.role,
             userId: targetUser.id,
+            departmentId,
         });
 
         await db.user.update({ 
             where: { id: req.params.id }, 
-            data: { workstationId } 
+            data: { workstationId: effectiveWorkstationId } 
         });
         res.status(200).json({ success: true });
     });

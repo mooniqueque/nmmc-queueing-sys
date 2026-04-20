@@ -8,14 +8,26 @@ import { Clock } from "@phosphor-icons/react";
 import { BarChart2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-export type SidebarTab = "ALL" | "NO_SHOW" | "REPORTS";
 
-const isWindowScopedNoShow = (visit: VisitWithPatient) =>
-    visit.status === "NO_SHOW" && Boolean(visit.sequenceKey?.startsWith("WINDOW_"));
+function getVisitBadgeCode(visit: VisitWithPatient) {
+    const explicitCode = visit.categories
+        ?.map((entry) => entry.category?.code?.trim().toUpperCase())
+        .find((code): code is string => Boolean(code));
+
+    if (explicitCode) {
+        return explicitCode;
+    }
+
+    return visit.classification === "PRIORITY" ? "PRIO" : "REG";
+}
+
+export type SidebarTab = "PRIORITY" | "REGULAR" | "NO_SHOW" | "REPORTS";
 
 interface ReleasingQueueSidebarProps {
-    items: VisitWithPatient[];
-    counts: { ALL: number; NO_SHOW: number;[key: string]: number };
+    priorityItems: VisitWithPatient[];
+    regularItems: VisitWithPatient[];
+    noShowItems: VisitWithPatient[];
+    counts: { PRIORITY: number; REGULAR: number; NO_SHOW: number };
     activeTab: SidebarTab;
     onTabChange: (tab: SidebarTab) => void;
     isLocked: boolean;
@@ -25,7 +37,9 @@ interface ReleasingQueueSidebarProps {
 }
 
 export function ReleasingQueueSidebar({
-    items,
+    priorityItems,
+    regularItems,
+    noShowItems,
     counts,
     activeTab,
     onTabChange,
@@ -46,11 +60,11 @@ export function ReleasingQueueSidebar({
     const renderList = (filterTab: SidebarTab) => {
         if (filterTab === "REPORTS") return null;
 
-        const filteredItems = items.filter(v => {
-            if (filterTab === "ALL") return v.status !== "NO_SHOW";
-            if (filterTab === "NO_SHOW") return isWindowScopedNoShow(v);
-            return v.classification === filterTab && v.status !== "NO_SHOW";
-        });
+        const filteredItems = filterTab === "PRIORITY"
+            ? priorityItems
+            : filterTab === "REGULAR"
+                ? regularItems
+                : noShowItems;
 
         if (filteredItems.length === 0) {
             const emptyLabel = filterTab === "NO_SHOW"
@@ -59,11 +73,12 @@ export function ReleasingQueueSidebar({
             return <EmptyQueueState label={emptyLabel} />;
         }
 
-        return filteredItems.map(visit => (
+        return filteredItems.map((visit, index) => (
             <QueueCard
                 key={visit.id}
                 visit={visit}
                 nowMs={nowMs}
+                isNext={index === 0}
                 action={
                     visit.status === "NO_SHOW" ? (
                         <Button
@@ -86,7 +101,7 @@ export function ReleasingQueueSidebar({
     };
 
     return (
-        <div className="flex flex-col h-full w-full bg-card rounded-2xl border border-border overflow-hidden shrink-0">
+        <div className="flex flex-col h-auto max-h-[45vh] lg:max-h-none lg:h-full w-full bg-card rounded-2xl border border-border overflow-hidden shrink-0">
             {/* Header */}
             <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center shrink-0">
                 <div>
@@ -97,7 +112,7 @@ export function ReleasingQueueSidebar({
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => onTabChange(activeTab === "REPORTS" ? "ALL" : "REPORTS")}
+                        onClick={() => onTabChange(activeTab === "REPORTS" ? "PRIORITY" : "REPORTS")}
                         className="h-10 px-4 text-sm font-semibold border-orange-200 bg-yellow-100 hover:bg-yellow-50 rounded-lg"
                     >
                         <BarChart2 className="w-4 h-4 mr-2" />
@@ -109,13 +124,24 @@ export function ReleasingQueueSidebar({
             {/* Tabs */}
             <div className="flex border-b border-border bg-background">
                 <button
-                    onClick={() => onTabChange("ALL")}
+                    onClick={() => onTabChange("PRIORITY")}
                     disabled={isLocked}
-                    className={`flex-1 py-4 text-sm font-semibold transition-all relative ${activeTab === "ALL" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    className={`flex-1 py-4 text-sm font-semibold transition-all relative ${activeTab === "PRIORITY" ? "text-primary" : "text-muted-foreground hover:text-foreground"
                         }`}
                 >
-                    Active Queue ({counts.ALL})
-                    {activeTab === "ALL" && (
+                    Priority ({counts.PRIORITY})
+                    {activeTab === "PRIORITY" && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                    )}
+                </button>
+                <button
+                    onClick={() => onTabChange("REGULAR")}
+                    disabled={isLocked}
+                    className={`flex-1 py-4 text-sm font-semibold transition-all relative ${activeTab === "REGULAR" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                >
+                    Regular ({counts.REGULAR})
+                    {activeTab === "REGULAR" && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
                     )}
                 </button>
@@ -134,9 +160,14 @@ export function ReleasingQueueSidebar({
 
             {/* List Body */}
             <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
-                {activeTab === "ALL" && (
+                {activeTab === "PRIORITY" && (
                     <div className="p-4 sm:p-5 space-y-3">
-                        {renderList("ALL")}
+                        {renderList("PRIORITY")}
+                    </div>
+                )}
+                {activeTab === "REGULAR" && (
+                    <div className="p-4 sm:p-5 space-y-3">
+                        {renderList("REGULAR")}
                     </div>
                 )}
                 {activeTab === "NO_SHOW" && (
@@ -160,24 +191,32 @@ export function ReleasingQueueSidebar({
 function QueueCard({
     visit,
     nowMs,
+    isNext,
     action,
 }: {
     visit: VisitWithPatient;
     nowMs: number | null;
+    isNext: boolean;
     action?: ReactNode;
 }) {
     const createdAtMs = new Date(visit.createdAt).getTime();
     const waitMins = Math.max(0, Math.floor(((nowMs ?? createdAtMs) - createdAtMs) / 60000));
     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
+    const badgeCode = getVisitBadgeCode(visit);
 
     return (
-        <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm flex flex-col gap-2 relative">
+        <div className={`rounded-2xl border border-slate-100 bg-white p-3 shadow-sm flex flex-col gap-2 relative ${isNext ? "ring-1 ring-emerald-200" : ""}`}>
+            {isNext && (
+                <span className="absolute -top-2 left-3 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    Next
+                </span>
+            )}
             <div className="flex justify-between items-start">
                 <div className="text-xl font-semibold text-foreground leading-snug wrap-anywhere">
                     {visit.patient.lastName}, <span className="font-semibold text-muted-foreground">{visit.patient.firstName}</span>
                 </div>
                 <Badge variant="outline" className={`font-semibold text-xs rounded-full ${visit.classification === 'PRIORITY' ? 'text-rose-600 border-rose-200 bg-rose-50/70' : 'text-emerald-700 border-emerald-200 bg-emerald-50'}`}>
-                    {visit.classification === 'PRIORITY' ? 'PRIO' : 'REG'}
+                    {badgeCode}
                 </Badge>
             </div>
             <div className="flex items-center justify-between mt-1">

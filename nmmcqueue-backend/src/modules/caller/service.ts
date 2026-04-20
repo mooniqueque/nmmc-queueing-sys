@@ -1,24 +1,16 @@
+import { SseEventType } from '@nmmc/types';
+import type { Prisma } from '@prisma/client';
 import { db } from '../../config/database.js';
 import { withClaimConflictRetry } from '../../lib/claim-retry.js';
 import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.js';
 import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishDepartmentEvent, publishDepartmentMonitorEvent, publishDepartmentStatusUpdate } from '../../lib/sse.js';
-import { SseEventType } from '@nmmc/types';
 import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
 
-const normalizeOption = (v: string) => v.trim().toUpperCase();
 const normalizeDepartmentKey = (v: string) => v.trim().toUpperCase();
-
-const DEFAULT_QUEUE_OPTIONS: Array<{ name: string; code: string; isPriority: boolean }> = [
-    { name: 'REGULAR', code: 'REG', isPriority: false },
-    { name: 'PWD', code: 'PWD', isPriority: true },
-    { name: 'SENIOR CITIZEN', code: 'SNR', isPriority: true },
-    { name: 'PREGNANT', code: 'PREG', isPriority: true },
-    { name: 'ER-REFERRAL', code: 'ER-REF', isPriority: true },
-];
 
 const QUEUE_CODE_PATTERN = /^[A-Z0-9-]{2,6}$/;
 
@@ -30,51 +22,95 @@ function normalizeQueueCode(value: string) {
     return value.trim().toUpperCase();
 }
 
-function compactLetters(value: string) {
-    return value.replace(/[^A-Z0-9]/g, '');
-}
-
-function canonicalDefaultCode(option: { name: string; code: string }): 'REG' | 'PWD' | 'SNR' | 'PREG' | 'ER-REF' | null {
-    const code = normalizeQueueCode(option.code);
-    const name = normalizeQueueName(option.name);
-    const compactName = compactLetters(name);
-    const compactCode = compactLetters(code);
-
-    if (compactCode === 'REG' || compactCode === 'REGULAR' || compactName === 'REGULAR') return 'REG';
-    if (compactCode === 'PWD' || compactName === 'PWD') return 'PWD';
-    if (compactCode === 'SNR' || compactCode === 'SENIOR' || compactName.includes('SENIOR')) return 'SNR';
-    if (compactCode === 'PREG' || compactCode === 'PREGNANT' || compactName === 'PREGNANT') return 'PREG';
-    if (
-        compactCode === 'ERREF' ||
-        compactCode === 'ERREFERRAL' ||
-        compactName === 'ERREF' ||
-        compactName === 'ERREFERRAL'
-    ) return 'ER-REF';
-
-    return null;
-}
-
-function pickCanonicalDefault(defaultCode: 'REG' | 'PWD' | 'SNR' | 'PREG' | 'ER-REF') {
-    const item = DEFAULT_QUEUE_OPTIONS.find((option) => option.code === defaultCode);
-    if (!item) throw new AppError('Invalid default queue code mapping.', 500, 'DEFAULT_MAPPING_ERROR');
-    return item;
-}
-
 class CallerService {
-    private async ensureDefaultQueueOptionsIfNone(departmentId: string) {
-        const existingCount = await db.priorityCategory.count({
+    private async getActiveQueueOptionTemplates(tx: Prisma.TransactionClient | typeof db = db) {
+        const templates = await tx.queueOptionTemplate.findMany({
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+            select: { id: true, name: true, code: true, isPriority: true, sortOrder: true },
+        });
+
+        if (templates.length === 0) {
+            throw new AppError(
+                'Queue option templates are missing. Run the database seed to initialize defaults.',
+                500,
+                'QUEUE_TEMPLATE_MISSING'
+            );
+        }
+
+        return templates;
+    }
+
+    private async ensureTemplateQueueOptions(
+        departmentId: string,
+        tx: Prisma.TransactionClient | typeof db = db
+    ) {
+        const templates = await this.getActiveQueueOptionTemplates(tx);
+        const categories = await tx.priorityCategory.findMany({
             where: { departmentId },
+            select: { id: true, name: true, code: true, isPriority: true, templateId: true },
         });
 
-        if (existingCount > 0) return;
+        for (const template of templates) {
+            const templateMatches = categories.filter((item) => item.templateId === template.id);
+            if (templateMatches.length > 0) {
+                const keeper = templateMatches[0];
 
-        await db.priorityCategory.createMany({
-            data: DEFAULT_QUEUE_OPTIONS.map((option) => ({
-                ...option,
-                departmentId,
-            })),
-            skipDuplicates: true,
-        });
+                if (
+                    keeper.name !== template.name ||
+                    keeper.code !== template.code ||
+                    keeper.isPriority !== template.isPriority
+                ) {
+                    await tx.priorityCategory.update({
+                        where: { id: keeper.id },
+                        data: {
+                            name: template.name,
+                            code: template.code,
+                            isPriority: template.isPriority,
+                        },
+                    });
+                }
+
+                if (templateMatches.length > 1) {
+                    for (const duplicate of templateMatches.slice(1)) {
+                        await tx.priorityCategory.update({
+                            where: { id: duplicate.id },
+                            data: { templateId: null },
+                        });
+                    }
+                }
+
+                continue;
+            }
+
+            const matchedByCodeOrName = categories.find((item) =>
+                normalizeQueueCode(item.code) === template.code ||
+                normalizeQueueName(item.name) === template.name
+            );
+
+            if (matchedByCodeOrName) {
+                await tx.priorityCategory.update({
+                    where: { id: matchedByCodeOrName.id },
+                    data: {
+                        templateId: template.id,
+                        name: template.name,
+                        code: template.code,
+                        isPriority: template.isPriority,
+                    },
+                });
+                continue;
+            }
+
+            await tx.priorityCategory.create({
+                data: {
+                    departmentId,
+                    templateId: template.id,
+                    name: template.name,
+                    code: template.code,
+                    isPriority: template.isPriority,
+                },
+            });
+        }
     }
 
     async getResolvedScope(userId?: string) {
@@ -94,17 +130,15 @@ class CallerService {
         };
     }
 
-    private sortQueueOptions<T extends { code: string; name: string }>(options: T[]): T[] {
-        const orderMap = new Map(DEFAULT_QUEUE_OPTIONS.map((option, index) => [option.code, index]));
-
+    private sortQueueOptions<
+        T extends { code: string; name: string; template?: { sortOrder: number } | null }
+    >(options: T[]): T[] {
         return [...options].sort((a, b) => {
-            const aCode = normalizeOption(a.code);
-            const bCode = normalizeOption(b.code);
-            const aIndex = orderMap.has(aCode) ? orderMap.get(aCode)! : Number.POSITIVE_INFINITY;
-            const bIndex = orderMap.has(bCode) ? orderMap.get(bCode)! : Number.POSITIVE_INFINITY;
+            const aOrder = a.template?.sortOrder ?? Number.POSITIVE_INFINITY;
+            const bOrder = b.template?.sortOrder ?? Number.POSITIVE_INFINITY;
 
-            if (aIndex !== bIndex) {
-                return aIndex - bIndex;
+            if (aOrder !== bOrder) {
+                return aOrder - bOrder;
             }
 
             return a.name.localeCompare(b.name);
@@ -281,13 +315,7 @@ class CallerService {
                 }
             });
 
-            await tx.priorityCategory.createMany({
-                data: DEFAULT_QUEUE_OPTIONS.map((option) => ({
-                    ...option,
-                    departmentId: department.id,
-                })),
-                skipDuplicates: true,
-            });
+            await this.ensureTemplateQueueOptions(department.id, tx);
 
             return department;
         });
@@ -311,7 +339,15 @@ class CallerService {
 
         const options = await db.priorityCategory.findMany({
             where: { departmentId: dept.id },
-            select: { id: true, name: true, code: true, isPriority: true, parentId: true },
+            select: {
+                id: true,
+                name: true,
+                code: true,
+                isPriority: true,
+                parentId: true,
+                templateId: true,
+                template: { select: { sortOrder: true } },
+            },
         });
 
         return this.sortQueueOptions(options);
@@ -463,7 +499,15 @@ class CallerService {
             select: {
                 name: true,
                 priorityCategories: {
-                    select: { id: true, name: true, code: true, isPriority: true, parentId: true },
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        isPriority: true,
+                        parentId: true,
+                        templateId: true,
+                        template: { select: { sortOrder: true } },
+                    },
                 },
             }
         });
@@ -484,11 +528,19 @@ class CallerService {
             throw new AppError('Department not found.', 404, 'DEPARTMENT_NOT_FOUND');
         }
 
-        await this.ensureDefaultQueueOptionsIfNone(department.id);
+        await this.ensureTemplateQueueOptions(department.id);
 
         const options = await db.priorityCategory.findMany({
             where: { departmentId: department.id },
-            select: { id: true, name: true, code: true, isPriority: true, parentId: true },
+            select: {
+                id: true,
+                name: true,
+                code: true,
+                isPriority: true,
+                parentId: true,
+                templateId: true,
+                template: { select: { sortOrder: true } },
+            },
         });
 
         return this.sortQueueOptions(options);
@@ -498,121 +550,12 @@ class CallerService {
         const departments = await db.department.findMany({ select: { id: true } });
 
         for (const department of departments) {
-            await this.repairDepartmentDefaultQueueOptions(department.id);
+            await this.ensureTemplateQueueOptions(department.id);
         }
 
         return { repairedDepartments: departments.length };
     }
 
-    private async repairDepartmentDefaultQueueOptions(departmentId: string) {
-        await db.$transaction(async (tx) => {
-            const categories = await tx.priorityCategory.findMany({
-                where: { departmentId },
-                select: {
-                    id: true,
-                    name: true,
-                    code: true,
-                    isPriority: true,
-                    _count: { select: { visits: true } },
-                },
-            });
-
-            const grouped = new Map<'REG' | 'PWD' | 'SNR' | 'PREG' | 'ER-REF', typeof categories>();
-            for (const key of ['REG', 'PWD', 'SNR', 'PREG', 'ER-REF'] as const) grouped.set(key, []);
-
-            for (const category of categories) {
-                const code = canonicalDefaultCode({ name: category.name, code: category.code });
-                if (!code) continue;
-                grouped.get(code)!.push(category);
-            }
-
-            for (const defaultCode of ['REG', 'PWD', 'SNR', 'PREG', 'ER-REF'] as const) {
-                const canonical = pickCanonicalDefault(defaultCode);
-                const matches = grouped.get(defaultCode)!;
-
-                if (matches.length === 0) {
-                    await tx.priorityCategory.create({
-                        data: {
-                            departmentId,
-                            name: canonical.name,
-                            code: canonical.code,
-                            isPriority: canonical.isPriority,
-                        },
-                    });
-                    continue;
-                }
-
-                const keeper = matches
-                    .slice()
-                    .sort((a, b) => {
-                        const aExact = Number(a.code === canonical.code && a.name === canonical.name);
-                        const bExact = Number(b.code === canonical.code && b.name === canonical.name);
-                        if (aExact !== bExact) return bExact - aExact;
-
-                        const aCodeMatch = Number(a.code === canonical.code);
-                        const bCodeMatch = Number(b.code === canonical.code);
-                        if (aCodeMatch !== bCodeMatch) return bCodeMatch - aCodeMatch;
-
-                        const aUsed = Number(a._count.visits > 0);
-                        const bUsed = Number(b._count.visits > 0);
-                        if (aUsed !== bUsed) return bUsed - aUsed;
-
-                        return a.id.localeCompare(b.id);
-                    })[0];
-
-                if (
-                    keeper.name !== canonical.name ||
-                    keeper.code !== canonical.code ||
-                    keeper.isPriority !== canonical.isPriority
-                ) {
-                    await tx.priorityCategory.update({
-                        where: { id: keeper.id },
-                        data: {
-                            name: canonical.name,
-                            code: canonical.code,
-                            isPriority: canonical.isPriority,
-                        },
-                    });
-                }
-
-                for (const duplicate of matches) {
-                    if (duplicate.id === keeper.id) continue;
-
-                    const visitLinks = await tx.visitPriorityCategory.findMany({
-                        where: { categoryId: duplicate.id },
-                        select: { visitId: true },
-                    });
-
-                    for (const link of visitLinks) {
-                        await tx.visitPriorityCategory.upsert({
-                            where: {
-                                visitId_categoryId: {
-                                    visitId: link.visitId,
-                                    categoryId: keeper.id,
-                                },
-                            },
-                            update: {},
-                            create: {
-                                visitId: link.visitId,
-                                categoryId: keeper.id,
-                            },
-                        });
-
-                        await tx.visitPriorityCategory.deleteMany({
-                            where: {
-                                visitId: link.visitId,
-                                categoryId: duplicate.id,
-                            },
-                        });
-                    }
-
-                    await tx.priorityCategory.delete({ where: { id: duplicate.id } });
-                }
-            }
-
-            await this.ensureDefaultQueueOptionsIfNone(departmentId);
-        });
-    }
     async createQueueOption(departmentName: string, data: { name: string, code: string, isPriority: boolean, parentId?: string }) {
         const dept = await db.department.findUnique({ where: { name: departmentName.trim().toUpperCase() }, select: { id: true } });
         if (!dept) throw new AppError('Department not found.', 404, 'DEPARTMENT_NOT_FOUND');

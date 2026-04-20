@@ -1,5 +1,5 @@
-import type { DepartmentStatus, SseEnvelope, SseEventType as SharedSseEventType } from "@nmmc/types";
 import { Visit } from "@/shared/types/models";
+import type { DepartmentStatus, SseEventType as SharedSseEventType, SseEnvelope } from "@nmmc/types";
 
 export const SSE_TOPICS = {
     TRIAGE: "triage",

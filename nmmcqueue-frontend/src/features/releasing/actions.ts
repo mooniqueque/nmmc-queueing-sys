@@ -90,8 +90,8 @@ export async function callNextWindow(overrideClassification?: 'PRIORITY' | 'REGU
     return result;
 }
 
-export async function callPriorityClass(priorityTemplateId: string) {
-    const result = await releasingApi.callPriorityClass(priorityTemplateId, {
+export async function callPriorityClass(priorityCategoryKey: string) {
+    const result = await releasingApi.callPriorityClass(priorityCategoryKey, {
         headers: await getServerHeaders(),
     });
     if (result.success) revalidatePath("/releasing", "page");

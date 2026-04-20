@@ -1,4 +1,5 @@
 import type { KioskRegistrationPayload, TriageFormValues, VisitClassification } from '@nmmc/types';
+import { SseEventType } from '@nmmc/types';
 import type { Prisma } from '@prisma/client';
 import { db } from '../../config/database.js';
 import { withClaimConflictRetry } from '../../lib/claim-retry.js';
@@ -6,7 +7,6 @@ import { assertDepartmentAcceptsAssignments } from '../../lib/department-status.
 import logger from '../../lib/logger.js';
 import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
 import { publishSseEvent, SSE_TOPICS } from '../../lib/sse.js';
-import { SseEventType } from '@nmmc/types';
 import { AppError } from '../../middleware/error-handler.js';
 import { monitorService } from '../monitor/service.js';
 import { ticketService } from '../tickets/service.js';
@@ -64,6 +64,14 @@ type NormalizedTriageInput = {
     categoryIds: string[];
     priorityClass?: VisitClassification | string;
 };
+
+function sanitizeTextInput(value?: string | null) {
+    if (value == null) return undefined;
+    const withoutTags = value.replace(/<[^>]*>/g, '');
+    const withoutAngles = withoutTags.replace(/[<>]/g, '');
+    const normalized = withoutAngles.trim();
+    return normalized.length > 0 ? normalized : undefined;
+}
 
 function withTriageQueueTicket<T extends { triageTicket?: number | null }>(visit: T | null) {
     if (!visit) return visit;
@@ -123,6 +131,15 @@ class TriageService {
 
         return {
             ...data,
+            firstName: sanitizeTextInput(data.firstName) || '',
+            middleName: sanitizeTextInput(data.middleName),
+            lastName: sanitizeTextInput(data.lastName) || '',
+            gender: sanitizeTextInput(data.gender) || '',
+            address: sanitizeTextInput(data.address) || '',
+            birthPlace: sanitizeTextInput(data.birthPlace) || '',
+            religion: sanitizeTextInput(data.religion),
+            civilStatus: sanitizeTextInput(data.civilStatus) || '',
+            contactNo: sanitizeTextInput(data.contactNo),
             dateOfBirth,
             hospitalId,
             categoryIds: data.categoryIds || [],
@@ -133,6 +150,14 @@ class TriageService {
         const dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : undefined;
         return {
             ...data,
+            firstName: sanitizeTextInput(data.firstName),
+            middleName: sanitizeTextInput(data.middleName),
+            lastName: sanitizeTextInput(data.lastName),
+            gender: sanitizeTextInput(data.gender),
+            address: sanitizeTextInput(data.address),
+            birthPlace: sanitizeTextInput(data.birthPlace),
+            religion: sanitizeTextInput(data.religion),
+            civilStatus: sanitizeTextInput(data.civilStatus),
             dateOfBirth,
             categoryIds: data.categoryIds || [],
         };

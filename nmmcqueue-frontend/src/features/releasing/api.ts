@@ -101,12 +101,12 @@ export async function callNextWindow(overrideClassification?: 'PRIORITY' | 'REGU
     return res.json();
 }
 
-export async function callPriorityClass(priorityTemplateId: string, options?: RequestInit) {
+export async function callPriorityClass(priorityCategoryKey: string, options?: RequestInit) {
     const res = await fetch(`${API_URL}/releasing/call-priority-class`, {
         method: "POST",
         ...options,
         headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify({ priorityTemplateId }),
+        body: JSON.stringify({ priorityCategoryKey }),
     });
     return res.json();
 }

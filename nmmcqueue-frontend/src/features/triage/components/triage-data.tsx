@@ -3,6 +3,7 @@ import { getPendingQueue, getMyCurrentTriageVisit, getMyAccessibleDepartments } 
 import { TriageEntry } from "./triage-entry";
 import { getServerHeaders } from "@/lib/api/server";
 import { API_URL } from "@/lib/api";
+import { AUTH_GET_VERIFIED_SESSION_URL } from "@/lib/config/auth-endpoints";
 import { SessionUser } from "@/shared/types/auth";
 import { Department } from "@/shared/types/models";
 import { VisitWithPatient } from "../types";
@@ -21,7 +22,7 @@ export default async function TriageData() {
         const [queueRes, currentRes, sessionRes, departmentsRes] = await Promise.all([
             getPendingQueue(),
             getMyCurrentTriageVisit(),
-            fetch(`${API_URL}/auth/get-session`, { headers }),
+            fetch(AUTH_GET_VERIFIED_SESSION_URL, { headers }),
             getMyAccessibleDepartments(),
         ]);
 

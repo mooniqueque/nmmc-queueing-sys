@@ -6,6 +6,7 @@ import { getPendingQueue, getMyCurrentWindowVisit } from '../actions';
 import { ReleasingEntry } from './releasing-entry';
 import { getServerHeaders } from "@/lib/api/server";
 import { API_URL } from "@/lib/api";
+import { AUTH_GET_VERIFIED_SESSION_URL } from "@/lib/config/auth-endpoints";
 import { SessionUser } from "@/shared/types/auth";
 
 export default async function ReleasingData() {
@@ -27,7 +28,7 @@ export default async function ReleasingData() {
             getDepartments(),
             getPendingQueue(),
             getMyCurrentWindowVisit(),
-            fetch(`${API_URL}/auth/get-session`, { headers })
+            fetch(AUTH_GET_VERIFIED_SESSION_URL, { headers })
         ]);
 
         departments = deptResponse.data || [];

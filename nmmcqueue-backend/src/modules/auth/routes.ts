@@ -4,6 +4,7 @@ import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { auth } from './auth.js';
 import { authController } from './controller.js';
+import { getVerifiedSessionUser, rejectInvalidSession } from './session-guard.js';
 import {
     adminCreateUserRequestSchema,
     toggleUserStatusRequestSchema,
@@ -17,6 +18,22 @@ import {
 } from './schema.js';
 
 export const authRouter = Router();
+authRouter.get('/get-session-verified', async (req, res) => {
+    try {
+        const user = await getVerifiedSessionUser(req);
+        if (!user) {
+            return res.status(401).json({ success: false, error: 'Authentication Required' });
+        }
+
+        return res.status(200).json({ user });
+    } catch (error) {
+        if (error instanceof Error && /inactive|authorized/i.test(error.message)) {
+            return rejectInvalidSession(req, res);
+        }
+
+        return res.status(401).json({ success: false, error: 'Authentication Required' });
+    }
+});
 // Better-auth core routes (login, session, etc.) - maps to /api/auth/*
 authRouter.all('/*', toNodeHandler(auth));
 

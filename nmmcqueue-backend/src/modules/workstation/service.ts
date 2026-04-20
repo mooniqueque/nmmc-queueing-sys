@@ -4,8 +4,30 @@ import { emitQueueUpdate } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
 
 class WorkstationService {
-    async getAll() {
+    async getAll(filters?: {
+        departmentId?: string;
+        type?: WorkstationType;
+        includeLegacyCallerParents?: boolean;
+    }) {
+        const departmentId = filters?.departmentId?.trim();
+        const includeLegacyCallerParents = filters?.includeLegacyCallerParents ?? true;
+
+        const where: Record<string, unknown> = {};
+        if (departmentId) {
+            where.departmentId = departmentId;
+        }
+
+        if (filters?.type) {
+            where.type = filters.type;
+        }
+
+        // When querying callers without a departmentId, allow excluding legacy dept-less “lane” parents.
+        if (!departmentId && filters?.type === 'CALLER' && !includeLegacyCallerParents) {
+            where.departmentId = { not: null };
+        }
+
         return await db.workStation.findMany({
+            where,
             include: {
                 department: true,
                 parentWorkstation: {
@@ -75,7 +97,7 @@ class WorkstationService {
                                 type,
                                 queueMode,
                                 stationNo: nextNumber,
-                                ...(type !== 'CALLER' && departmentId ? { departmentId } : {})
+                                ...(departmentId ? { departmentId } : {})
                             }
                         });
                         createdStations.push(station);

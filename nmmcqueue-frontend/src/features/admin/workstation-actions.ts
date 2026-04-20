@@ -28,7 +28,10 @@ export async function createWorkstation(data: { type: string, queueMode?: string
             body: JSON.stringify(data),
         });
         const result = await response.json();
-        if (result.success) revalidatePath("/admin-workstations");
+        if (result.success) {
+            revalidatePath("/admin-workstations");
+            revalidatePath("/admin-departments");
+        }
         return result;
     } catch (error) {
         console.error("Create WS Error:", error);
@@ -47,7 +50,10 @@ export async function updateWorkstation(id: string, data: Partial<{ name: string
             body: JSON.stringify(data),
         });
         const result = await response.json();
-        if (result.success) revalidatePath("/admin-workstations");
+        if (result.success) {
+            revalidatePath("/admin-workstations");
+            revalidatePath("/admin-departments");
+        }
         return result;
     } catch (error) {
         console.error("Update WS Error:", error);
@@ -62,7 +68,10 @@ export async function deleteWorkstation(id: string) {
             headers: await getServerHeaders(),
         });
         const result = await response.json();
-        if (result.success) revalidatePath("/admin-workstations");
+        if (result.success) {
+            revalidatePath("/admin-workstations");
+            revalidatePath("/admin-departments");
+        }
         return result;
     } catch (error) {
         console.error("Delete WS Error:", error);

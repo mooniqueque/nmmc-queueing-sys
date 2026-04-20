@@ -29,7 +29,7 @@ async function publishWindowMonitorDiff(previousSnapshot?: Awaited<ReturnType<ty
             continue;
         }
 
-        if (next?.triageTicket) {
+        if (next?.triageTicket || next?.serviceTicket || (next as { displayTicket?: string | null }).displayTicket) {
             publishSseEvent([SSE_TOPICS.MONITOR_WINDOWS], SseEventType.MONITOR_UPSERT, { window: next });
             continue;
         }

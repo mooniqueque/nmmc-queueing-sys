@@ -17,12 +17,18 @@ export interface WindowStatus {
 }
 
 function toDisplayWindow(window: Partial<WindowStatus>): WindowStatus {
+    const stationNoCandidate = (window as Partial<WindowStatus> & { windowNumber?: number | null }).windowNumber;
+    const stationNo = window.stationNo ?? stationNoCandidate ?? 0;
+    const triageTicket = window.triageTicket ?? null;
+    const serviceTicket = window.serviceTicket ?? null;
+    const displayTicket = window.displayTicket ?? serviceTicket ?? triageTicket ?? null;
+
     return {
-        stationNo: window.stationNo ?? 0,
+        stationNo,
         windowName: window.windowName ?? "",
-        triageTicket: window.triageTicket ?? null,
-        serviceTicket: window.serviceTicket ?? null,
-        displayTicket: window.displayTicket ?? window.serviceTicket ?? window.triageTicket ?? null,
+        triageTicket,
+        serviceTicket,
+        displayTicket,
         classification: window.classification ?? null,
         priorityClass: window.priorityClass ?? null,
         calledAt: window.calledAt ?? null,
@@ -75,7 +81,8 @@ export function useWindowMonitor(slugOrId?: string) {
             if (json.success) {
                 // Determine if backend returned new object format or old array format
                 if (Array.isArray(json.data)) {
-                    setWindows(json.data);
+                    setWindows(json.data.map(toDisplayWindow));
+                    setUpcoming([]);
                 } else if (json.data && json.data.active) {
                     setWindows((json.data.active || []).map(toDisplayWindow));
                     setUpcoming(json.data.upcoming || []);

@@ -34,7 +34,6 @@ class MonitorService {
         const activeVisits = await db.visit.findMany({
             where: {
                 status: 'IN_WINDOW',
-                sequenceKey: { startsWith: 'WINDOW' },
                 queueBusinessDay,
                 windowNumber: { not: null },
             },
@@ -42,6 +41,7 @@ class MonitorService {
             select: {
                 windowNumber: true,
                 triageTicket: true,
+                serviceTicket: true,
                 classification: true,
                 calledAt: true,
                 categories: {
@@ -72,13 +72,17 @@ class MonitorService {
 
         const status = windows.map((window) => {
             const currentVisit = latestVisitByWindow.get(window.stationNo);
+            const ticketNo = currentVisit?.triageTicket ?? currentVisit?.serviceTicket;
+            const formattedTicket = currentVisit
+                ? formatTicket(ticketNo, currentVisit.classification, currentVisit.categories)
+                : null;
+
             return {
                 windowName: window.name,
                 stationNo: window.stationNo,
-                triageTicket: currentVisit
-                    ? formatTicket(currentVisit.triageTicket, currentVisit.classification, currentVisit.categories)
-                    : null,
-                serviceTicket: null,
+                triageTicket: formattedTicket,
+                serviceTicket: formattedTicket,
+                displayTicket: formattedTicket,
                 classification: currentVisit?.classification,
                 calledAt: currentVisit?.calledAt || null,
                 categories: currentVisit?.categories.map(vc => vc.category)

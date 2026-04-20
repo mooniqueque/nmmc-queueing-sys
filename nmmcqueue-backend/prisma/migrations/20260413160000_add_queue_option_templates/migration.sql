@@ -19,7 +19,10 @@ CREATE TABLE `queue_option_template` (
 ALTER TABLE `priority_category`
     ADD COLUMN `templateId` VARCHAR(191) NULL;
 
-CREATE INDEX `priority_category_templateId_fkey` ON `priority_category`(`templateId`);
+CREATE INDEX `priority_category_templateId_idx` ON `priority_category`(`templateId`);
+
+CREATE UNIQUE INDEX `priority_category_departmentId_templateId_key`
+    ON `priority_category`(`departmentId`, `templateId`);
 
 ALTER TABLE `priority_category`
     ADD CONSTRAINT `priority_category_templateId_fkey`

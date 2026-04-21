@@ -16,13 +16,27 @@ export interface WindowStatus {
     calledAt: string | null;
 }
 
+export interface UseWindowMonitorResult {
+    windows: WindowStatus[];
+    upcoming: string[];
+    previousNumbers: WindowStatus[];
+    loading: boolean;
+    currentAnnouncement: ReturnType<typeof useAnnouncementQueue>["currentAnnouncement"];
+}
+
 function toDisplayWindow(window: Partial<WindowStatus>): WindowStatus {
+    const stationNoCandidate = (window as Partial<WindowStatus> & { windowNumber?: number | null }).windowNumber;
+    const stationNo = window.stationNo ?? stationNoCandidate ?? 0;
+    const triageTicket = window.triageTicket ?? null;
+    const serviceTicket = window.serviceTicket ?? null;
+    const displayTicket = window.displayTicket ?? serviceTicket ?? triageTicket ?? null;
+
     return {
-        stationNo: window.stationNo ?? 0,
+        stationNo,
         windowName: window.windowName ?? "",
-        triageTicket: window.triageTicket ?? null,
-        serviceTicket: window.serviceTicket ?? null,
-        displayTicket: window.displayTicket ?? window.serviceTicket ?? window.triageTicket ?? null,
+        triageTicket,
+        serviceTicket,
+        displayTicket,
         classification: window.classification ?? null,
         priorityClass: window.priorityClass ?? null,
         calledAt: window.calledAt ?? null,
@@ -53,9 +67,42 @@ function clearWindowByStation(items: WindowStatus[], stationNo: number) {
     });
 }
 
-export function useWindowMonitor(slugOrId?: string) {
+function sortByCalledAtDesc(left: WindowStatus, right: WindowStatus) {
+    const leftTime = left.calledAt ? new Date(left.calledAt).getTime() : 0;
+    const rightTime = right.calledAt ? new Date(right.calledAt).getTime() : 0;
+    if (leftTime !== rightTime) return rightTime - leftTime;
+    return left.stationNo - right.stationNo;
+}
+
+function getWindowIdentity(window: WindowStatus) {
+    if (window.stationNo > 0) return `station:${window.stationNo}`;
+    return `name:${window.windowName.trim().toUpperCase()}`;
+}
+
+function upsertRecentByCall(current: WindowStatus[], next: WindowStatus) {
+    if (!next.displayTicket) return current;
+
+    const nextIdentity = getWindowIdentity(next);
+    const withoutSameCall = current.filter((item) => {
+        const itemIdentity = getWindowIdentity(item);
+        return !(itemIdentity === nextIdentity && item.displayTicket === next.displayTicket);
+    });
+
+    // Activity-log behavior: newest at top, older rows pushed down.
+    return [next, ...withoutSameCall].slice(0, 5);
+}
+
+function buildRecentNumbers(items: WindowStatus[]) {
+    return [...items]
+        .filter((window) => Boolean(window.displayTicket))
+        .sort(sortByCalledAtDesc)
+        .slice(0, 5);
+}
+
+export function useWindowMonitor(slugOrId?: string): UseWindowMonitorResult {
     const [windows, setWindows] = useState<WindowStatus[]>([]);
     const [upcoming, setUpcoming] = useState<string[]>([]);
+    const [previousNumbers, setPreviousNumbers] = useState<WindowStatus[]>([]);
     const [loading, setLoading] = useState(true);
     const { currentAnnouncement, enqueueAnnouncement } = useAnnouncementQueue();
 
@@ -75,10 +122,22 @@ export function useWindowMonitor(slugOrId?: string) {
             if (json.success) {
                 // Determine if backend returned new object format or old array format
                 if (Array.isArray(json.data)) {
-                    setWindows(json.data);
+                    const nextWindows = json.data.map(toDisplayWindow);
+                    setWindows(nextWindows);
+                    setPreviousNumbers((current) => (current.length > 0 ? current : buildRecentNumbers(nextWindows)));
                 } else if (json.data && json.data.active) {
-                    setWindows((json.data.active || []).map(toDisplayWindow));
-                    setUpcoming(json.data.upcoming || []);
+                    const nextWindows = (json.data.active || []).map(toDisplayWindow);
+                    setWindows(nextWindows);
+                    // Prefer recentCalls from backend; fall back to buildRecentNumbers(active) if not available
+                    const recentCallsFromApi = (json.data.recentCalls || []).map(toDisplayWindow);
+                    setPreviousNumbers((current) => {
+                        if (current.length > 0) return current; // Keep session memory during navigation
+                        if (recentCallsFromApi.length > 0) return recentCallsFromApi; // Hydrate from backend
+                        return buildRecentNumbers(nextWindows); // Fallback to derive from active
+                    });
+                    if (Array.isArray(json.data.upcoming)) {
+                        setUpcoming(json.data.upcoming);
+                    }
                 }
             }
         } catch (error) {
@@ -100,18 +159,33 @@ export function useWindowMonitor(slugOrId?: string) {
                 const data = JSON.parse(event.data) as SseMessage<{
                     active?: WindowStatus[];
                     upcoming?: string[];
+                    recentCalls?: WindowStatus[];
                     window?: WindowStatus;
                     stationNo?: number;
                 }>;
                 if (data.type === SseEventType.MONITOR_SNAPSHOT && data.payload) {
-                    setWindows((data.payload.active || []).map(toDisplayWindow));
-                    setUpcoming(data.payload.upcoming || []);
+                    const nextWindows = (data.payload.active || []).map(toDisplayWindow);
+                    setWindows(nextWindows);
+                    // Prefer recentCalls from SSE snapshot; fall back to buildRecentNumbers(active) if not available
+                    const recentCallsFromSse = (data.payload.recentCalls || []).map(toDisplayWindow);
+                    setPreviousNumbers((current) => {
+                        if (current.length > 0) return current; // Keep session memory during snapshot
+                        if (recentCallsFromSse.length > 0) return recentCallsFromSse; // Hydrate from SSE
+                        return buildRecentNumbers(nextWindows); // Fallback to derive from active
+                    });
+                    if (Array.isArray(data.payload.upcoming)) {
+                        setUpcoming(data.payload.upcoming);
+                    }
                     setLoading(false);
                     return;
                 }
 
                 if (data.type === SseEventType.MONITOR_UPSERT && data.payload?.window) {
-                    setWindows((current) => upsertWindowByStation(current, toDisplayWindow(data.payload!.window!)));
+                    const nextWindow = toDisplayWindow(data.payload.window);
+                    setWindows((current) => upsertWindowByStation(current, nextWindow));
+                    if (nextWindow.displayTicket) {
+                        setPreviousNumbers((current) => upsertRecentByCall(current, nextWindow));
+                    }
                     setLoading(false);
 
                     if (data.payload.window.displayTicket) {
@@ -127,7 +201,6 @@ export function useWindowMonitor(slugOrId?: string) {
 
                 if (data.type === SseEventType.MONITOR_REMOVE && typeof data.payload?.stationNo === "number") {
                     setWindows((current) => clearWindowByStation(current, data.payload!.stationNo!));
-                    setLoading(false);
                     return;
                 }
 
@@ -145,5 +218,5 @@ export function useWindowMonitor(slugOrId?: string) {
         };
     }, [fetchStatus, slugOrId]);
 
-    return { windows, upcoming, loading, currentAnnouncement };
+    return { windows, upcoming, previousNumbers, loading, currentAnnouncement };
 }

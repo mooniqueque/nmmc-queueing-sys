@@ -11,6 +11,97 @@ type MonitorCallerStation = {
 };
 
 class MonitorService {
+    private async getRecentCalls(departmentId?: string) {
+        const queueBusinessDay = getQueueBusinessDay();
+
+        const resolveQueueCode = (
+            classification: string | null | undefined,
+            categories?: Array<{ category?: { code?: string | null } | null }> | null,
+        ) => {
+            const explicitCode = categories
+                ?.map((entry) => entry.category?.code?.trim())
+                .find((code): code is string => Boolean(code));
+            if (explicitCode) return explicitCode.toUpperCase();
+            return classification === 'PRIORITY' ? 'PRIO' : 'REG';
+        };
+
+        const formatTicket = (
+            ticketNo: number | null | undefined,
+            classification: string | null | undefined,
+            categories?: Array<{ category?: { code?: string | null } | null }> | null,
+        ) => {
+            if (!ticketNo) return null;
+            const prefix = resolveQueueCode(classification, categories);
+            return `${prefix}-${String(ticketNo)}`;
+        };
+
+        // Query recent calls (IN_WINDOW status) ordered by most recent first
+        const recentVisits = await db.visit.findMany({
+            where: {
+                status: 'IN_WINDOW',
+                queueBusinessDay,
+                ...(departmentId && { departmentId }),
+                windowNumber: { not: null },
+            },
+            orderBy: { calledAt: 'desc' },
+            take: 5,
+            select: {
+                windowNumber: true,
+                triageTicket: true,
+                serviceTicket: true,
+                classification: true,
+                calledAt: true,
+                categories: {
+                    include: {
+                        category: true,
+                    },
+                },
+            },
+        });
+
+        // Get workstations to map window numbers to names
+        const windowsMap = new Map<number, { stationNo: number; name: string }>();
+        const windows = await db.workStation.findMany({
+            where: { 
+                type: 'WINDOW',
+                isActive: true,
+                ...(departmentId && { departmentId }),
+            },
+        });
+        windows.forEach((w) => windowsMap.set(w.stationNo, { stationNo: w.stationNo, name: w.name }));
+
+        // Format recent calls as WindowStatus objects, deduped by window+ticket
+        const seen = new Set<string>();
+        const recentCalls = recentVisits
+            .map((visit) => {
+                if (visit.windowNumber == null) return null;
+                const window = windowsMap.get(visit.windowNumber);
+                if (!window) return null;
+
+                const ticketNo = visit.triageTicket ?? visit.serviceTicket;
+                const formattedTicket = formatTicket(ticketNo, visit.classification, visit.categories);
+                const callKey = `${window.stationNo}:${formattedTicket}`;
+
+                // Skip duplicate (same window+ticket already seen)
+                if (seen.has(callKey)) return null;
+                seen.add(callKey);
+
+                return {
+                    windowName: window.name,
+                    stationNo: window.stationNo,
+                    triageTicket: formattedTicket,
+                    serviceTicket: formattedTicket,
+                    displayTicket: formattedTicket,
+                    classification: visit.classification,
+                    calledAt: visit.calledAt || null,
+                    categories: visit.categories.map(vc => vc.category)
+                };
+            })
+            .filter(Boolean);
+
+        return recentCalls;
+    }
+
     async getWindowStatus() {
         const queueBusinessDay = getQueueBusinessDay();
 
@@ -34,7 +125,6 @@ class MonitorService {
         const activeVisits = await db.visit.findMany({
             where: {
                 status: 'IN_WINDOW',
-                sequenceKey: { startsWith: 'WINDOW' },
                 queueBusinessDay,
                 windowNumber: { not: null },
             },
@@ -42,6 +132,7 @@ class MonitorService {
             select: {
                 windowNumber: true,
                 triageTicket: true,
+                serviceTicket: true,
                 classification: true,
                 calledAt: true,
                 categories: {
@@ -72,13 +163,17 @@ class MonitorService {
 
         const status = windows.map((window) => {
             const currentVisit = latestVisitByWindow.get(window.stationNo);
+            const ticketNo = currentVisit?.triageTicket ?? currentVisit?.serviceTicket;
+            const formattedTicket = currentVisit
+                ? formatTicket(ticketNo, currentVisit.classification, currentVisit.categories)
+                : null;
+
             return {
                 windowName: window.name,
                 stationNo: window.stationNo,
-                triageTicket: currentVisit
-                    ? formatTicket(currentVisit.triageTicket, currentVisit.classification, currentVisit.categories)
-                    : null,
-                serviceTicket: null,
+                triageTicket: formattedTicket,
+                serviceTicket: formattedTicket,
+                displayTicket: formattedTicket,
                 classification: currentVisit?.classification,
                 calledAt: currentVisit?.calledAt || null,
                 categories: currentVisit?.categories.map(vc => vc.category)
@@ -106,7 +201,9 @@ class MonitorService {
             .map(v => formatTicket(v.triageTicket, v.classification, v.categories) as string)
             .filter(Boolean);
 
-        return { active: status, upcoming };
+        const recentCalls = await this.getRecentCalls();
+
+        return { active: status, upcoming, recentCalls };
     }
 
     async getDepartmentStatus(slugOrId: string) {
@@ -368,7 +465,9 @@ class MonitorService {
             .map(v => formatTicket(v.serviceTicket, v.classification, v.categories) as string)
             .filter(Boolean);
 
-        return { active, upcoming };
+        const recentCalls = await this.getRecentCalls(departmentId);
+
+        return { active, upcoming, recentCalls };
 
     }
 

@@ -13,39 +13,38 @@ interface DepartmentMonitorProps {
 
 export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     const currentTime = useCurrentTime();
-    const { windows, upcoming, loading, currentAnnouncement } = useWindowMonitor(slug);
+    const { windows, previousNumbers, upcoming, currentAnnouncement } = useWindowMonitor(slug);
     const [departmentName, setDepartmentName] = useState("LOADING...");
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
     useEffect(() => {
         fetch(`${API_URL}/monitor/departments-videos`)
-            .then(res => res.json())
-            .then(json => {
-                if (json.success && json.data) {
-                    const dept = json.data.find((d: { slug: string; id: string; name: string; videoUrl: string }) => d.slug === slug || d.id === slug);
-                    if (dept) {
-                        setDepartmentName(dept.name.toUpperCase());
-                        setVideoUrl(dept.videoUrl || null);
-                    }
-                }
-            });
+            .then((res) => res.json())
+            .then((json) => {
+                if (!json.success || !json.data) return;
+                const dept = json.data.find((item: { slug: string; id: string; name: string; videoUrl: string | null }) => item.slug === slug || item.id === slug);
+                if (!dept) return;
+                setDepartmentName(dept.name.toUpperCase());
+                setVideoUrl(dept.videoUrl ?? null);
+            })
+            .catch((err) => console.error("Failed to load department metadata", err));
     }, [slug]);
 
     return (
-        <div className="h-screen w-full overflow-hidden font-sans text-slate-900">
+        <>
             <CallOverlay callData={currentAnnouncement} />
             <MonitorDisplayShell
-                brandTitle={departmentName === "LOADING..." ? "DEPARTMENT" : departmentName}
-                brandSubtitle="Northern Mindanao Medical Center"
-                queueEmptyLabel={loading ? "Loading monitor..." : "No previous calls yet."}
-                upcomingEmptyLabel="No upcoming numbers."
+                brandTitle="Northern Mindanao Medical Center"
+                brandSubtitle={departmentName}
+                queueEmptyLabel="No active stations"
+                upcomingEmptyLabel="No upcoming patients"
                 windows={windows}
+                previousNumbers={previousNumbers}
                 upcoming={upcoming}
                 currentTime={currentTime}
                 videoUrl={videoUrl}
                 videoFallbackLabel="Awaiting Video Loop"
             />
-        </div>
+        </>
     );
 }
-

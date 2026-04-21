@@ -3,25 +3,17 @@
 import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { getDepartments, getQueueOptions } from "@/features/shared/api";
+import { getDepartments } from "@/features/shared/api";
 import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
 import { useClinicSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 import { VisitWithPatient } from "@/features/triage/types";
 import { ApiClientError } from "@/lib/api";
 import { notify } from "@/shared/lib/notify";
 import { calculateAge } from "@/shared/lib/utils";
-import { PriorityCategory } from "@/shared/types/models";
 import {
     ArrowSquareOut,
     ArrowUpRight,
-    CaretDown,
     CheckCircle,
     Clock,
     Heartbeat,
@@ -34,55 +26,23 @@ import {
 } from "@phosphor-icons/react";
 import { BarChart2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { callNextPatient, callPatient, noShowPatient, servePatient, transferPatient } from "../api";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
-
-function getVisitQueueTag(visit: VisitWithPatient) {
-    const explicitTag = visit.categories
-        ?.map((entry) => entry.category?.code?.trim() || entry.category?.name?.trim() || "")
-        .find((value) => value.length > 0);
-
-    if (explicitTag) {
-        return explicitTag.toUpperCase();
-    }
-
-    if (visit.isReferred) {
-        return "REFERRAL";
-    }
-
-    return (visit.classification || "REGULAR").toUpperCase();
-}
-
-function getPriorityOptionLabel(option: PriorityCategory) {
-    const code = option.code?.trim().toUpperCase();
-    const name = option.name?.trim();
-
-    if (code && name && code !== name.toUpperCase()) {
-        return `${code} - ${name}`;
-    }
-
-    return code || name || "Priority";
-}
 
 
 export default function UserCallerDashboard({
     department,
     callerUserId,
-    initialQueue = [],
-    initialReportDate,
+    initialQueue = []
 }: {
     department: string;
     callerUserId: string;
     initialQueue?: VisitWithPatient[];
-    initialReportDate?: string;
 }) {
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
     const [callAgainCooldown, setCallAgainCooldown] = useState(0);
-    const [localClaimedVisit, setLocalClaimedVisit] = useState<VisitWithPatient | null>(null);
-    const [optimisticVisits, setOptimisticVisits] = useState<Record<string, VisitWithPatient>>({});
-    const [departmentQueueOptions, setDepartmentQueueOptions] = useState<PriorityCategory[]>([]);
     const {
         activeTab, setActiveTab,
         allDepartments, setDepartments,
@@ -90,7 +50,6 @@ export default function UserCallerDashboard({
         targetDeptId, setTargetDeptId,
         resetReferral
     } = useCallerStore();
-    const [nowMs, setNowMs] = useState<number | null>(null);
 
     useEffect(() => {
         getDepartments().then(res => {
@@ -98,56 +57,21 @@ export default function UserCallerDashboard({
         });
     }, [setDepartments]);
 
-    useEffect(() => {
-        if (!department?.trim()) {
-            setDepartmentQueueOptions([]);
-            return;
-        }
-
-        getQueueOptions(department)
-            .then((options) => {
-                setDepartmentQueueOptions(Array.isArray(options) ? options : []);
-            })
-            .catch(() => {
-                setDepartmentQueueOptions([]);
-            });
-    }, [department]);
-
-        useEffect(() => {
-            const updateNow = () => setNowMs(Date.now());
-            updateNow();
-            const intervalId = window.setInterval(updateNow, 60_000);
-
-            return () => window.clearInterval(intervalId);
-        }, []);
-
     // Live Queue Hook locked directly to the user's role department
     const { activeQueue } = useClinicQueue(department, initialQueue, callerUserId);
 
-        const [reportDate, setReportDate] = useState(initialReportDate ?? getTodayBusinessDay());
+    const [reportDate, setReportDate] = useState(getTodayBusinessDay());
+    const lastSpeechRef = useRef<{ key: string; ts: number }>({ key: "", ts: 0 });
 
     // Filter queue to make absolutely sure we only count tickets for THIS department
-    const departmentQueue = useMemo(() => {
-        const mergedQueue = new Map<string, VisitWithPatient>();
-
-        for (const visit of activeQueue) {
-            mergedQueue.set(visit.id, visit);
-        }
-
-        for (const visit of Object.values(optimisticVisits)) {
-            mergedQueue.set(visit.id, visit);
-        }
-
-        return Array.from(mergedQueue.values()).filter((v: VisitWithPatient) =>
-            v.department?.name?.toUpperCase() === department.toUpperCase()
-        );
-    }, [activeQueue, department, optimisticVisits]);
+    const departmentQueue = activeQueue.filter((v: VisitWithPatient) =>
+        v.department?.name?.toUpperCase() === department.toUpperCase()
+    );
 
     // Simplistic handling of what is "Now Serving" vs "Waitlist"
     const inProgressVisit = departmentQueue.find(
         (v) => v.status === "IN_PROGRESS" && v.calledByUserId === callerUserId
     );
-    const activeVisit = inProgressVisit ?? localClaimedVisit;
     const waitingList = departmentQueue.filter(v => v.status === "WAITING_CLINIC");
     
     // Regular: Standard classification and NOT referred
@@ -165,16 +89,7 @@ export default function UserCallerDashboard({
     }, [priorityWaitingList, regularWaitingList]);
 
     const noShowList = departmentQueue.filter(
-        (v) =>
-            v.status === "NO_SHOW" &&
-            Boolean(v.sequenceKey?.startsWith("DEPT_")) &&
-            v.calledByUserId === callerUserId
-    );
-    const priorityCallOptions = useMemo(
-        () => departmentQueueOptions
-            .filter((option) => option.isPriority)
-            .sort((a, b) => a.name.localeCompare(b.name)),
-        [departmentQueueOptions]
+        v => v.status === "NO_SHOW" && Boolean(v.sequenceKey?.startsWith("DEPT_"))
     );
     const canCallRegular = regularWaitingList.length > 0;
     const canCallPriority = priorityWaitingList.length > 0;
@@ -205,6 +120,88 @@ export default function UserCallerDashboard({
         notify.error(fallbackMessage);
     };
 
+    const selectPreferredFemaleVoice = useCallback((voices: SpeechSynthesisVoice[]) => {
+        const femaleHints = ["zira", "samantha", "victoria", "aria", "jenny", "hazel", "susan", "female"];
+        const englishVoices = voices.filter((voice) => voice.lang?.toLowerCase().startsWith("en"));
+
+        const exactPreferred = englishVoices.find((voice) => {
+            const name = voice.name.toLowerCase();
+            return name.includes("zira") || name.includes("aria") || name.includes("jenny");
+        });
+        if (exactPreferred) return exactPreferred;
+
+        const hintedFemale = englishVoices.find((voice) => {
+            const name = voice.name.toLowerCase();
+            return femaleHints.some((hint) => name.includes(hint));
+        });
+        if (hintedFemale) return hintedFemale;
+
+        return englishVoices[0] || voices[0] || null;
+    }, []);
+
+    const speakCallerAnnouncement = useCallback((
+        ticketNo: number | null | undefined,
+        classification?: "REGULAR" | "PRIORITY" | null,
+        retries = 3
+    ) => {
+        if (!ticketNo || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+        try {
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length === 0 && retries > 0) {
+                setTimeout(() => speakCallerAnnouncement(ticketNo, classification, retries - 1), 250);
+                return;
+            }
+
+            const prefix = classification === "PRIORITY" ? "PRIO" : "REG";
+            const formattedTicket = `${prefix}-${String(ticketNo).padStart(3, "0")}`;
+            const speechKey = `${formattedTicket}|${department}`;
+            const now = Date.now();
+            if (lastSpeechRef.current.key === speechKey && now - lastSpeechRef.current.ts < 1000) {
+                return;
+            }
+            lastSpeechRef.current = { key: speechKey, ts: now };
+
+            const utterance = new SpeechSynthesisUtterance(
+                `Now serving ${formattedTicket}. Please proceed to ${department} station.`
+            );
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            utterance.lang = "en-US";
+
+            const femaleVoice = selectPreferredFemaleVoice(voices);
+            if (femaleVoice) {
+                utterance.voice = femaleVoice;
+            }
+
+            window.speechSynthesis.cancel();
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+            window.speechSynthesis.speak(utterance);
+        } catch (error) {
+            console.error("[Caller TTS] Unable to speak announcement", error);
+        }
+    }, [department, selectPreferredFemaleVoice]);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+        window.speechSynthesis.getVoices();
+        const onVoicesChanged = () => {
+            window.speechSynthesis.getVoices();
+        };
+        window.speechSynthesis.onvoiceschanged = onVoicesChanged;
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!inProgressVisit) return;
+        speakCallerAnnouncement(inProgressVisit.serviceTicket, inProgressVisit.classification);
+    }, [inProgressVisit, speakCallerAnnouncement]);
+
     useEffect(() => {
         if (callAgainCooldown > 0) {
             const timer = setInterval(() => setCallAgainCooldown((c: number) => c - 1), 1000);
@@ -213,45 +210,7 @@ export default function UserCallerDashboard({
     }, [callAgainCooldown]);
 
     // Action Handlers
-    useEffect(() => {
-        if (inProgressVisit) {
-            setLocalClaimedVisit(inProgressVisit);
-        }
-    }, [inProgressVisit]);
-
-    useEffect(() => {
-        if (Object.keys(optimisticVisits).length === 0) {
-            return;
-        }
-
-        setOptimisticVisits((current) => {
-            const next = { ...current };
-            let changed = false;
-
-            for (const [visitId, optimisticVisit] of Object.entries(current)) {
-                const liveVisit = activeQueue.find((visit) => visit.id === visitId);
-                if (!liveVisit) {
-                    continue;
-                }
-
-                if (
-                    liveVisit.status === optimisticVisit.status &&
-                    liveVisit.calledByUserId === optimisticVisit.calledByUserId &&
-                    liveVisit.sequenceKey === optimisticVisit.sequenceKey
-                ) {
-                    delete next[visitId];
-                    changed = true;
-                }
-            }
-
-            return changed ? next : current;
-        });
-    }, [activeQueue, optimisticVisits]);
-
-    const handleCallQueue = async (
-        classification: 'REGULAR' | 'PRIORITY',
-        priorityCategoryKey?: string
-    ) => {
+    const handleCallQueue = async (classification: 'REGULAR' | 'PRIORITY') => {
         const targetQueue = classification === 'PRIORITY' ? priorityWaitingList : regularWaitingList;
 
         if (targetQueue.length === 0) {
@@ -262,22 +221,12 @@ export default function UserCallerDashboard({
             );
         }
 
-        if (activeVisit) return notify.error("Please Mark Served or No Show the current patient first.");
+        if (inProgressVisit) return notify.error("Please Mark Served or No Show the current patient first.");
 
         setIsProcessing(true);
         try {
-            const res = await callNextPatient(classification, priorityCategoryKey);
-            if (!res.data) {
-                return notify.info(
-                    classification === 'PRIORITY' && priorityCategoryKey
-                        ? 'No waiting patients for the selected queue option.'
-                        : classification === 'PRIORITY'
-                            ? 'No more priority patients in the waiting list.'
-                            : 'No more regular patients in the waiting list.'
-                );
-            }
+            const res = await callNextPatient(classification);
             notify.success(`Calling service ticket P-${res.data?.serviceTicket?.toString() ?? 'N/A'}`);
-            setLocalClaimedVisit(res.data);
         } catch (error) {
             handleCallerApiError(error, `Failed to call ${classification.toLowerCase()} patient.`);
         } finally {
@@ -286,11 +235,11 @@ export default function UserCallerDashboard({
     };
 
     const handleCallAgain = async () => {
-        if (!activeVisit) return notify.error("No active patient to call.");
+        if (!inProgressVisit) return notify.error("No active patient to call.");
         setIsProcessing(true);
         try {
-            await callPatient(activeVisit.id);
-            notify.success(`Calling service ticket P-${activeVisit.serviceTicket?.toString() ?? 'N/A'} again.`);
+            await callPatient(inProgressVisit.id);
+            notify.success(`Calling service ticket P-${inProgressVisit.serviceTicket?.toString() ?? 'N/A'} again.`);
             setCallAgainCooldown(10);
         } catch (error) {
             handleCallerApiError(error, "Failed to call patient.");
@@ -300,12 +249,11 @@ export default function UserCallerDashboard({
     };
 
     const handleServe = async () => {
-        if (!activeVisit) return notify.error("No active patient to serve.");
+        if (!inProgressVisit) return notify.error("No active patient to serve.");
         setIsProcessing(true);
         try {
-            await servePatient(activeVisit.id);
+            await servePatient(inProgressVisit.id);
             notify.success("Patient consultation completed.");
-            setLocalClaimedVisit(null);
         } catch (error) {
             handleCallerApiError(error, "Failed to mark patient as served.");
         } finally {
@@ -314,24 +262,11 @@ export default function UserCallerDashboard({
     };
 
     const handleNoShow = async () => {
-        if (!activeVisit) return notify.error("No active patient to mark as No Show.");
+        if (!inProgressVisit) return notify.error("No active patient to mark as No Show.");
         setIsProcessing(true);
         try {
-            const res = await noShowPatient(activeVisit.id);
-            const optimisticNoShowVisit = {
-                ...activeVisit,
-                ...(res?.data ?? {}),
-                status: "NO_SHOW" as const,
-                calledByUserId: callerUserId || activeVisit.calledByUserId,
-                sequenceKey: res?.data?.sequenceKey ?? activeVisit.sequenceKey ?? (activeVisit.departmentId ? `DEPT_${activeVisit.departmentId}` : null),
-            };
-
-            setOptimisticVisits((current) => ({
-                ...current,
-                [activeVisit.id]: optimisticNoShowVisit,
-            }));
-            notify.error(`Service ticket P-${activeVisit.serviceTicket?.toString() ?? 'N/A'} marked as NO SHOW`);
-            setLocalClaimedVisit(null);
+            await noShowPatient(inProgressVisit.id);
+            notify.error(`Service ticket P-${inProgressVisit.serviceTicket?.toString() ?? 'N/A'} marked as NO SHOW`);
         } catch (error) {
             handleCallerApiError(error, "Failed to process No Show.");
         } finally {
@@ -340,15 +275,14 @@ export default function UserCallerDashboard({
     };
 
     const handleReferral = async () => {
-        if (!activeVisit) return notify.error("No active patient selected for referral.");
+        if (!inProgressVisit) return notify.error("No active patient selected for referral.");
         if (!targetDeptId) return notify.error("Please select a target department.");
 
         setIsProcessing(true);
         try {
-            await transferPatient(activeVisit.id, targetDeptId);
+            await transferPatient(inProgressVisit.id, targetDeptId);
             notify.success("Patient referred successfully.");
             resetReferral();
-            setLocalClaimedVisit(null);
         } catch (error) {
             handleCallerApiError(error, "An error occurred during referral.");
         } finally {
@@ -356,21 +290,13 @@ export default function UserCallerDashboard({
         }
     };
 
-    const handleRecallNoShow = async (visitId: string) => {
+    const handleRestore = async (visitId: string) => {
         setIsProcessing(true);
         try {
-            const res = await callPatient(visitId);
-            notify.success(`Calling service ticket P-${res.data?.serviceTicket?.toString() ?? 'N/A'} again.`);
-            if (res.data) {
-                setOptimisticVisits((current) => ({
-                    ...current,
-                    [visitId]: res.data,
-                }));
-                setLocalClaimedVisit(res.data);
-            }
-            setCallAgainCooldown(10);
+            await restorePatient(visitId);
+            notify.success("Patient restored to active queue.");
         } catch (error) {
-            handleCallerApiError(error, "Failed to call patient again.");
+            handleCallerApiError(error, "Failed to restore patient.");
         } finally {
             setIsProcessing(false);
         }
@@ -378,10 +304,10 @@ export default function UserCallerDashboard({
 
 
     return (
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-65px)] w-full overflow-hidden bg-slate-50 p-4 lg:p-6 gap-6">
+        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-50 p-6 lg:p-8 gap-6">
 
             {/* LEFT PANE: Waitlist (35%) */}
-            <div className="flex flex-col w-full lg:w-[35%] xl:w-[30%] bg-card rounded-xl border border-border overflow-hidden shrink-0 h-auto max-h-[45vh] lg:max-h-none lg:h-full">
+            <div className="flex flex-col w-full lg:w-[35%] xl:w-[30%] bg-card rounded-xl border border-border overflow-hidden shrink-0">
                 {/* Header */}
                 <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center shrink-0">
                     <div>
@@ -393,7 +319,7 @@ export default function UserCallerDashboard({
                             variant="outline"
                             size="sm"
                             onClick={() => setActiveTab(activeTab === "reports" ? "waitlist" : "reports")}
-                            className="text-slate-800 font-bold border-orange-200 bg-yellow-100 hover:bg-yellow-50 rounded-lg"
+                            className="text-slate-600 border-slate-200 hover:bg-slate-50 rounded-lg"
                         >
                             <BarChart2 className="w-4 h-4 mr-2" />
                             Reports
@@ -438,10 +364,8 @@ export default function UserCallerDashboard({
                             <div className="flex flex-col">
                                 {unifiedWaitingList.map((visit, index) => {
                                     const isPriorityVisit = visit.classification === "PRIORITY" || visit.isReferred;
-                                    const queueTag = getVisitQueueTag(visit);
-                                    const isNext = index === 0 && !activeVisit;
-                                    const createdAtMs = new Date(visit.createdAt).getTime();
-                                    const waitMins = Math.max(0, Math.floor(((nowMs ?? createdAtMs) - createdAtMs) / 60000));
+                                    const isNext = index === 0 && !inProgressVisit;
+                                    const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
                                     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
 
                                     return (
@@ -457,7 +381,7 @@ export default function UserCallerDashboard({
                                                         {visit.serviceTicket ? `#${visit.serviceTicket}` : '---'}
                                                     </span>
                                                     <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${isPriorityVisit ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-700 border-slate-200"}`}>
-                                                        {queueTag}
+                                                        {isPriorityVisit ? "Priority" : "Regular"}
                                                     </span>
                                                     {visit.isReferred && (
                                                         <span className="bg-blue-100 text-blue-700 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
@@ -501,22 +425,17 @@ export default function UserCallerDashboard({
                                         className="p-5 border-b border-border bg-card/50 hover:bg-muted/10 transition-all group"
                                     >
                                         <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-base font-bold text-destructive">
-                                                    {visit.serviceTicket ? `#${visit.serviceTicket}` : 'NO TICKET'}
-                                                </span>
-                                                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200">
-                                                    {getVisitQueueTag(visit)}
-                                                </span>
-                                            </div>
+                                            <span className="text-base font-bold text-destructive">
+                                                {visit.serviceTicket ? `#${visit.serviceTicket}` : 'NO TICKET'}
+                                            </span>
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                onClick={() => handleRecallNoShow(visit.id)}
+                                                onClick={() => handleRestore(visit.id)}
                                                 disabled={isProcessing}
                                                 className="h-8 px-3 border-border bg-background text-foreground hover:bg-muted rounded-lg text-[10px] font-bold uppercase tracking-widest"
                                             >
-                                                Call Patient Again
+                                                Restore
                                             </Button>
                                         </div>
                                         <span className="font-bold text-sm text-muted-foreground group-hover:text-foreground transition-colors">
@@ -581,7 +500,7 @@ export default function UserCallerDashboard({
             </div>
 
             {/* RIGHT PANE: Active Consultation (65%) */}
-            <div className="flex flex-col min-h-0 flex-1 bg-slate-50 rounded-xl border border-border overflow-hidden relative shadow-sm">
+            <div className="flex flex-col h-full min-h-screen flex-1 bg-slate-50 rounded-xl border border-border overflow-hidden relative shadow-sm">
                 
                 {/* Main Action Header (Replicating Triage/Window style) */}
                 <header className="px-8 py-6 border-b border-border bg-muted/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 z-20 shadow-sm">
@@ -590,7 +509,7 @@ export default function UserCallerDashboard({
                     </div>
 
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                                {activeVisit ? (
+                        {inProgressVisit ? (
                            <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 italic font-medium text-xs">
                                 Patient is currently being served...
                            </div>
@@ -598,8 +517,8 @@ export default function UserCallerDashboard({
                     </div>
                 </header>
 
-                <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative w-full bg-background/50">
-                    {!activeVisit ? (
+                <div className="flex-1 overflow-hidden flex flex-col relative w-full bg-background/50">
+                    {!inProgressVisit ? (
                         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/5 animate-in fade-in duration-500">
                             <div className="w-24 h-24 bg-background rounded-full border border-border flex items-center justify-center mb-8 shadow-xl relative group">
                                 <div className="absolute inset-0 rounded-full bg-emerald-500/5 animate-ping opacity-20" />
@@ -623,53 +542,18 @@ export default function UserCallerDashboard({
                                     <span>CALL REGULAR</span>
                                 </Button>
 
-                                <div className="flex items-center">
-                                    <Button
-                                        onClick={() => handleCallQueue("PRIORITY")}
-                                        disabled={isProcessing || !canCallPriority}
-                                        className="h-14 px-8 w-full sm:w-auto bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 shadow-sm shadow-amber-500/10 font-black uppercase tracking-[0.18em] text-[11px] rounded-l-xl rounded-r-none transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-                                    >
-                                        {isProcessing ? (
-                                            <div className="w-4 h-4 border-2 border-amber-900/20 border-t-amber-800 rounded-full animate-spin" />
-                                        ) : (
-                                            <SpeakerHigh size={18} weight="bold" />
-                                        )}
-                                        <span>CALL PRIORITY</span>
-                                    </Button>
-
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                disabled={isProcessing || !canCallPriority || priorityCallOptions.length === 0}
-                                                className="h-14 px-4 border-amber-200 text-amber-900 bg-amber-50/80 hover:bg-amber-100 rounded-r-xl rounded-l-none"
-                                                aria-label="Select priority queue option"
-                                            >
-                                                <CaretDown size={18} weight="bold" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-56">
-                                            {priorityCallOptions.length === 0 ? (
-                                                <DropdownMenuItem disabled>
-                                                    No priority options configured
-                                                </DropdownMenuItem>
-                                            ) : (
-                                                priorityCallOptions.map((option) => {
-                                                    const priorityKey = option.code?.trim() || option.name.trim();
-                                                    return (
-                                                        <DropdownMenuItem
-                                                            key={option.id}
-                                                            onClick={() => handleCallQueue("PRIORITY", priorityKey)}
-                                                        >
-                                                            {getPriorityOptionLabel(option)}
-                                                        </DropdownMenuItem>
-                                                    );
-                                                })
-                                            )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
+                                <Button
+                                    onClick={() => handleCallQueue("PRIORITY")}
+                                    disabled={isProcessing || !canCallPriority}
+                                    className="h-14 px-8 w-full sm:w-auto bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 shadow-sm shadow-amber-500/10 font-black uppercase tracking-[0.18em] text-[11px] rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {isProcessing ? (
+                                        <div className="w-4 h-4 border-2 border-amber-900/20 border-t-amber-800 rounded-full animate-spin" />
+                                    ) : (
+                                        <SpeakerHigh size={18} weight="bold" />
+                                    )}
+                                    <span>CALL PRIORITY</span>
+                                </Button>
                             </div>
                         </div>
                     ) : (
@@ -684,28 +568,28 @@ export default function UserCallerDashboard({
                                                 <div className="relative z-10 flex flex-col items-center">
                                                     <span className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Service Ticket</span>
                                                     <span className="text-5xl font-black text-emerald-900 tracking-tighter">
-                                                        {activeVisit.serviceTicket ? `#${activeVisit.serviceTicket}` : '---'}
+                                                        {inProgressVisit.serviceTicket ? `#${inProgressVisit.serviceTicket}` : '---'}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             <div className="flex flex-col justify-center flex-1 min-w-0">
                                                 <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-3 truncate w-full">
-                                                    {activeVisit.patient.firstName} {activeVisit.patient.lastName}
+                                                    {inProgressVisit.patient.firstName} {inProgressVisit.patient.lastName}
                                                 </h1>
 
                                                 <div className="flex flex-wrap items-center gap-4 text-[14px] font-bold text-slate-500 mb-4">
                                                     <span className="flex items-center gap-2 text-slate-600">
-                                                        {activeVisit.patient.gender} • {calculateAge(activeVisit.patient.dateOfBirth) ?? '??'} years old
+                                                        {inProgressVisit.patient.gender} • {calculateAge(inProgressVisit.patient.dateOfBirth) ?? '??'} years old
                                                     </span>
                                                     <span className="bg-emerald-600 text-white text-[9px] uppercase font-black tracking-widest px-2.5 py-1 rounded-full shadow-sm shadow-emerald-200">
-                                                        {getVisitQueueTag(activeVisit)}
+                                                        {inProgressVisit.classification || "REGULAR"}
                                                     </span>
                                                 </div>
-                                                {activeVisit.patient.contactNo && (
+                                                {inProgressVisit.patient.contactNo && (
                                                     <div className="flex items-center gap-2 text-[14px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg w-fit border border-emerald-100">
                                                         <Phone size={16} weight="duotone" />
-                                                        {activeVisit.patient.contactNo}
+                                                        {inProgressVisit.patient.contactNo}
                                                     </div>
                                                 )}
                                             </div>
@@ -720,14 +604,14 @@ export default function UserCallerDashboard({
                                             <div className="bg-card border border-border p-6 rounded-xl shadow-sm border-t-2 border-t-primary/50">
                                                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-3 block">Chief Complaint</span>
                                                 <p className="text-sm font-medium text-foreground leading-relaxed italic">
-                                                    &quot;{activeVisit.chiefComplaint || "No complaint recorded."}&quot;
+                                                    &quot;{inProgressVisit.chiefComplaint || "No complaint recorded."}&quot;
                                                 </p>
                                             </div>
                                             <div className="bg-card border border-border p-6 rounded-xl shadow-sm border-t-2 border-t-destructive flex items-center justify-between">
                                                 <div className="flex flex-col">
                                                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Blood Pressure</span>
                                                     <span className="text-2xl font-bold text-destructive tracking-tighter">
-                                                        {activeVisit.bloodPressure || "--/--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">mmHg</span>
+                                                        {inProgressVisit.bloodPressure || "--/--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">mmHg</span>
                                                     </span>
                                                 </div>
                                                 <Heartbeat size={32} weight="duotone" className="text-destructive/20" />
@@ -736,7 +620,7 @@ export default function UserCallerDashboard({
                                                 <div className="flex flex-col">
                                                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Temperature</span>
                                                     <span className="text-2xl font-bold text-foreground tracking-tighter">
-                                                        {activeVisit.temperature || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">°C</span>
+                                                        {inProgressVisit.temperature || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">°C</span>
                                                     </span>
                                                 </div>
                                                 <Thermometer size={32} weight="duotone" className="text-primary/20" />
@@ -745,7 +629,7 @@ export default function UserCallerDashboard({
                                                 <div className="flex flex-col">
                                                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Heart Rate</span>
                                                     <span className="text-2xl font-bold text-foreground tracking-tighter">
-                                                        {activeVisit.heartRate || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">bpm</span>
+                                                        {inProgressVisit.heartRate || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">bpm</span>
                                                     </span>
                                                 </div>
                                                 <Info size={32} weight="duotone" className="text-blue-500/10" />
@@ -795,7 +679,7 @@ export default function UserCallerDashboard({
                                             disabled={isProcessing}
                                             className="w-full md:w-auto h-12 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:-translate-y-0.5 active:scale-[0.98]"
                                         >
-                                            <CheckCircle size={18} weight="fill" className="mr-2" /> Finish Consultation
+                                            <CheckCircle size={18} weight="fill" className="mr-2" /> Mark Served
                                         </Button>
                                     </div>
                                 </div>

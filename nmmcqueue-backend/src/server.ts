@@ -5,8 +5,9 @@ import logger from './lib/logger.js';
 import { startFailsafeTimer, stopFailsafeTimer } from './lib/failsafe.js';
 
 const PORT = process.env.PORT || 3001;
-const server = app.listen(PORT, () => {
-    logger.info(`[server]: Server is running at http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+const server = app.listen(Number(PORT), HOST, () => {
+    logger.info(`[server]: Server is running at http://${HOST}:${PORT}`);
     startFailsafeTimer();
 });
 

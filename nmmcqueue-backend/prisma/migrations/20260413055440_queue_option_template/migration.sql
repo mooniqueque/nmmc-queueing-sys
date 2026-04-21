@@ -7,7 +7,6 @@
   - You are about to drop the `lane_option` table. If the table is not empty, all the data it contains will be lost.
 */
 -- DropForeignKey
-<<<<<<< HEAD
 SET @lane_option_fk_exists := (
   SELECT COUNT(*)
   FROM information_schema.TABLE_CONSTRAINTS
@@ -24,22 +23,6 @@ SET @drop_lane_option_fk_sql := IF(
 PREPARE drop_lane_option_fk_stmt FROM @drop_lane_option_fk_sql;
 EXECUTE drop_lane_option_fk_stmt;
 DEALLOCATE PREPARE drop_lane_option_fk_stmt;
-=======
-SET @fk_exists := (
-    SELECT COUNT(*)
-    FROM information_schema.TABLE_CONSTRAINTS
-    WHERE CONSTRAINT_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'lane_option'
-      AND CONSTRAINT_NAME = 'lane_option_departmentId_fkey'
-      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
-);
-SET @sql := IF(@fk_exists > 0,
-    'ALTER TABLE `lane_option` DROP FOREIGN KEY `lane_option_departmentId_fkey`',
-    'SELECT 1');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
->>>>>>> frontandback_styling
 
 -- AlterTable
 ALTER TABLE `visit` MODIFY `status` ENUM('WAITING_TRIAGE', 'IN_TRIAGE', 'WAITING_WINDOW', 'IN_WINDOW', 'WAITING_CLINIC', 'IN_PROGRESS', 'COMPLETED', 'NO_SHOW') NOT NULL DEFAULT 'WAITING_TRIAGE';
@@ -53,7 +36,6 @@ ALTER TABLE `workstation` MODIFY `type` ENUM('WINDOW', 'TRIAGE', 'CALLER') NOT N
 -- DropTable
 DROP TABLE IF EXISTS `lane_option`;
 
-<<<<<<< HEAD
 -- CreateIndex
 SET @priority_category_has_template_id := (
   SELECT COUNT(*)
@@ -87,5 +69,3 @@ SET @rename_priority_category_template_id_index_sql := IF(
 PREPARE rename_priority_category_template_id_index_stmt FROM @rename_priority_category_template_id_index_sql;
 EXECUTE rename_priority_category_template_id_index_stmt;
 DEALLOCATE PREPARE rename_priority_category_template_id_index_stmt;
-=======
->>>>>>> frontandback_styling

@@ -1,6 +1,7 @@
 import { fromNodeHeaders } from 'better-auth/node';
 import type { Request, Response } from 'express';
 
+import { authCookieHttpOnly, authCookieSameSite, authCookieSecure } from '../../config/auth-cookie.js';
 import { db } from '../../config/database.js';
 import { auth } from './auth.js';
 
@@ -19,9 +20,9 @@ function clearSessionCookies(req: Request, res: Response) {
 
     for (const cookieName of new Set(cookieNames)) {
         res.clearCookie(cookieName, {
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
+            httpOnly: authCookieHttpOnly,
+            sameSite: authCookieSameSite,
+            secure: authCookieSecure,
         });
     }
 }

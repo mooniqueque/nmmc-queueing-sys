@@ -40,6 +40,14 @@ function normalizeApiUrl(value) {
   return String(value || "").trim().replace(/\/+$/, "");
 }
 
+function toApiUrl(baseUrl) {
+  const normalizedBaseUrl = normalizeApiUrl(baseUrl);
+  if (!normalizedBaseUrl) return "";
+  return normalizedBaseUrl.endsWith("/api")
+    ? normalizedBaseUrl
+    : `${normalizedBaseUrl}/api`;
+}
+
 function readFirstExistingFrontendEnv() {
   for (const filePath of frontendEnvCandidates) {
     if (fs.existsSync(filePath)) {
@@ -85,12 +93,11 @@ function checkPortOnHost(port, host) {
 function checkPortAvailableOnWindows(port) {
   const result = spawnSync("netstat", ["-ano", "-p", "tcp"], {
     cwd: rootDir,
-    shell: true,
     encoding: "utf8",
   });
 
-  if (result.status !== 0) {
-    return false;
+  if (result.error || result.status !== 0) {
+    return null;
   }
 
   const lines = (result.stdout || "").split(/\r?\n/);
@@ -106,7 +113,10 @@ function checkPortAvailableOnWindows(port) {
 
 async function checkPortAvailable(port) {
   if (process.platform === "win32") {
-    return checkPortAvailableOnWindows(port);
+    const winCheck = checkPortAvailableOnWindows(port);
+    if (typeof winCheck === "boolean") {
+      return winCheck;
+    }
   }
 
   const checks = await Promise.all([
@@ -136,19 +146,31 @@ async function main() {
 
   const frontendEnvEntry = readFirstExistingFrontendEnv();
   const configuredFrontendApiUrl = normalizeApiUrl(frontendEnvEntry?.env?.NEXT_PUBLIC_API_URL || "");
-  const expectedApiUrl = normalizeApiUrl(`http://localhost:${backendPort}/api`);
+  const localhostBackendUrl = normalizeApiUrl(`http://localhost:${backendPort}`);
+  const backendUrlFromEnv = normalizeApiUrl(backendEnv.BACKEND_URL || "");
+  const expectedApiUrls = new Set([toApiUrl(localhostBackendUrl)]);
+
+  if (backendUrlFromEnv) {
+    expectedApiUrls.add(toApiUrl(backendUrlFromEnv));
+  }
+
+  const expectedApiUrlList = Array.from(expectedApiUrls).filter(Boolean);
+  const preferredExpectedApiUrl = expectedApiUrlList[expectedApiUrlList.length - 1];
+  const requiresExplicitFrontendApiUrl =
+    backendPort !== 3001 ||
+    (backendUrlFromEnv && backendUrlFromEnv !== localhostBackendUrl);
 
   if (!configuredFrontendApiUrl) {
-    if (backendPort !== 3001) {
+    if (requiresExplicitFrontendApiUrl) {
       console.error("[predev] NEXT_PUBLIC_API_URL is not configured in nmmcqueue-frontend/.env.local.");
       console.error(`[predev] Backend is configured on port ${backendPort}, so frontend cannot safely use its default API URL.`);
-      console.error(`[predev] Add NEXT_PUBLIC_API_URL=${expectedApiUrl} to nmmcqueue-frontend/.env.local and rerun pnpm dev.`);
+      console.error(`[predev] Add NEXT_PUBLIC_API_URL=${preferredExpectedApiUrl} to nmmcqueue-frontend/.env.local and rerun pnpm dev.`);
       process.exit(1);
     }
-  } else if (configuredFrontendApiUrl !== expectedApiUrl) {
+  } else if (!expectedApiUrls.has(configuredFrontendApiUrl)) {
     console.error(`[predev] Frontend API URL mismatch detected in ${frontendEnvEntry.filePath}.`);
     console.error(`[predev] Found NEXT_PUBLIC_API_URL=${configuredFrontendApiUrl}`);
-    console.error(`[predev] Expected NEXT_PUBLIC_API_URL=${expectedApiUrl} based on backend PORT=${backendPort}.`);
+    console.error(`[predev] Expected NEXT_PUBLIC_API_URL to be one of: ${expectedApiUrlList.join(", ")}.`);
     console.error("[predev] Update NEXT_PUBLIC_API_URL and rerun pnpm dev.");
     process.exit(1);
   }

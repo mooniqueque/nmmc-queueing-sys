@@ -769,6 +769,14 @@ class CallerService {
         if (!visit) throw new AppError('Visit not found', 404, 'CLAIM_NOT_FOUND_OR_STALE');
         this.assertVisitScope(visit.departmentId, scope.departmentId);
 
+        // Idempotency: repeated completion requests should be safe and return current state.
+        if (visit.status === 'COMPLETED') {
+            if (visit.calledByUserId && visit.calledByUserId !== scope.userId) {
+                throw new AppError('Only the caller who claimed this patient can complete it.', 409, 'CLAIM_CONFLICT');
+            }
+            return this.getVisitWithRelations(visitId);
+        }
+
         if (visit.status !== 'IN_PROGRESS') {
             throw new AppError('Patient is not currently in progress.', 400, 'CLAIM_INVALID_STATE');
         }

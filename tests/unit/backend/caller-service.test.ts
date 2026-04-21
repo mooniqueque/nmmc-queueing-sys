@@ -172,6 +172,34 @@ describe('CallerService (Phase 4)', () => {
     });
   });
 
+  it('servePatient is idempotent when visit is already COMPLETED for same caller', async () => {
+    mockDb.visit.findUnique
+      .mockResolvedValueOnce({
+        id: 'visit-1',
+        status: 'COMPLETED',
+        departmentId: 'dept-1',
+        calledByUserId: 'caller-1',
+      })
+      .mockResolvedValueOnce({
+        id: 'visit-1',
+        status: 'COMPLETED',
+        departmentId: 'dept-1',
+        calledByUserId: 'caller-1',
+        patient: { firstName: 'Ana', lastName: 'Santos' },
+        department: { id: 'dept-1', name: 'CARDIOLOGY' },
+        referredFrom: null,
+        categories: [],
+      });
+
+    const result = await callerService.servePatient('visit-1', 'caller-1');
+
+    expect(mockDb.visit.update).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      id: 'visit-1',
+      status: 'COMPLETED',
+    });
+  });
+
   it('transferPatient blocks transfer to same department', async () => {
     mockDb.visit.findUnique.mockResolvedValue({
       id: 'visit-1',

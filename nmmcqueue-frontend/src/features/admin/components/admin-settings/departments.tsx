@@ -23,7 +23,7 @@ import { Department, DepartmentStatus, PriorityCategory, WorkStation } from "@/s
 import { Funnel, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createQueueOption, deleteQueueOption } from "../../queue-option-actions";
 import DepartmentWorkstationList from "../workstation/DepartmentWorkstationList";
 import { WorkstationList } from "../workstation/WorkstationList";
@@ -81,7 +81,7 @@ export default function DepartmentSettings({
     users,
 }: DepartmentSettingsProps) {
     const router = useRouter();
-    const [departments, setDepartments] = useState(initialDepartments);
+    const [departmentsState, setDepartments] = useState<Department[] | null>(null);
     const [name, setName] = useState("");
     const [code, setCode] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
@@ -95,8 +95,8 @@ export default function DepartmentSettings({
     const [isPriorityInput, setIsPriorityInput] = useState(false);
     const [selectedDepartmentId, setSelectedDepartmentId] = useState(initialDepartments[0]?.id ?? "");
 
-    const [queueOptionsByDepartment, setQueueOptionsByDepartment] = useState(initialQueueOptionsByDepartment);
-    const [workstations, setWorkstations] = useState<WorkStation[]>(initialWorkstations);
+    const [queueOptionsByDepartmentState, setQueueOptionsByDepartment] = useState<QueueOptionsByDepartment | null>(null);
+    const [workstationsState, setWorkstations] = useState<WorkStation[] | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [queueLoading, setQueueLoading] = useState(false);
@@ -106,23 +106,20 @@ export default function DepartmentSettings({
     const [pendingDeleteDepartmentId, setPendingDeleteDepartmentId] = useState<string | null>(null);
     const [isDeletingDepartment, setIsDeletingDepartment] = useState(false);
 
-    useEffect(() => {
-        setDepartments(initialDepartments);
-        setQueueOptionsByDepartment(initialQueueOptionsByDepartment);
-        setWorkstations(initialWorkstations);
-        setSelectedDepartmentId((prev) => {
-            if (prev && initialDepartments.some((department) => department.id === prev)) {
-                return prev;
-            }
-            return initialDepartments[0]?.id ?? "";
-        });
-    }, [initialDepartments, initialQueueOptionsByDepartment, initialWorkstations]);
+    const departments = departmentsState ?? initialDepartments;
+    const queueOptionsByDepartment = queueOptionsByDepartmentState ?? initialQueueOptionsByDepartment;
+    const workstations = workstationsState ?? initialWorkstations;
+
+    const resolvedSelectedDepartmentId = departments.some((department) => department.id === selectedDepartmentId)
+        ? selectedDepartmentId
+        : (departments[0]?.id ?? "");
 
     const handleWorkstationsCreated = (created: WorkStation[]) => {
         setWorkstations((current) => {
-            const existingIds = new Set(current.map((station) => station.id));
+            const base = current ?? initialWorkstations;
+            const existingIds = new Set(base.map((station) => station.id));
             const uniqueCreated = created.filter((station) => !existingIds.has(station.id));
-            return [...current, ...uniqueCreated].sort((left, right) => {
+            return [...base, ...uniqueCreated].sort((left, right) => {
                 if (left.type !== right.type) return left.type.localeCompare(right.type);
                 return left.stationNo - right.stationNo;
             });
@@ -130,14 +127,20 @@ export default function DepartmentSettings({
     };
 
     const handleWorkstationUpdated = (updated: WorkStation) => {
-        setWorkstations((current) => current.map((station) => (station.id === updated.id ? { ...station, ...updated } : station)));
+        setWorkstations((current) => {
+            const base = current ?? initialWorkstations;
+            return base.map((station) => (station.id === updated.id ? { ...station, ...updated } : station));
+        });
     };
 
     const handleWorkstationDeleted = (id: string) => {
-        setWorkstations((current) => current.filter((station) => station.id !== id));
+        setWorkstations((current) => {
+            const base = current ?? initialWorkstations;
+            return base.filter((station) => station.id !== id);
+        });
     };
 
-    const selectedDepartment = departments.find((department) => department.id === selectedDepartmentId);
+    const selectedDepartment = departments.find((department) => department.id === resolvedSelectedDepartmentId);
     const selectedDepartmentKey = selectedDepartment ? normalizeDepartmentKey(selectedDepartment.name) : "";
     const queueOptionTree = selectedDepartment
         ? (queueOptionsByDepartment[selectedDepartmentKey] ?? [])
@@ -200,9 +203,9 @@ export default function DepartmentSettings({
         }
 
         setQueueOptionsByDepartment((prev) => ({
-            ...prev,
+            ...(prev ?? initialQueueOptionsByDepartment),
             [selectedDepartmentKey]: [
-                ...(prev[selectedDepartmentKey] ?? []),
+                ...((prev ?? initialQueueOptionsByDepartment)[selectedDepartmentKey] ?? []),
                 ...(result.data ? [result.data] : []),
             ],
         }));
@@ -222,8 +225,8 @@ export default function DepartmentSettings({
 
         if (result.success) {
             setQueueOptionsByDepartment((prev) => ({
-                ...prev,
-                [selectedDepartmentKey]: removeCategory(prev[selectedDepartmentKey] ?? [], id),
+                ...(prev ?? initialQueueOptionsByDepartment),
+                [selectedDepartmentKey]: removeCategory((prev ?? initialQueueOptionsByDepartment)[selectedDepartmentKey] ?? [], id),
             }));
         } else {
             const message = result.error || "Failed to delete queue option.";
@@ -242,7 +245,10 @@ export default function DepartmentSettings({
             return;
         }
 
-        setDepartments((prev) => prev.filter((item) => item.id !== id));
+        setDepartments((prev) => {
+            const base = prev ?? initialDepartments;
+            return base.filter((item) => item.id !== id);
+        });
         setIsManageOpen(false);
         setIsDeleteConfirmOpen(false);
         setPendingDeleteDepartmentId(null);
@@ -259,13 +265,14 @@ export default function DepartmentSettings({
             return;
         }
 
-        setDepartments((current) =>
-            current.map((department) => (
+        setDepartments((current) => {
+            const base = current ?? initialDepartments;
+            return base.map((department) => (
                 department.id === departmentId
                     ? { ...department, status: nextStatus }
                     : department
-            ))
-        );
+            ));
+        });
         router.refresh();
     };
 

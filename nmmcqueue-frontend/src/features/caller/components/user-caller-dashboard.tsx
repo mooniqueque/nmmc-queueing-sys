@@ -3,6 +3,12 @@
 import { useClinicQueue } from "@/app/(admin)/_hooks/use-clinic-queue";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { getDepartments, getQueueOptions } from "@/features/shared/api";
 import {
@@ -16,9 +22,11 @@ import { VisitWithPatient } from "@/features/triage/types";
 import { ApiClientError } from "@/lib/api";
 import { notify } from "@/shared/lib/notify";
 import { calculateAge } from "@/shared/lib/utils";
+import { PriorityCategory } from "@/shared/types/models";
 import {
     ArrowSquareOut,
     ArrowUpRight,
+    CaretDown,
     CheckCircle,
     Clock,
     Heartbeat,
@@ -31,8 +39,8 @@ import {
 } from "@phosphor-icons/react";
 import { BarChart2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
+import { useEffect, useMemo, useState } from "react";
+import { callNextPatient, callPatient, noShowPatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
 
 function getVisitQueueTag(visit: VisitWithPatient) {
@@ -62,6 +70,19 @@ function getPriorityOptionLabel(option: PriorityCategory) {
     return code || name || "Priority";
 }
 
+function getPatientPriorityBadge(visit: VisitWithPatient) {
+    // Extract priority category from visit's categories array
+    const priorityCategory = visit.categories
+        ?.find((entry) => entry.category?.isPriority);
+    
+    if (priorityCategory?.category) {
+        const code = priorityCategory.category.code?.trim();
+        return code || priorityCategory.category.name?.trim() || visit.classification || "REGULAR";
+    }
+
+    return visit.classification || "REGULAR";
+}
+
 export default function UserCallerDashboard({
     department,
     callerUserId,
@@ -77,8 +98,7 @@ export default function UserCallerDashboard({
     const [localClaimedVisit, setLocalClaimedVisit] = useState<VisitWithPatient | null>(null);
     const [optimisticVisits, setOptimisticVisits] = useState<Record<string, VisitWithPatient>>({});
     const [departmentQueueOptions, setDepartmentQueueOptions] = useState<PriorityCategory[]>([]);
-    const [nowMs, setNowMs] = useState<number | null>(null);
-    const [reportDate, setReportDate] = useState(initialReportDate ?? getTodayBusinessDay());
+    const [reportDate, setReportDate] = useState(getTodayBusinessDay());
     const {
         activeTab, setActiveTab,
         allDepartments, setDepartments,
@@ -110,13 +130,7 @@ export default function UserCallerDashboard({
             });
     }, [department]);
 
-    useEffect(() => {
-        const updateNow = () => setNowMs(Date.now());
-        updateNow();
-        const intervalId = window.setInterval(updateNow, 60_000);
 
-        return () => window.clearInterval(intervalId);
-    }, []);
 
     const { activeQueue } = useClinicQueue(department, initialQueue, callerUserId);
 
@@ -341,6 +355,7 @@ export default function UserCallerDashboard({
                     calledByUserId: callerUserId || activeVisit.calledByUserId,
                 },
             }));
+            setLocalClaimedVisit(null);
             notify.success("Patient consultation completed.");
         } catch (error) {
             if (error instanceof ApiClientError && error.code === "CLAIM_INVALID_STATE") {
@@ -405,7 +420,7 @@ export default function UserCallerDashboard({
 
         setIsProcessing(true);
         try {
-            await transferPatient(inProgressVisit.id, targetDeptId);
+            await transferPatient(activeVisit.id, targetDeptId);
             notify.success("Patient referred successfully.");
             resetReferral();
         } catch (error) {
@@ -486,6 +501,7 @@ export default function UserCallerDashboard({
                                     const isNext = index === 0 && !inProgressVisit;
                                     const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
                                     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
+                                    const priorityBadgeText = getVisitQueueTag(visit);
 
                                     return (
                                         <div
@@ -499,7 +515,7 @@ export default function UserCallerDashboard({
                                                         {visit.serviceTicket ? `#${visit.serviceTicket}` : "---"}
                                                     </span>
                                                     <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${isPriorityVisit ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-700 border-slate-200"}`}>
-                                                        {isPriorityVisit ? "Priority" : "Regular"}
+                                                        {priorityBadgeText}
                                                     </span>
                                                     {visit.isReferred ? (
                                                         <span className="bg-blue-100 text-blue-700 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
@@ -694,7 +710,7 @@ export default function UserCallerDashboard({
                                                 <div className="relative z-10 flex flex-col items-center">
                                                     <span className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Service Ticket</span>
                                                     <span className="text-5xl font-black text-emerald-900 tracking-tighter">
-                                                        {activeVisit.serviceTicket ? `#${activeVisit.serviceTicket}` : "---"}
+                                                        {inProgressVisit.serviceTicket ? `#${inProgressVisit.serviceTicket}` : "---"}
                                                     </span>
                                                 </div>
                                             </div>
@@ -706,13 +722,13 @@ export default function UserCallerDashboard({
 
                                                 <div className="flex flex-wrap items-center gap-4 text-[14px] font-bold text-slate-500 mb-4">
                                                     <span className="flex items-center gap-2 text-slate-600">
-                                                        {activeVisit.patient.gender} • {calculateAge(activeVisit.patient.dateOfBirth) ?? "??"} years old
+                                                        {inProgressVisit.patient.gender} • {calculateAge(inProgressVisit.patient.dateOfBirth) ?? "??"} years old
                                                     </span>
                                                     <span className="bg-emerald-600 text-white text-[9px] uppercase font-black tracking-widest px-2.5 py-1 rounded-full shadow-sm shadow-emerald-200">
-                                                        {inProgressVisit.classification || "REGULAR"}
+                                                        {getPatientPriorityBadge(inProgressVisit)}
                                                     </span>
                                                 </div>
-                                                {activeVisit.patient.contactNo ? (
+                                                {inProgressVisit.patient.contactNo ? (
                                                     <div className="flex items-center gap-2 text-[14px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg w-fit border border-emerald-100">
                                                         <Phone size={16} weight="duotone" />
                                                         {inProgressVisit.patient.contactNo}

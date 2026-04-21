@@ -49,23 +49,23 @@ enum DepartmentStatus {
 
 model User {
   id              String    @id @default(cuid())
-  firstName       String
-  lastName        String
-  middleName      String?
-  suffix          String?
+  firstName       String    @db.VarChar(100)
+  lastName        String    @db.VarChar(100)
+  middleName      String?   @db.VarChar(100)
+  suffix          String?   @db.VarChar(20)
   birthDate       DateTime
-  contactNumber   String
-  email           String    @unique
+  contactNumber   String    @db.VarChar(32)
+  email           String    @unique @db.VarChar(191)
   emailVerified   Boolean   @default(false)
-  employeeID      String    @unique
-  username        String?   @unique
-  displayUsername String?
+  employeeID      String    @unique @db.VarChar(64)
+  username        String?   @unique @db.VarChar(64)
+  displayUsername String?   @db.VarChar(100)
   image           String?
   role            UserRole
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  name            String
-  department      String?
+  name            String    @db.VarChar(201)
+  department      String?   @db.VarChar(120)
   departmentId    String?
   isActive        Boolean   @default(true)
   accounts        Account[]
@@ -75,10 +75,11 @@ model User {
   triageClaimedVisits  Visit[] @relation("TriageClaim")
   windowClaimedVisits  Visit[] @relation("WindowClaim")
   departmentAccess UserDepartmentAccess[]
-  dept            Department? @relation(fields: [departmentId], references: [id])
+  dept            Department? @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   workstationId   String?
   workstation     WorkStation? @relation(fields: [workstationId], references: [id])
 
+  @@index([departmentId, role, isActive])
   @@map("user")
 }
 
@@ -130,9 +131,9 @@ model Verification {
 
 model Department {
   id           String       @id @default(cuid())
-  name         String       @unique
-  slug         String       @unique
-  code         String       @unique
+  name         String       @unique @db.VarChar(120)
+  slug         String       @unique @db.VarChar(120)
+  code         String       @unique @db.VarChar(32)
   status       DepartmentStatus @default(OPEN)
   videoUrl     String?
   createdAt    DateTime     @default(now())
@@ -155,7 +156,7 @@ model UserDepartmentAccess {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
 
   @@unique([userId, departmentId])
   @@index([departmentId], map: "userDepartmentAccess_departmentId_fkey")
@@ -164,13 +165,13 @@ model UserDepartmentAccess {
 
 model WorkStation {
   id           String          @id @default(cuid())
-  name         String          @unique
+  name         String          @unique @db.VarChar(120)
   type         WorkstationType
   queueMode    WorkstationQueueMode @default(MIXED)
   stationNo    Int
   isActive     Boolean         @default(true)
   departmentId String?
-  department   Department?     @relation(fields: [departmentId], references: [id])
+  department   Department?     @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   parentWorkstationId String?
   parentWorkstation   WorkStation? @relation("WorkstationHierarchy", fields: [parentWorkstationId], references: [id])
   childWorkstations   WorkStation[] @relation("WorkstationHierarchy")
@@ -184,25 +185,26 @@ model WorkStation {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
+  @@index([type, isActive, stationNo])
   @@map("workstation")
 }
 
 model Patient {
   id           String   @id @default(cuid())
-  firstName    String
-  lastName     String
-  middleName   String?
+  firstName    String   @db.VarChar(100)
+  lastName     String   @db.VarChar(100)
+  middleName   String?  @db.VarChar(100)
   dateOfBirth  DateTime
-  gender       String
-  contactNo    String?
-  address      String?
+  gender       String   @db.VarChar(16)
+  contactNo    String?  @db.VarChar(32)
+  address      String?  @db.VarChar(255)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  hospitalId   String?  @unique
-  birthPlace   String?
-  civilStatus  String?
+  hospitalId   String?  @unique @db.VarChar(64)
+  birthPlace   String?  @db.VarChar(100)
+  civilStatus  String?  @db.VarChar(20)
   isRegistered Boolean  @default(false)
-  religion     String?
+  religion     String?  @db.VarChar(50)
   visits       Visit[]
 
   @@map("patient")
@@ -214,11 +216,11 @@ model Visit {
   departmentId        String?
   triageTicket        Int?
   serviceTicket       Int?
-  sequenceKey         String?
+  sequenceKey         String?     @db.VarChar(64)
   queueBusinessDay    String      @db.VarChar(10)
-  kioskRegistrationType String?     @default("UNREGISTERED")
+  kioskRegistrationType String?   @default("UNREGISTERED") @db.VarChar(32)
   status              VisitStatus @default(WAITING_TRIAGE)
-  bloodPressure   String?
+  bloodPressure   String?         @db.VarChar(16)
   heartRate       Int?
   respiratoryRate Int?
   temperature     Float?
@@ -231,7 +233,7 @@ model Visit {
   chiefComplaint  String?     @db.Text
   medicalHistory  String?     @db.Text
   triageRemarks   String?     @db.Text
-  disposition     String?
+  disposition     String?         @db.VarChar(100)
   triagedByUserId String?
   triagedAt       DateTime?
   calledAt        DateTime?
@@ -282,6 +284,13 @@ model Visit {
   @@index([triageClaimedById, status, createdAt])
   @@index([departmentId, status, queueDate])
   @@index([queueBusinessDay, status, createdAt])
+  @@index([status, updatedAt])
+  @@index([status, queueBusinessDay, calledAt])
+  @@index([departmentId, status, queueBusinessDay, calledAt])
+  @@index([departmentId, queueBusinessDay, status, isReferred, classification, createdAt])
+  @@index([queueBusinessDay, status, classification, createdAt])
+  @@index([calledByUserId, departmentId, queueBusinessDay, status])
+  @@index([departmentId, queueBusinessDay, status, sequenceKey, calledAt])
   @@unique([queueBusinessDay, classification, triageTicket])
   @@unique([queueBusinessDay, sequenceKey, serviceTicket])
   @@map("visit")
@@ -289,12 +298,12 @@ model Visit {
 
 model PriorityCategory {
   id           String             @id @default(cuid())
-  name         String
-  code         String
+  name         String             @db.VarChar(120)
+  code         String             @db.VarChar(32)
   isPriority   Boolean            @default(false)
   templateId   String?
   departmentId String?
-  department   Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  department   Department?        @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   template     QueueOptionTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   parentId     String?
   parent       PriorityCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
@@ -305,13 +314,15 @@ model PriorityCategory {
   @@unique([departmentId, name])
   @@unique([departmentId, templateId])
   @@index([templateId])
+  @@index([departmentId, isPriority])
+  @@index([isPriority, code])
   @@map("priority_category")
 }
 
 model QueueOptionTemplate {
   id         String             @id @default(cuid())
-  name       String
-  code       String
+  name       String             @db.VarChar(120)
+  code       String             @db.VarChar(32)
   isPriority Boolean            @default(false)
   sortOrder  Int
   isActive   Boolean            @default(true)
@@ -349,10 +360,10 @@ model VisitStatusHistory {
 
 model Sequence {
   id          String   @id @default(cuid())
-  name        String   @unique
-  prefix      String?
+  name        String   @unique @db.VarChar(64)
+  prefix      String?  @db.VarChar(16)
   value       Int      @default(0)
-  description String?
+  description String?  @db.VarChar(255)
   updatedAt   DateTime @updatedAt
 
   @@map("sequence")

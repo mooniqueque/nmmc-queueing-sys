@@ -13,7 +13,7 @@ interface DepartmentMonitorProps {
 
 export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
     const currentTime = useCurrentTime();
-    const { windows, upcoming, currentAnnouncement } = useWindowMonitor(slug);
+    const { windows, previousNumbers, upcoming, currentAnnouncement } = useWindowMonitor(slug);
     const [departmentName, setDepartmentName] = useState("LOADING...");
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -39,6 +39,7 @@ export default function DepartmentMonitor({ slug }: DepartmentMonitorProps) {
                 queueEmptyLabel="No active stations"
                 upcomingEmptyLabel="No upcoming patients"
                 windows={windows}
+                previousNumbers={previousNumbers}
                 upcoming={upcoming}
                 currentTime={currentTime}
                 videoUrl={videoUrl}

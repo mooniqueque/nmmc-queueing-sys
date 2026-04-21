@@ -12,6 +12,7 @@ interface MonitorDisplayShellProps {
 	queueEmptyLabel: string;
 	upcomingEmptyLabel: string;
 	windows: WindowStatus[];
+	previousNumbers: WindowStatus[];
 	upcoming: string[];
 	currentTime: Date | null;
 	videoUrl: string | null;
@@ -27,7 +28,6 @@ function formatDate(date: Date | null) {
 	if (!date) return "";
 	return date
 		.toLocaleDateString([], {
-			weekday: "long",
 			year: "numeric",
 			month: "short",
 			day: "numeric",
@@ -47,58 +47,52 @@ function resolveDisplayTicket(window: WindowStatus | null | undefined) {
 
 export default function MonitorDisplayShell({
 	brandTitle,
-	brandSubtitle,
+	brandSubtitle: _brandSubtitle,
 	queueEmptyLabel: _queueEmptyLabel,
 	upcomingEmptyLabel,
 	windows,
-	upcoming,
+	previousNumbers = [],
+	upcoming = [],
 	currentTime,
 	videoUrl,
 	videoFallbackLabel,
 }: MonitorDisplayShellProps) {
 	void _queueEmptyLabel;
+	void _brandSubtitle;
+	void windows;
 
-	const tableRows = [...windows]
-		.filter((window) => Boolean(resolveDisplayTicket(window)))
-		.sort((left, right) => {
-			const leftTime = left.calledAt ? new Date(left.calledAt).getTime() : 0;
-			const rightTime = right.calledAt ? new Date(right.calledAt).getTime() : 0;
-			if (leftTime !== rightTime) return rightTime - leftTime;
-			return left.stationNo - right.stationNo;
-		})
-		.slice(0, 8);
-
-	const renderedRows = Array.from({ length: Math.max(8, tableRows.length) }, (_, index) => tableRows[index] ?? null);
+	const renderedRows = previousNumbers.slice(0, 5);
+	const fixedRows = Array.from({ length: 5 }, (_, index) => renderedRows[index] ?? null);
 
 	return (
 		<div className="flex h-screen flex-col overflow-hidden bg-[#edf2f7] text-slate-900">
 			<main className="grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(0,4fr)_minmax(0,6fr)]">
 				<section className="flex min-h-0 flex-col overflow-hidden border-r-2 border-slate-400 bg-white">
-					<div className="grid min-h-0 flex-1 grid-rows-[minmax(500px,5.2fr)_minmax(150px,1.1fr)]">
-						<div className="min-h-0 border-b-2 border-slate-400">
-							<div className="grid grid-cols-[minmax(0,1fr)_340px] border-b-2 border-slate-400">
-								<div className="border-r-2 border-slate-300 px-8 py-5">
-									<p className="text-xl font-black uppercase tracking-[0.35em] text-slate-700">Now Serving</p>
+					<div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto]">
+						<div className="flex min-h-0 flex-col border-b-2 border-slate-400">
+							<div className="grid grid-cols-[minmax(0,1fr)_220px] border-b-2 border-slate-400 bg-white">
+								<div className="border-r-2 border-slate-300 px-8 py-3">
+									<p className="text-lg font-black uppercase tracking-[0.3em] text-slate-600">Now Serving</p>
 								</div>
-								<div className="px-8 py-5 text-right">
-									<p className="text-xl font-black uppercase tracking-[0.35em] text-slate-700">Window</p>
+								<div className="px-6 py-3 text-center">
+									<p className="text-lg font-black uppercase tracking-[0.3em] text-slate-600">Window</p>
 								</div>
 							</div>
 
-							<div className="max-h-full overflow-y-auto">
-								{renderedRows.map((window, index) => (
+							<div className="grid min-h-0 flex-1 grid-rows-5 overflow-hidden">
+								{fixedRows.map((window, index) => (
 									<div
-										key={window ? `${window.stationNo}-${window.displayTicket}-${window.calledAt ?? ""}-${index}` : `empty-row-${index}`}
-										className="grid grid-cols-[minmax(0,1fr)_340px] border-b-2 border-slate-300"
+										key={window ? `${window.stationNo}-${window.displayTicket}-${window.calledAt ?? ""}-${index}` : `waiting-row-${index}`}
+										className="grid min-h-0 grid-cols-[minmax(0,1fr)_220px] border-b-2 border-slate-300"
 									>
-										<div className="border-r-2 border-slate-300 px-8 py-6">
-											<p className="truncate text-6xl font-black leading-none tracking-tight text-slate-900 tabular-nums">
-												{resolveDisplayTicket(window)}
+										<div className="flex min-h-0 items-center border-r-2 border-slate-300 px-8 py-2">
+											<p className={`truncate font-black leading-none tracking-tight tabular-nums ${window ? "text-5xl text-emerald-700 2xl:text-6xl" : "text-4xl text-slate-400 2xl:text-5xl"}`}>
+												{window ? resolveDisplayTicket(window) : "WAITING"}
 											</p>
 										</div>
-										<div className="px-8 py-6 text-right">
-											<p className="truncate text-6xl font-black leading-none tracking-tight text-slate-700 tabular-nums">
-												{window?.stationNo ?? ""}
+										<div className="flex min-h-0 items-center justify-center px-6 py-2 text-center">
+											<p className={`truncate font-black leading-none tracking-tight tabular-nums ${window ? "text-5xl text-red-700 2xl:text-6xl" : "text-4xl text-slate-400 2xl:text-5xl"}`}>
+												{window?.stationNo ?? "WAITING"}
 											</p>
 										</div>
 									</div>
@@ -106,36 +100,35 @@ export default function MonitorDisplayShell({
 							</div>
 						</div>
 
-						<div className="px-8 py-5">
+						<div className="px-8 py-3">
 							<p className="text-lg font-black uppercase tracking-[0.35em] text-slate-600">Next Number</p>
-							<div className="mt-4 flex flex-wrap gap-4">
+							<div className="mt-2 flex flex-wrap gap-3">
 								{upcoming.length > 0 ? (
 									upcoming.slice(0, 6).map((ticket) => (
-										<div key={ticket} className="rounded-lg border-2 border-slate-300 bg-slate-50 px-5 py-3 text-3xl font-black tabular-nums text-slate-900">
+										<div key={ticket} className="rounded-lg border-2 border-slate-300 bg-slate-50 px-4 py-2 text-2xl font-black tabular-nums text-slate-900">
 											{ticket}
 										</div>
 									))
 								) : (
-									<p className="text-lg font-semibold text-slate-400">{upcomingEmptyLabel}</p>
+									<p className="text-base font-semibold text-slate-400">{upcomingEmptyLabel}</p>
 								)}
 							</div>
 						</div>
 					</div>
 				</section>
 
-				<section className="grid min-h-0 grid-rows-[minmax(110px,0.75fr)_minmax(0,5fr)] overflow-hidden bg-slate-800">
-					<div className="border-b-2 border-slate-300 bg-emerald-700 px-6 py-4 text-white">
-						<div className="flex items-center justify-between gap-4">
-							<div>
-								<p className="mt-1 text-2xl font-black tracking-tight">{brandTitle}</p>
-								<p className="text-sm font-semibold text-white/85">{brandSubtitle}</p>
-							</div>
-							<div className="text-right">
-								<div className="flex justify-end gap-2">
-									<Image src="/doh-logo.svg" alt="DOH" width={42} height={42} className="object-contain" />
-									<Image src="/nmmc-logo.png" alt="NMMC" width={42} height={42} className="object-contain" />
+				<section className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-slate-800">
+					<div className="border-b-2 border-slate-300 bg-emerald-700 px-6 py-5 text-white">
+						<div className="flex items-center justify-between gap-6">
+							<div className="flex min-w-0 items-center gap-4">
+								<div className="flex shrink-0 items-center gap-2">
+									<Image src="/doh-logo.svg" alt="DOH" width={35} height={35} className="object-contain" />
+									<Image src="/nmmc-logo.png" alt="NMMC" width={40} height={40} className="object-contain" />
 								</div>
-								<p className="mt-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/80">
+								<p className="truncate text-2xl font-bold tracking-tight">{brandTitle}</p>
+							</div>
+							<div className="shrink-0 text-right leading-none">
+								<p className="text-2xl font-bold uppercase tracking-tight text-white">
 									{formatDate(currentTime)} {currentTime ? "|" : ""} {formatTime(currentTime)}
 								</p>
 							</div>

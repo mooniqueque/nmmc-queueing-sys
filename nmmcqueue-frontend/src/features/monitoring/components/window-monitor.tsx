@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 export default function WindowMonitor() {
     const currentTime = useCurrentTime();
-    const { windows, upcoming, currentAnnouncement } = useWindowMonitor();
+    const { windows, previousNumbers, upcoming, currentAnnouncement } = useWindowMonitor();
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -32,6 +32,7 @@ export default function WindowMonitor() {
                 queueEmptyLabel="No active windows"
                 upcomingEmptyLabel="No upcoming numbers"
                 windows={windows}
+                previousNumbers={previousNumbers}
                 upcoming={upcoming}
                 currentTime={currentTime}
                 videoUrl={videoUrl}

@@ -1,11 +1,11 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
 import { AppError, errorHandler } from '../../../nmmcqueue-backend/src/middleware/error-handler';
+import { getVerifiedSessionUser } from '../../../nmmcqueue-backend/src/modules/auth/session-guard';
 import { callerRouter } from '../../../nmmcqueue-backend/src/modules/caller/routes';
 import { callerService } from '../../../nmmcqueue-backend/src/modules/caller/service';
-import { getVerifiedSessionUser } from '../../../nmmcqueue-backend/src/modules/auth/session-guard';
 
 type TestUser = {
   id: string;
@@ -107,7 +107,19 @@ describe('Caller API Flow Integration (Phase 4.2)', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(mockCallerService.callNextPatient).toHaveBeenCalledWith('caller-1', 'PRIORITY');
+    expect(mockCallerService.callNextPatient).toHaveBeenCalledWith('caller-1', 'PRIORITY', undefined);
+  });
+
+  it('calls next priority patient with priorityCategoryKey when provided', async () => {
+    mockCallerService.callNextPatient.mockResolvedValue({ id: 'visit-priority', status: 'IN_PROGRESS' });
+
+    const response = await request(app)
+      .post('/api/caller/call-next')
+      .send({ overrideClassification: 'PRIORITY', priorityCategoryKey: 'PWD' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(mockCallerService.callNextPatient).toHaveBeenCalledWith('caller-1', 'PRIORITY', 'PWD');
   });
 
   it('returns 400 when transfer payload is invalid', async () => {
@@ -193,6 +205,16 @@ describe('Caller API Flow Integration (Phase 4.2)', () => {
     const response = await request(app)
       .post('/api/caller/call-next')
       .send({ overrideClassification: 'INVALID' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(mockCallerService.callNextPatient).not.toHaveBeenCalled();
+  });
+
+  it('rejects empty priorityCategoryKey payload', async () => {
+    const response = await request(app)
+      .post('/api/caller/call-next')
+      .send({ overrideClassification: 'PRIORITY', priorityCategoryKey: '   ' });
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);

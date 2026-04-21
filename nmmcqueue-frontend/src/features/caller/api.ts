@@ -115,14 +115,28 @@ export async function callPatient(visitId: string, options?: RequestInit) {
 
 export async function callNextPatient(
     overrideClassification?: 'PRIORITY' | 'REGULAR',
+    priorityCategoryKey?: string,
     options?: RequestInit
 ) {
+    const payload: {
+        overrideClassification?: 'PRIORITY' | 'REGULAR';
+        priorityCategoryKey?: string;
+    } = {};
+
+    if (overrideClassification) {
+        payload.overrideClassification = overrideClassification;
+    }
+
+    if (priorityCategoryKey) {
+        payload.priorityCategoryKey = priorityCategoryKey;
+    }
+
     return apiClient<VisitWithPatient | null>("/caller/call-next", {
         method: "POST",
         credentials: "include",
         ...options,
         headers: { "Content-Type": "application/json", ...options?.headers },
-        body: JSON.stringify(overrideClassification ? { overrideClassification } : {}),
+        body: JSON.stringify(payload),
     });
 }
 

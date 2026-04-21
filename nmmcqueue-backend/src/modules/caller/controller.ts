@@ -86,7 +86,8 @@ class CallerController {
     callNextPatient = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         const userId = req.user.id;
         const overrideClassification = req.body?.overrideClassification as 'PRIORITY' | 'REGULAR' | undefined;
-        const data = await callerService.callNextPatient(userId, overrideClassification);
+        const priorityCategoryKey = req.body?.priorityCategoryKey as string | undefined;
+        const data = await callerService.callNextPatient(userId, overrideClassification, priorityCategoryKey);
         res.status(200).json({ success: true, data });
     });
 

@@ -4,6 +4,15 @@ import { connection } from "next/server";
 import { getCallerScope, getClinicQueues } from "../api";
 import UserCallerDashboard from './user-caller-dashboard';
 
+function getTodayBusinessDay() {
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).format(new Date());
+}
+
 export default async function CallerData() {
     await connection();
 
@@ -40,6 +49,7 @@ export default async function CallerData() {
             department={userDepartment}
             callerUserId={callerUserId}
             initialQueue={initialQueueData}
+            initialReportDate={getTodayBusinessDay()}
         />
     );
 }

@@ -1,4 +1,4 @@
-import { WorkstationType } from '@prisma/client';
+import { Prisma, WorkstationType } from '@prisma/client';
 import { db } from '../../config/database.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
@@ -121,10 +121,24 @@ class WorkstationService {
     }
 
     async update(id: string, data: any) {
-        return await db.workStation.update({
-            where: { id },
-            data
-        });
+        try {
+            return await db.workStation.update({
+                where: { id },
+                data,
+            });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2002') {
+                    throw new AppError('Workstation name already exists.', 409, 'WORKSTATION_NAME_EXISTS');
+                }
+
+                if (error.code === 'P2025') {
+                    throw new AppError('Station not found', 404, 'STATION_NOT_FOUND');
+                }
+            }
+
+            throw error;
+        }
     }
 
     async delete(id: string) {

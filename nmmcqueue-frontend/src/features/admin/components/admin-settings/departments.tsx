@@ -106,7 +106,6 @@ export default function DepartmentSettings({
     const [pendingDeleteDepartmentId, setPendingDeleteDepartmentId] = useState<string | null>(null);
     const [isDeletingDepartment, setIsDeletingDepartment] = useState(false);
 
-<<<<<<< HEAD
     const departments = departmentsState ?? initialDepartments;
     const queueOptionsByDepartment = queueOptionsByDepartmentState ?? initialQueueOptionsByDepartment;
     const workstations = workstationsState ?? initialWorkstations;
@@ -115,8 +114,6 @@ export default function DepartmentSettings({
         ? selectedDepartmentId
         : (departments[0]?.id ?? "");
 
-=======
->>>>>>> improve6
     const handleWorkstationsCreated = (created: WorkStation[]) => {
         setWorkstations((current) => {
             const base = current ?? initialWorkstations;

@@ -28,6 +28,8 @@ type WorkstationListProps = {
     workstations: WorkStation[];
     departments: Department[];
     users: UserData[];
+    title?: string;
+    visibleTypes?: Array<"CALLER" | "TRIAGE" | "WINDOW">;
     onWorkstationsCreated?: (stations: WorkStation[]) => void;
     onWorkstationUpdated?: (station: WorkStation) => void;
     onWorkstationDeleted?: (id: string) => void;
@@ -46,14 +48,22 @@ type EditWorkstationValues = z.infer<typeof editWorkstationSchema>;
 
 export function WorkstationList({
     workstations,
-    departments,
     users,
+    title,
+    visibleTypes,
     onWorkstationsCreated,
     onWorkstationUpdated,
     onWorkstationDeleted,
 }: WorkstationListProps) {
+    const typesToRender = useMemo<Array<"CALLER" | "TRIAGE" | "WINDOW">>(() => {
+        return visibleTypes?.length ? visibleTypes : ["CALLER", "TRIAGE", "WINDOW"];
+    }, [visibleTypes]);
+
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [createType, setCreateType] = useState<"CALLER" | "TRIAGE" | "WINDOW">("WINDOW");
+    const [createType, setCreateType] = useState<"CALLER" | "TRIAGE" | "WINDOW">(() => {
+        if (typesToRender.includes("WINDOW")) return "WINDOW";
+        return typesToRender[0] ?? "WINDOW";
+    });
     const [createCustomName, setCreateCustomName] = useState("");
     const [createCount, setCreateCount] = useState<number>(1);
     const [isCreating, setIsCreating] = useState(false);
@@ -112,6 +122,17 @@ export function WorkstationList({
 
         return byType;
     }, [workstations]);
+
+    const selectedAssignedUsers = useMemo(() => {
+        if (!pendingEditStation) return [] as string[];
+
+        const relevantIds = pendingEditStation.type === "CALLER"
+            ? [pendingEditStation.id, ...(pendingEditStation.childWorkstations?.map((child) => child.id) ?? [])]
+            : [pendingEditStation.id];
+
+        const names = relevantIds.flatMap((id) => assignedNamesByStation.get(id) ?? []);
+        return Array.from(new Set(names));
+    }, [assignedNamesByStation, pendingEditStation]);
 
     const handleDelete = async (id: string) => {
         const result = await deleteWorkstation(id);
@@ -294,7 +315,7 @@ export function WorkstationList({
                                     : "Mixed"}
                         </span>
                     ) : (
-                        <span className="text-xs font-medium text-slate-400 italic">N/A</span>
+                        <span className="text-xs font-medium text-muted-foreground italic">N/A</span>
                     )}
                 </td>
                 <td className="px-6 py-4">
@@ -383,7 +404,7 @@ export function WorkstationList({
     return (
         <Card className="border-border shadow-sm">
             <CardHeader className="pb-4">
-                <CardTitle className="text-base font-semibold text-foreground">Operational Workstations</CardTitle>
+                <CardTitle className="text-base font-semibold text-foreground">{title ?? "Operational Workstations"}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -399,19 +420,9 @@ export function WorkstationList({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {workstations.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center">
-                                        <p className="text-sm font-medium text-muted-foreground">No workstations found. Create your first station from the left panel.</p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                <>
-                                    {renderSection("CALLER", "Caller Workstations")}
-                                    {renderSection("TRIAGE", "Triage Workstations")}
-                                    {renderSection("WINDOW", "Window Workstations")}
-                                </>
-                            )}
+                            {typesToRender.includes("CALLER") ? renderSection("CALLER", "Caller Workstations") : null}
+                            {typesToRender.includes("TRIAGE") ? renderSection("TRIAGE", "Triage Workstations") : null}
+                            {typesToRender.includes("WINDOW") ? renderSection("WINDOW", "Window Workstations") : null}
                         </tbody>
                     </table>
                 </div>
@@ -473,6 +484,19 @@ export function WorkstationList({
                                     )}
                                 />
                             )}
+
+                            <div className="rounded-md border bg-muted/20 p-3">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Assigned Users</p>
+                                {selectedAssignedUsers.length === 0 ? (
+                                    <p className="mt-2 text-sm text-muted-foreground">No assigned users.</p>
+                                ) : (
+                                    <ul className="mt-2 space-y-1">
+                                        {selectedAssignedUsers.map((name) => (
+                                            <li key={name} className="text-sm text-foreground">{name}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
 
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => handleEditDialogChange(false)} disabled={isSavingEdit}>

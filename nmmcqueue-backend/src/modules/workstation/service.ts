@@ -1,30 +1,35 @@
-import { WorkstationType } from '@prisma/client';
+import { Prisma, WorkstationType } from '@prisma/client';
 import { db } from '../../config/database.js';
 import { emitQueueUpdate } from '../../lib/sse.js';
 import { AppError } from '../../middleware/error-handler.js';
 
 class WorkstationService {
-    async getAll() {
+    async getAll(filters?: {
+        departmentId?: string;
+        type?: WorkstationType;
+        includeLegacyCallerParents?: boolean;
+    }) {
+        const departmentId = filters?.departmentId?.trim();
+        const includeLegacyCallerParents = filters?.includeLegacyCallerParents ?? true;
+
+        const where: Record<string, unknown> = {};
+        if (departmentId) {
+            where.departmentId = departmentId;
+        }
+
+        if (filters?.type) {
+            where.type = filters.type;
+        }
+
+        // When querying callers without a departmentId, allow excluding legacy dept-less “lane” parents.
+        if (!departmentId && filters?.type === 'CALLER' && !includeLegacyCallerParents) {
+            where.departmentId = { not: null };
+        }
+
         return await db.workStation.findMany({
+            where,
             include: {
                 department: true,
-                parentWorkstation: {
-                    select: {
-                        id: true,
-                        name: true,
-                        stationNo: true,
-                        type: true,
-                    },
-                },
-                childWorkstations: {
-                    include: {
-                        department: true,
-                    },
-                    orderBy: [
-                        { stationNo: 'asc' },
-                        { name: 'asc' },
-                    ],
-                },
             },
             orderBy: [{ type: 'asc' }, { stationNo: 'asc' }]
         });
@@ -75,7 +80,7 @@ class WorkstationService {
                                 type,
                                 queueMode,
                                 stationNo: nextNumber,
-                                ...(type !== 'CALLER' && departmentId ? { departmentId } : {})
+                                ...(departmentId ? { departmentId } : {})
                             }
                         });
                         createdStations.push(station);
@@ -99,10 +104,24 @@ class WorkstationService {
     }
 
     async update(id: string, data: any) {
-        return await db.workStation.update({
-            where: { id },
-            data
-        });
+        try {
+            return await db.workStation.update({
+                where: { id },
+                data,
+            });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2002') {
+                    throw new AppError('Workstation name already exists.', 409, 'WORKSTATION_NAME_EXISTS');
+                }
+
+                if (error.code === 'P2025') {
+                    throw new AppError('Station not found', 404, 'STATION_NOT_FOUND');
+                }
+            }
+
+            throw error;
+        }
     }
 
     async delete(id: string) {

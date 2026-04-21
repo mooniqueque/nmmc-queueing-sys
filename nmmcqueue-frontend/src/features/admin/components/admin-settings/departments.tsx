@@ -3,7 +3,6 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
     Dialog,
@@ -19,13 +18,15 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createDepartment, deleteDepartment, updateDepartmentStatus } from "@/features/admin/department-actions";
 import { notify } from "@/shared/lib/notify";
-import { cn } from "@/shared/lib/utils";
-import { Department, DepartmentStatus, PriorityCategory } from "@/shared/types/models";
+import { UserData } from "@/shared/types/auth";
+import { Department, DepartmentStatus, PriorityCategory, WorkStation } from "@/shared/types/models";
 import { Funnel, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createQueueOption, deleteQueueOption } from "../../queue-option-actions";
+import DepartmentWorkstationList from "../workstation/DepartmentWorkstationList";
+import { WorkstationList } from "../workstation/WorkstationList";
 
 type QueueOptionsByDepartment = Record<string, PriorityCategory[]>;
 
@@ -38,6 +39,8 @@ type DepartmentSettingsProps = {
     initialDepartments: Department[];
     initialQueueOptionsByDepartment: QueueOptionsByDepartment;
     initialDepartmentInsights?: Record<string, DepartmentInsight>;
+    initialWorkstations: WorkStation[];
+    users: UserData[];
 };
 
 function normalizeDepartmentKey(value: string) {
@@ -73,7 +76,9 @@ function removeCategory(categories: PriorityCategory[], targetId: string): Prior
 export default function DepartmentSettings({
     initialDepartments,
     initialQueueOptionsByDepartment,
-    initialDepartmentInsights = {}
+    initialDepartmentInsights = {},
+    initialWorkstations,
+    users,
 }: DepartmentSettingsProps) {
     const router = useRouter();
     const [departments, setDepartments] = useState(initialDepartments);
@@ -91,6 +96,7 @@ export default function DepartmentSettings({
     const [selectedDepartmentId, setSelectedDepartmentId] = useState(initialDepartments[0]?.id ?? "");
 
     const [queueOptionsByDepartment, setQueueOptionsByDepartment] = useState(initialQueueOptionsByDepartment);
+    const [workstations, setWorkstations] = useState<WorkStation[]>(initialWorkstations);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [queueLoading, setQueueLoading] = useState(false);
@@ -100,16 +106,24 @@ export default function DepartmentSettings({
     const [pendingDeleteDepartmentId, setPendingDeleteDepartmentId] = useState<string | null>(null);
     const [isDeletingDepartment, setIsDeletingDepartment] = useState(false);
 
-    useEffect(() => {
-        setDepartments(initialDepartments);
-        setQueueOptionsByDepartment(initialQueueOptionsByDepartment);
-        setSelectedDepartmentId((prev) => {
-            if (prev && initialDepartments.some((department) => department.id === prev)) {
-                return prev;
-            }
-            return initialDepartments[0]?.id ?? "";
+    const handleWorkstationsCreated = (created: WorkStation[]) => {
+        setWorkstations((current) => {
+            const existingIds = new Set(current.map((station) => station.id));
+            const uniqueCreated = created.filter((station) => !existingIds.has(station.id));
+            return [...current, ...uniqueCreated].sort((left, right) => {
+                if (left.type !== right.type) return left.type.localeCompare(right.type);
+                return left.stationNo - right.stationNo;
+            });
         });
-    }, [initialDepartments, initialQueueOptionsByDepartment]);
+    };
+
+    const handleWorkstationUpdated = (updated: WorkStation) => {
+        setWorkstations((current) => current.map((station) => (station.id === updated.id ? { ...station, ...updated } : station)));
+    };
+
+    const handleWorkstationDeleted = (id: string) => {
+        setWorkstations((current) => current.filter((station) => station.id !== id));
+    };
 
     const selectedDepartment = departments.find((department) => department.id === selectedDepartmentId);
     const selectedDepartmentKey = selectedDepartment ? normalizeDepartmentKey(selectedDepartment.name) : "";
@@ -288,106 +302,161 @@ export default function DepartmentSettings({
     const hasDepartments = filteredDepartments.length > 0;
 
     return (
-        <div className="space-y-6">
-            <section className="space-y-4 rounded-lg border bg-card p-4">
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
-                    <div className="relative">
-                        <MagnifyingGlass size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            value={searchQuery}
-                            onChange={(event) => setSearchQuery(event.target.value)}
-                            placeholder="Search departments, clinics or services....."
-                            className="h-10 pl-9"
-                        />
-                    </div>
+        <Tabs defaultValue="clinic-departments" className="space-y-6">
+            <div className="space-y-1">
+                <h1 className="text-xl font-semibold tracking-tight text-foreground">Department and Station Management</h1>
+                <p className="text-sm text-muted-foreground">Manage clinic departments, triage stations, and window stations in one place.</p>
+            </div>
 
-                    <div className="flex items-center gap-2 rounded-md border bg-background px-3">
-                        <Funnel size={14} className="text-muted-foreground" />
-                        <select
-                            value={filterMode}
-                            onChange={(event) => setFilterMode(event.target.value as "ALL" | "PRIORITY" | "WITHOUT_QUEUE_OPTIONS")}
-                            className="h-10 bg-transparent text-sm font-medium outline-none"
-                        >
-                            <option value="ALL">All</option>
-                            <option value="PRIORITY">High Priority</option>
-                            <option value="WITHOUT_QUEUE_OPTIONS">No Queue Options</option>
-                        </select>
-                    </div>
+            <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:grid-cols-3">
+                <TabsTrigger value="clinic-departments">Clinic Departments</TabsTrigger>
+                <TabsTrigger value="triage-stations">Triage Stations</TabsTrigger>
+                <TabsTrigger value="window-stations">Window Stations</TabsTrigger>
+            </TabsList>
 
-                    <div className="flex items-center gap-2 rounded-md border bg-background px-3">
-                        <span className="text-xs font-medium text-muted-foreground">Sort</span>
-                        <select
-                            value={sortMode}
-                            onChange={(event) =>
-                                setSortMode(event.target.value as "NAME_ASC" | "NAME_DESC" | "CODE_ASC" | "STAFF_DESC")
-                            }
-                            className="h-10 bg-transparent text-sm font-medium outline-none"
-                        >
-                            <option value="NAME_ASC">Name A-Z</option>
-                            <option value="NAME_DESC">Name Z-A</option>
-                            <option value="CODE_ASC">Code A-Z</option>
-                            <option value="STAFF_DESC">Most Staff</option>
-                        </select>
-                    </div>
-
-                    <Button
-                        className="h-10 px-5"
-                        onClick={() => {
-                            setError("");
-                            setIsAddDepartmentOpen(true);
-                        }}
-                    >
-                        <Plus size={16} className="mr-2" />
-                        Add New Department
-                    </Button>
-                </div>
-
-                <h2 className="text-lg font-semibold tracking-tight text-foreground">All Departments</h2>
-            </section>
-
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-                {hasDepartments ? (
-                    filteredDepartments.map((department) => {
-                        const insight = initialDepartmentInsights[department.id] ?? {
-                            leadOfficer: "Unassigned",
-                            staffCount: 0,
-                        };
-                        const departmentCategories = flattenCategories(
-                            queueOptionsByDepartment[normalizeDepartmentKey(department.name)] ?? []
-                        );
-                        const hasPriority = departmentCategories.some((category) => category.isPriority);
-
-                        return (
-                            <Card 
-                                key={department.id} 
-                                className="group relative overflow-hidden border bg-card shadow-sm transition-colors hover:bg-muted/40 cursor-pointer"
-                                onClick={() => openManageDialog(department.id)}
+            <TabsContent value="clinic-departments" className="space-y-6">
+                <div className="space-y-6">
+                    <section className="space-y-4 rounded-lg border bg-card p-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <h2 className="text-lg font-semibold tracking-tight text-foreground">Clinic Departments</h2>
+                            <Button
+                                className="h-9 px-4"
+                                onClick={() => {
+                                    setError("");
+                                    setIsAddDepartmentOpen(true);
+                                }}
                             >
-                                <CardContent className="flex items-center gap-4 p-4">
-                                    <div className="h-10 w-1.5 rounded-full bg-emerald-600" />
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="truncate text-base font-semibold tracking-tight">{department.name}</h3>
-                                        <p className="mt-1 text-xs text-muted-foreground">
-                                            Code {department.code} · {insight.staffCount} staff
-                                        </p>
-                                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                                            <span className={cn("size-2 rounded-full", department.status === DepartmentStatus.CLOSED ? "bg-slate-400" : department.status === DepartmentStatus.FULL ? "bg-amber-500" : "bg-emerald-500")} />
-                                            <span>{department.status ?? DepartmentStatus.OPEN}</span>
-                                        </div>
-                                    </div>
+                                <Plus size={16} className="mr-2" />
+                                Add Department
+                            </Button>
+                        </div>
 
-                                </CardContent>
-                            </Card>
-                        );
-                    })
-                ) : (
-                    <Card className="col-span-full border-dashed">
-                        <CardContent className="py-16 text-center">
-                            <p className="text-sm font-semibold text-muted-foreground">No departments match your current search and filters.</p>
-                        </CardContent>
-                    </Card>
-                )}
-            </section>
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto]">
+                            <div className="relative">
+                                <MagnifyingGlass size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.target.value)}
+                                    placeholder="Search departments, clinics or services..."
+                                    className="h-10 pl-9"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2 rounded-md border bg-background px-3">
+                                <Funnel size={14} className="text-muted-foreground" />
+                                <select
+                                    value={filterMode}
+                                    onChange={(event) => setFilterMode(event.target.value as "ALL" | "PRIORITY" | "WITHOUT_QUEUE_OPTIONS")}
+                                    className="h-10 bg-transparent text-sm font-medium outline-none"
+                                >
+                                    <option value="ALL">All</option>
+                                    <option value="PRIORITY">High Priority</option>
+                                    <option value="WITHOUT_QUEUE_OPTIONS">No Queue Options</option>
+                                </select>
+                            </div>
+
+                            <div className="flex items-center gap-2 rounded-md border bg-background px-3">
+                                <span className="text-xs font-medium text-muted-foreground">Sort</span>
+                                <select
+                                    value={sortMode}
+                                    onChange={(event) =>
+                                        setSortMode(event.target.value as "NAME_ASC" | "NAME_DESC" | "CODE_ASC" | "STAFF_DESC")
+                                    }
+                                    className="h-10 bg-transparent text-sm font-medium outline-none"
+                                >
+                                    <option value="NAME_ASC">Name A-Z</option>
+                                    <option value="NAME_DESC">Name Z-A</option>
+                                    <option value="CODE_ASC">Code A-Z</option>
+                                    <option value="STAFF_DESC">Most Staff</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto rounded-md border">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="border-b border-border bg-muted/40">
+                                        <th className="px-4 py-3 text-xs font-medium text-muted-foreground">Department</th>
+                                        <th className="px-4 py-3 text-xs font-medium text-muted-foreground">Code</th>
+                                        <th className="px-4 py-3 text-xs font-medium text-muted-foreground">Queue Options</th>
+                                        <th className="px-4 py-3 text-xs font-medium text-muted-foreground">Ticket Assignment</th>
+                                        <th className="px-4 py-3 text-xs font-medium text-muted-foreground">Staff</th>
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border bg-card">
+                                    {hasDepartments ? (
+                                        filteredDepartments.map((department) => {
+                                            const insight = initialDepartmentInsights[department.id] ?? {
+                                                leadOfficer: "Unassigned",
+                                                staffCount: 0,
+                                            };
+                                            const departmentCategories = flattenCategories(
+                                                queueOptionsByDepartment[normalizeDepartmentKey(department.name)] ?? []
+                                            );
+                                            const priorityCount = departmentCategories.filter((category) => category.isPriority).length;
+
+                                            return (
+                                                <tr key={department.id} className="hover:bg-muted/20">
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-semibold text-foreground">{department.name}</span>
+                                                            <span className="text-xs text-muted-foreground">Lead: {insight.leadOfficer}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge variant="outline" className="font-mono text-[10px] uppercase">
+                                                            {department.code}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs text-muted-foreground">{departmentCategories.length} option(s)</span>
+                                                            {priorityCount > 0 ? <Badge variant="secondary">{priorityCount} priority</Badge> : null}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge variant={department.status === DepartmentStatus.OPEN ? "secondary" : "outline"}>
+                                                            {department.status === DepartmentStatus.OPEN ? "Enabled" : "Disabled"}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="text-xs text-muted-foreground">{insight.staffCount} staff</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center justify-end gap-3">
+                                                            <div className="flex items-center gap-2 rounded-full border bg-muted/40 px-3 py-1.5">
+                                                                <span className="text-[11px] font-medium text-muted-foreground">Off</span>
+                                                                <Switch
+                                                                    checked={department.status === DepartmentStatus.OPEN}
+                                                                    onCheckedChange={(checked) => handleQueueStatusChange(department.id, checked)}
+                                                                />
+                                                                <span className="text-[11px] font-medium text-muted-foreground">On</span>
+                                                            </div>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => openManageDialog(department.id)}
+                                                            >
+                                                                Manage
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={6} className="px-4 py-10 text-center text-sm font-medium text-muted-foreground">
+                                                No departments match your current search and filters.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
 
             <Dialog open={isAddDepartmentOpen} onOpenChange={setIsAddDepartmentOpen}>
                 <DialogContent className="sm:max-w-md">
@@ -452,9 +521,10 @@ export default function DepartmentSettings({
 
                     {selectedDepartment ? (
                         <Tabs defaultValue="department-info" className="space-y-4">
-                            <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:grid-cols-2">
+                            <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:grid-cols-3">
                                 <TabsTrigger value="department-info">Department Info</TabsTrigger>
                                 <TabsTrigger value="queue-options">Queue Options</TabsTrigger>
+                                <TabsTrigger value="caller-stations">Caller Stations</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="department-info" className="space-y-4">
@@ -503,24 +573,12 @@ export default function DepartmentSettings({
                             </TabsContent>
 
                             <TabsContent value="queue-options" className="space-y-4">
-                                <div className="rounded-lg border bg-card p-4 space-y-4">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div>
-                                            <p className="text-sm font-medium text-foreground">Enable Ticket Assignment</p>
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                When closed, Triage staff cannot assign new patients to this department regardless of their individual access.
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-3 rounded-full border bg-muted/40 px-3 py-2">
-                                            <span className="text-xs font-medium text-muted-foreground">Closed</span>
-                                            <Switch
-                                                checked={selectedDepartment.status === DepartmentStatus.OPEN}
-                                                onCheckedChange={(checked) => handleQueueStatusChange(selectedDepartment.id, checked)}
-                                            />
-                                            <span className="text-xs font-medium text-muted-foreground">Open</span>
-                                        </div>
-                                    </div>
-                                </div>
+                                <Alert>
+                                    <AlertTitle>Ticket assignment control moved</AlertTitle>
+                                    <AlertDescription>
+                                        Enable Ticket Assignment is now controlled from the Clinic Departments list under the Actions column.
+                                    </AlertDescription>
+                                </Alert>
 
                                 <div className="rounded-lg border bg-card p-4">
                                     <p className="text-sm font-medium">Add Queue Option</p>
@@ -588,6 +646,17 @@ export default function DepartmentSettings({
                                     )}
                                 </div>
                             </TabsContent>
+
+                            <TabsContent value="caller-stations" className="space-y-4">
+                                <DepartmentWorkstationList
+                                    department={selectedDepartment}
+                                    workstations={workstations}
+                                    users={users}
+                                    onWorkstationsCreated={handleWorkstationsCreated}
+                                    onWorkstationUpdated={handleWorkstationUpdated}
+                                    onWorkstationDeleted={handleWorkstationDeleted}
+                                />
+                            </TabsContent>
                         </Tabs>
                     ) : null}
 
@@ -647,6 +716,36 @@ export default function DepartmentSettings({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+                </div>
+            </TabsContent>
+
+            <TabsContent value="triage-stations" className="space-y-4">
+                <WorkstationList
+                    key="triage-stations"
+                    title="Triage Stations"
+                    visibleTypes={["TRIAGE"]}
+                    workstations={workstations}
+                    departments={departments}
+                    users={users}
+                    onWorkstationsCreated={handleWorkstationsCreated}
+                    onWorkstationUpdated={handleWorkstationUpdated}
+                    onWorkstationDeleted={handleWorkstationDeleted}
+                />
+            </TabsContent>
+
+            <TabsContent value="window-stations" className="space-y-4">
+                <WorkstationList
+                    key="window-stations"
+                    title="Window Stations"
+                    visibleTypes={["WINDOW"]}
+                    workstations={workstations}
+                    departments={departments}
+                    users={users}
+                    onWorkstationsCreated={handleWorkstationsCreated}
+                    onWorkstationUpdated={handleWorkstationUpdated}
+                    onWorkstationDeleted={handleWorkstationDeleted}
+                />
+            </TabsContent>
+        </Tabs>
     );
 }

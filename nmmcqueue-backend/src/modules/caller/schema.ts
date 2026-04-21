@@ -48,6 +48,7 @@ export const callerVisitParamSchema = z.object({
 export const callNextPatientRequestSchema = z.object({
     body: z.object({
         overrideClassification: z.enum(['PRIORITY', 'REGULAR']).optional(),
+        priorityCategoryKey: z.string().trim().min(1, 'priorityCategoryKey cannot be empty').optional(),
     }).optional().default({}),
 });
 

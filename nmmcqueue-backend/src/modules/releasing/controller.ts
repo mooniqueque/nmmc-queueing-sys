@@ -23,15 +23,8 @@ class ReleasingController {
 
     callPriorityClass = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
         const userId = req.user.id;
-        const { priorityTemplateId, priorityCategoryKey } = req.body as {
-            priorityTemplateId?: string;
-            priorityCategoryKey?: string;
-        };
-        const resolvedKey = priorityTemplateId ?? priorityCategoryKey;
-        if (!resolvedKey) {
-            return res.status(400).json({ success: false, error: 'priorityTemplateId is required' });
-        }
-        const visit = await releasingService.callPriorityClass(userId, resolvedKey);
+        const { priorityCategoryKey } = req.body as { priorityCategoryKey: string };
+        const visit = await releasingService.callPriorityClass(userId, priorityCategoryKey);
         if (!visit) {
             return res.status(200).json({ success: true, data: null, message: 'No patients waiting for this priority class.' });
         }

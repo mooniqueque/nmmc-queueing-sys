@@ -105,9 +105,9 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
         });
     };
 
-    const handleCallPriorityClass = (priorityTemplateId: string) => {
+    const handleCallPriorityClass = (priorityCategoryKey: string) => {
         startTransition(async () => {
-            const res = await callPriorityClass(priorityTemplateId);
+            const res = await callPriorityClass(priorityCategoryKey);
             if (res?.success && res.data) {
                 notify.success("Priority patient claimed", {
                     description: `${res.data.patient.lastName}, ${res.data.patient.firstName} — Window ${stationNo}`
@@ -243,7 +243,6 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
     const priorityClassOptions = useMemo(() => {
         const byKey = new Map<string, PriorityCategory>();
         const buildKey = (category: PriorityCategory) => {
-            if (category.templateId) return `TEMPLATE:${category.templateId}`;
             const code = category.code?.trim().toUpperCase();
             if (code) return `CODE:${code}`;
             return `NAME:${category.name.trim().toUpperCase()}`;
@@ -269,12 +268,7 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                 }
             }
         }
-        return Array.from(byKey.values()).sort((a, b) => {
-            const aOrder = a.template?.sortOrder ?? Number.POSITIVE_INFINITY;
-            const bOrder = b.template?.sortOrder ?? Number.POSITIVE_INFINITY;
-            if (aOrder !== bOrder) return aOrder - bOrder;
-            return a.name.localeCompare(b.name);
-        });
+        return Array.from(byKey.values()).sort((a, b) => a.name.localeCompare(b.name));
     }, [queueOptionsByDepartment, sortedPriorityQueue]);
 
     const hasActivePatient = !!currentVisit;
@@ -393,8 +387,8 @@ export function ReleasingEntry({ initialQueue, departments, queueOptionsByDepart
                                                     ) : (
                                                         priorityClassOptions.map((option) => (
                                                             <DropdownMenuItem
-                                                                key={option.templateId || option.code?.trim().toUpperCase() || option.name.trim().toUpperCase()}
-                                                                onClick={() => handleCallPriorityClass(option.templateId || option.code?.trim() || option.name.trim())}
+                                                                key={option.code?.trim().toUpperCase() || option.name.trim().toUpperCase()}
+                                                                onClick={() => handleCallPriorityClass(option.code?.trim() || option.name.trim())}
                                                             >
                                                                 {option.name}
                                                             </DropdownMenuItem>

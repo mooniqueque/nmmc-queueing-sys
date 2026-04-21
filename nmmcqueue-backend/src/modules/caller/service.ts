@@ -23,6 +23,25 @@ function normalizeQueueCode(value: string) {
 }
 
 class CallerService {
+    private async getVisitWithRelations(
+        visitId: string,
+        tx: Prisma.TransactionClient | typeof db = db
+    ) {
+        return tx.visit.findUnique({
+            where: { id: visitId },
+            include: {
+                patient: true,
+                department: true,
+                referredFrom: true,
+                categories: {
+                    include: {
+                        category: true
+                    }
+                }
+            }
+        });
+    }
+
     private async getActiveQueueOptionTemplates(tx: Prisma.TransactionClient | typeof db = db) {
         const templates = await tx.queueOptionTemplate.findMany({
             where: { isActive: true },
@@ -400,10 +419,47 @@ class CallerService {
         });
     }
 
-    async callNextPatient(userId?: string, overrideClassification?: 'PRIORITY' | 'REGULAR') {
+    async callNextPatient(
+        userId?: string,
+        overrideClassification?: 'PRIORITY' | 'REGULAR',
+        priorityCategoryKey?: string
+    ) {
         const scope = await this.getCallerScope(userId);
         const queueBusinessDay = getQueueBusinessDay();
         const previousMonitorSnapshot = await monitorService.getDepartmentStatus(scope.departmentId);
+        const normalizedPriorityCategoryKey = priorityCategoryKey?.trim();
+        let matchedPriorityCategoryIds: string[] = [];
+
+        if (overrideClassification === 'PRIORITY' && normalizedPriorityCategoryKey) {
+            const normalizedLookupKey = normalizedPriorityCategoryKey.toUpperCase();
+            const candidateCategories = await db.priorityCategory.findMany({
+                where: {
+                    departmentId: scope.departmentId,
+                    isPriority: true,
+                },
+                select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                },
+            });
+
+            const matchedCategories = candidateCategories.filter((category) => {
+                const code = (category.code ?? '').trim().toUpperCase();
+                const name = (category.name ?? '').trim().toUpperCase();
+                return code === normalizedLookupKey || name === normalizedLookupKey;
+            });
+
+            matchedPriorityCategoryIds = matchedCategories.map((category) => category.id);
+
+            if (matchedPriorityCategoryIds.length === 0) {
+                throw new AppError(
+                    'Priority queue option not found for your department.',
+                    404,
+                    'PRIORITY_OPTION_NOT_FOUND'
+                );
+            }
+        }
 
         const currentClaim = await db.visit.findFirst({
             where: {
@@ -429,6 +485,12 @@ class CallerService {
                     { classification: 'PRIORITY' },
                     { isReferred: true },
                 ];
+
+                if (matchedPriorityCategoryIds.length > 0) {
+                    whereClause.categories = {
+                        some: { categoryId: { in: matchedPriorityCategoryIds } },
+                    };
+                }
             } else if (overrideClassification === 'REGULAR') {
                 whereClause.classification = 'REGULAR';
                 whereClause.isReferred = false;
@@ -608,6 +670,7 @@ class CallerService {
     async callPatient(visitId: string, userId?: string, windowNumber?: number) {
         const scope = await this.getCallerScope(userId);
         const previousMonitorSnapshot = await monitorService.getDepartmentStatus(scope.departmentId);
+        const departmentSequenceKey = `DEPT_${scope.departmentId}`;
 
         const claimedVisit = await withClaimConflictRetry(() => db.$transaction(async (tx) => {
             const existing = await tx.visit.findUnique({
@@ -617,6 +680,7 @@ class CallerService {
                     status: true,
                     departmentId: true,
                     calledByUserId: true,
+                    sequenceKey: true,
                 }
             });
 
@@ -627,23 +691,45 @@ class CallerService {
             this.assertVisitScope(existing.departmentId, scope.departmentId);
 
             if (existing.status === 'IN_PROGRESS' && existing.calledByUserId === scope.userId) {
-                return tx.visit.update({ 
+                await tx.visit.update({ 
                     where: { id: visitId },
                     data: { calledAt: new Date() }
                 });
+                return this.getVisitWithRelations(visitId, tx);
             }
 
-            if (existing.status !== 'WAITING_CLINIC') {
+            const canRecallOwnedNoShow =
+                existing.status === 'NO_SHOW' &&
+                existing.sequenceKey?.startsWith(departmentSequenceKey) &&
+                existing.calledByUserId === scope.userId;
+
+            if (existing.status !== 'WAITING_CLINIC' && !canRecallOwnedNoShow) {
                 if (existing.status === 'IN_PROGRESS' && existing.calledByUserId && existing.calledByUserId !== scope.userId) {
                     throw new AppError('Patient already claimed by another caller.', 409, 'CLAIM_CONFLICT');
                 }
+
+                if (existing.status === 'NO_SHOW') {
+                    if (!existing.sequenceKey?.startsWith(departmentSequenceKey)) {
+                        throw new AppError('Patient is not in a claimable waiting state.', 400, 'CLAIM_INVALID_STATE');
+                    }
+
+                    if (existing.calledByUserId && existing.calledByUserId !== scope.userId) {
+                        throw new AppError('Only the caller who marked this patient as no-show can call them again.', 403, 'CLAIM_FORBIDDEN_SCOPE');
+                    }
+                }
+
                 throw new AppError('Patient is not in a claimable waiting state.', 400, 'CLAIM_INVALID_STATE');
             }
 
             const claimed = await tx.visit.updateMany({
                 where: {
                     id: visitId,
-                    status: 'WAITING_CLINIC',
+                    ...(canRecallOwnedNoShow
+                        ? {
+                            status: 'NO_SHOW',
+                            calledByUserId: scope.userId,
+                        }
+                        : { status: 'WAITING_CLINIC' }),
                 },
                 data: {
                     status: 'IN_PROGRESS',
@@ -662,7 +748,7 @@ class CallerService {
                 data: { visitId, status: 'IN_PROGRESS', changedBy: scope.userId }
             });
 
-            return tx.visit.findUnique({ where: { id: visitId } });
+            return this.getVisitWithRelations(visitId, tx);
         }));
 
         const payload = claimedVisit;

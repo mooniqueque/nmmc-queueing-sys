@@ -42,6 +42,85 @@ function getDateBounds(fromDate?: string, toDate?: string) {
     return { from, to };
 }
 
+export interface TriageSnapshotResponse {
+    date: string;
+    totals: {
+        totalTicketsGenerated: number;
+        priorityCount: number;
+        regularCount: number;
+        abandonedBeforeWindow: number;
+    };
+    ticketsPerDepartment: {
+        departmentId: string | null;
+        departmentName: string;
+        count: number;
+    }[];
+    generatedAt: string;
+}
+
+export async function getTriageSnapshot(date: string): Promise<TriageSnapshotResponse> {
+    const servedWhere: Prisma.VisitWhereInput = {
+        queueBusinessDay: date,
+        triagedAt: { not: null },
+        triagedByUserId: { not: null },
+        triageTicket: { not: null },
+    };
+
+    const [totalTicketsGenerated, priorityCount, regularCount, abandonedBeforeWindow, groupedByDepartment] = await Promise.all([
+        db.visit.count({ where: servedWhere }),
+        db.visit.count({ where: { ...servedWhere, classification: 'PRIORITY' } }),
+        db.visit.count({ where: { ...servedWhere, classification: 'REGULAR' } }),
+        db.visit.count({
+            where: {
+                queueBusinessDay: date,
+                status: 'NO_SHOW',
+                sequenceKey: null,
+                triagedAt: null,
+            },
+        }),
+        db.visit.groupBy({
+            by: ['departmentId'],
+            where: servedWhere,
+            _count: { _all: true },
+        }),
+    ]);
+
+    const departmentIds = groupedByDepartment
+        .map((group) => group.departmentId)
+        .filter((departmentId): departmentId is string => Boolean(departmentId));
+
+    const departments = departmentIds.length > 0
+        ? await db.department.findMany({
+            where: { id: { in: departmentIds } },
+            select: { id: true, name: true },
+        })
+        : [];
+
+    const ticketsPerDepartment = groupedByDepartment
+        .filter((group) => Boolean(group.departmentId))
+        .map((group) => {
+            const department = departments.find((item) => item.id === group.departmentId);
+            return {
+                departmentId: group.departmentId,
+                departmentName: department?.name ?? 'UNASSIGNED',
+                count: group._count._all,
+            };
+        })
+        .sort((a, b) => b.count - a.count);
+
+    return {
+        date,
+        totals: {
+            totalTicketsGenerated,
+            priorityCount,
+            regularCount,
+            abandonedBeforeWindow,
+        },
+        ticketsPerDepartment,
+        generatedAt: new Date().toISOString(),
+    };
+}
+
 export async function getAnalytics(query: AnalyticsQueryDto): Promise<AnalyticsResponse> {
     const { scope, departmentId, fromDate, toDate, userId } = query;
     const { from, to } = getDateBounds(fromDate, toDate);

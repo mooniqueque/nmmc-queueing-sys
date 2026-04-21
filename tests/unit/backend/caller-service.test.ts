@@ -28,8 +28,8 @@ jest.mock('../../../nmmcqueue-backend/src/modules/monitor/service.js', () => ({
   },
 }));
 
-import { callerService } from '../../../nmmcqueue-backend/src/modules/caller/service';
 import { AppError } from '../../../nmmcqueue-backend/src/middleware/error-handler';
+import { callerService } from '../../../nmmcqueue-backend/src/modules/caller/service';
 
 describe('CallerService (Phase 4)', () => {
   beforeEach(() => {
@@ -103,6 +103,47 @@ describe('CallerService (Phase 4)', () => {
     expect(result).toBeNull();
   });
 
+  it('callNextPatient filters priority queue by priorityCategoryKey', async () => {
+    mockDb.priorityCategory.findMany.mockResolvedValue([
+      { id: 'cat-pwd', code: 'PWD', name: 'Persons with Disability' },
+    ]);
+    mockDb.visit.findFirst
+      .mockResolvedValueOnce(null) // currentClaim
+      .mockResolvedValueOnce(null); // nextVisit in transaction
+    mockDb.$transaction.mockImplementation(async (work: (tx: typeof mockDb) => Promise<unknown>) => work(mockDb));
+
+    await callerService.callNextPatient('caller-1', 'PRIORITY', 'PWD');
+
+    expect(mockDb.priorityCategory.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          departmentId: 'dept-1',
+          isPriority: true,
+        }),
+      })
+    );
+
+    expect(mockDb.visit.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          categories: {
+            some: { categoryId: { in: ['cat-pwd'] } },
+          },
+        }),
+      })
+    );
+  });
+
+  it('callNextPatient rejects unknown priorityCategoryKey for caller department', async () => {
+    mockDb.priorityCategory.findMany.mockResolvedValue([]);
+
+    await expect(callerService.callNextPatient('caller-1', 'PRIORITY', 'UNKNOWN')).rejects.toMatchObject({
+      code: 'PRIORITY_OPTION_NOT_FOUND',
+      statusCode: 404,
+    });
+  });
+
   it('servePatient blocks completion if status is not IN_PROGRESS', async () => {
     mockDb.visit.findUnique.mockResolvedValue({
       id: 'visit-1',
@@ -139,6 +180,8 @@ describe('CallerService (Phase 4)', () => {
       calledByUserId: null,
     });
 
+    mockDb.department.findUnique.mockResolvedValue({ id: 'dept-1', status: 'OPEN' });
+
     await expect(callerService.transferPatient('visit-1', 'dept-1', 'caller-1')).rejects.toMatchObject({
       code: 'CLAIM_INVALID_STATE',
       statusCode: 400,
@@ -154,7 +197,7 @@ describe('CallerService (Phase 4)', () => {
       queueBusinessDay: '2026-04-12',
     });
 
-    mockDb.department.findUnique.mockResolvedValue({ id: 'dept-2' });
+    mockDb.department.findUnique.mockResolvedValue({ id: 'dept-2', name: 'ENT', status: 'OPEN' });
     mockDb.sequence.upsert.mockResolvedValue({ value: 42 });
     mockDb.priorityCategory.findMany.mockResolvedValue([
       { id: 'cat-ref', code: 'ER-REF', name: 'ER Referral' },
@@ -211,6 +254,49 @@ describe('CallerService (Phase 4)', () => {
     await expect(callerService.restorePatient('visit-1', 'caller-1')).rejects.toMatchObject({
       code: 'CLAIM_FORBIDDEN_SCOPE',
       statusCode: 403,
+    });
+  });
+
+  it('callPatient allows caller to immediately recall their own clinic no-show patient', async () => {
+    mockDb.visit.findUnique
+      .mockResolvedValueOnce({
+        id: 'visit-1',
+        status: 'NO_SHOW',
+        departmentId: 'dept-1',
+        calledByUserId: 'caller-1',
+        sequenceKey: 'DEPT_dept-1',
+      })
+      .mockResolvedValueOnce({
+        id: 'visit-1',
+        status: 'IN_PROGRESS',
+        departmentId: 'dept-1',
+        calledByUserId: 'caller-1',
+        patient: { firstName: 'Ana', lastName: 'Santos' },
+        department: { id: 'dept-1', name: 'CARDIOLOGY' },
+        referredFrom: null,
+        categories: [],
+      });
+    mockDb.visit.updateMany.mockResolvedValue({ count: 1 });
+    mockDb.$transaction.mockImplementation(async (work: (tx: typeof mockDb) => Promise<unknown>) => work(mockDb));
+
+    const result = await callerService.callPatient('visit-1', 'caller-1');
+
+    expect(mockDb.visit.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'visit-1',
+          status: 'NO_SHOW',
+          calledByUserId: 'caller-1',
+        }),
+        data: expect.objectContaining({
+          status: 'IN_PROGRESS',
+          calledByUserId: 'caller-1',
+        }),
+      })
+    );
+    expect(result).toMatchObject({
+      id: 'visit-1',
+      status: 'IN_PROGRESS',
     });
   });
 

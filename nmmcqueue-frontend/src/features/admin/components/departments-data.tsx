@@ -2,25 +2,19 @@ import DepartmentSettings from "@/features/admin/components/admin-settings/depar
 import { getDepartments } from "@/features/admin/department-actions";
 import { getQueueOptionsByDepartment, initializeDepartmentQueueDefaults } from "@/features/admin/queue-option-actions";
 import { getAllUsers } from "@/features/admin/user-actions";
+import { getWorkstations } from "@/features/admin/workstation-actions";
 import { auth } from "@/lib/database/auth";
 import { AdminHeader } from "@/shared/layouts";
-import { SessionUser } from "@/shared/types/auth";
-import { Department } from "@/shared/types/models";
+import { SessionUser, UserData } from "@/shared/types/auth";
+import { Department, WorkStation } from "@/shared/types/models";
 import { headers } from "next/headers";
 import { connection } from "next/server";
-
-type AdminUserRow = {
-    name?: string;
-    role?: string;
-    isActive?: boolean;
-    department?: string;
-};
 
 function normalizeDepartmentKey(value: string) {
     return value.trim().toUpperCase();
 }
 
-function pickLeadOfficer(users: AdminUserRow[]): string {
+function pickLeadOfficer(users: Pick<UserData, "name" | "role">[]): string {
     if (users.length === 0) return "Unassigned";
 
     const rolePriority = ["ADMIN", "TRIAGE_NURSE", "CLINIC_CALLER", "WINDOW_CLERK"];
@@ -40,7 +34,8 @@ export default async function DepartmentsData() {
 
     let departments: Department[] = [];
     let queueOptionsByDepartment = {};
-    let users: AdminUserRow[] = [];
+    let users: UserData[] = [];
+    let workstations: WorkStation[] = [];
 
     let user: SessionUser | undefined;
 
@@ -48,13 +43,15 @@ export default async function DepartmentsData() {
         const session = await auth.api.getSession({ headers: await headers() });
         user = session?.user as unknown as SessionUser;
 
-        const [response, allUsers] = await Promise.all([
+        const [response, allUsers, wsResponse] = await Promise.all([
             getDepartments(),
             getAllUsers(),
+            getWorkstations(),
         ]);
 
         departments = response.success && response.data ? response.data : [];
-        users = Array.isArray(allUsers) ? (allUsers as AdminUserRow[]) : [];
+        users = Array.isArray(allUsers) ? (allUsers as UserData[]) : [];
+        workstations = wsResponse.success && wsResponse.data ? (wsResponse.data as WorkStation[]) : [];
 
         queueOptionsByDepartment = await getQueueOptionsByDepartment(
             departments.map((department: Department) => department.name)
@@ -98,12 +95,14 @@ export default async function DepartmentsData() {
 
     return (
         <div className="flex flex-1 flex-col">
-            {user && <AdminHeader user={user} title="Manage Departments" />}
+            {user && <AdminHeader user={user} title="Manage Stations" />}
             <main className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full">
                 <DepartmentSettings
                     initialDepartments={departments as Department[]}
                     initialQueueOptionsByDepartment={queueOptionsByDepartment}
                     initialDepartmentInsights={initialDepartmentInsights}
+                    initialWorkstations={workstations}
+                    users={users}
                 />
             </main>
         </div>

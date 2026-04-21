@@ -196,7 +196,7 @@ class ReleasingService {
         return result;
     }
 
-    async callPriorityClass(userId: string, priorityTemplateId: string) {
+    async callPriorityClass(userId: string, priorityCategoryKey: string) {
         const user = await db.user.findUnique({
             where: { id: userId },
             include: { workstation: true }
@@ -205,29 +205,19 @@ class ReleasingService {
             throw new AppError('You must be assigned to a workstation to call patients.', 400, 'CALLER_ASSIGNMENT_REQUIRED');
         }
 
-        const normalized = priorityTemplateId.trim();
-        const template = await db.queueOptionTemplate.findUnique({
-            where: { id: normalized },
+        const normalized = priorityCategoryKey.trim();
+        const upper = normalized.toUpperCase();
+        const matchedCategories = await db.priorityCategory.findMany({
+            where: {
+                isPriority: true,
+                OR: [
+                    { code: normalized },
+                    { code: upper },
+                    { name: normalized },
+                ],
+            },
             select: { id: true },
         });
-
-        const matchedCategories = template
-            ? await db.priorityCategory.findMany({
-                where: { isPriority: true, templateId: template.id },
-                select: { id: true },
-            })
-            : await db.priorityCategory.findMany({
-                where: {
-                    isPriority: true,
-                    OR: [
-                        { code: normalized },
-                        { code: normalized.toUpperCase() },
-                        { name: normalized },
-                    ],
-                },
-                select: { id: true },
-            });
-
         const matchedCategoryIds = matchedCategories.map((category) => category.id);
         if (matchedCategoryIds.length === 0) {
             throw new AppError('Priority class not found.', 404, 'PRIORITY_CLASS_NOT_FOUND');

@@ -26,7 +26,7 @@ import {
 } from "@phosphor-icons/react";
 import { BarChart2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
 
@@ -43,7 +43,6 @@ export default function UserCallerDashboard({
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
     const [callAgainCooldown, setCallAgainCooldown] = useState(0);
-    const [localClaimedVisit, setLocalClaimedVisit] = useState<VisitWithPatient | null>(null);
     const {
         activeTab, setActiveTab,
         allDepartments, setDepartments,
@@ -73,7 +72,6 @@ export default function UserCallerDashboard({
     const inProgressVisit = departmentQueue.find(
         (v) => v.status === "IN_PROGRESS" && v.calledByUserId === callerUserId
     );
-    const activeVisit = inProgressVisit ?? localClaimedVisit;
     const waitingList = departmentQueue.filter(v => v.status === "WAITING_CLINIC");
     
     // Regular: Standard classification and NOT referred
@@ -122,7 +120,7 @@ export default function UserCallerDashboard({
         notify.error(fallbackMessage);
     };
 
-    const selectPreferredFemaleVoice = (voices: SpeechSynthesisVoice[]) => {
+    const selectPreferredFemaleVoice = useCallback((voices: SpeechSynthesisVoice[]) => {
         const femaleHints = ["zira", "samantha", "victoria", "aria", "jenny", "hazel", "susan", "female"];
         const englishVoices = voices.filter((voice) => voice.lang?.toLowerCase().startsWith("en"));
 
@@ -139,9 +137,9 @@ export default function UserCallerDashboard({
         if (hintedFemale) return hintedFemale;
 
         return englishVoices[0] || voices[0] || null;
-    };
+    }, []);
 
-    const speakCallerAnnouncement = (
+    const speakCallerAnnouncement = useCallback((
         ticketNo: number | null | undefined,
         classification?: "REGULAR" | "PRIORITY" | null,
         retries = 3
@@ -185,7 +183,7 @@ export default function UserCallerDashboard({
         } catch (error) {
             console.error("[Caller TTS] Unable to speak announcement", error);
         }
-    };
+    }, [department, selectPreferredFemaleVoice]);
 
     useEffect(() => {
         if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -200,6 +198,11 @@ export default function UserCallerDashboard({
     }, []);
 
     useEffect(() => {
+        if (!inProgressVisit) return;
+        speakCallerAnnouncement(inProgressVisit.serviceTicket, inProgressVisit.classification);
+    }, [inProgressVisit, speakCallerAnnouncement]);
+
+    useEffect(() => {
         if (callAgainCooldown > 0) {
             const timer = setInterval(() => setCallAgainCooldown((c: number) => c - 1), 1000);
             return () => clearInterval(timer);
@@ -207,12 +210,6 @@ export default function UserCallerDashboard({
     }, [callAgainCooldown]);
 
     // Action Handlers
-    useEffect(() => {
-        if (inProgressVisit) {
-            setLocalClaimedVisit(inProgressVisit);
-        }
-    }, [inProgressVisit]);
-
     const handleCallQueue = async (classification: 'REGULAR' | 'PRIORITY') => {
         const targetQueue = classification === 'PRIORITY' ? priorityWaitingList : regularWaitingList;
 
@@ -224,15 +221,12 @@ export default function UserCallerDashboard({
             );
         }
 
-        if (activeVisit) return notify.error("Please Mark Served or No Show the current patient first.");
+        if (inProgressVisit) return notify.error("Please Mark Served or No Show the current patient first.");
 
         setIsProcessing(true);
         try {
             const res = await callNextPatient(classification);
             notify.success(`Calling service ticket P-${res.data?.serviceTicket?.toString() ?? 'N/A'}`);
-            if (res.data) {
-                setLocalClaimedVisit(res.data);
-            }
         } catch (error) {
             handleCallerApiError(error, `Failed to call ${classification.toLowerCase()} patient.`);
         } finally {
@@ -241,11 +235,11 @@ export default function UserCallerDashboard({
     };
 
     const handleCallAgain = async () => {
-        if (!activeVisit) return notify.error("No active patient to call.");
+        if (!inProgressVisit) return notify.error("No active patient to call.");
         setIsProcessing(true);
         try {
-            await callPatient(activeVisit.id);
-            notify.success(`Calling service ticket P-${activeVisit.serviceTicket?.toString() ?? 'N/A'} again.`);
+            await callPatient(inProgressVisit.id);
+            notify.success(`Calling service ticket P-${inProgressVisit.serviceTicket?.toString() ?? 'N/A'} again.`);
             setCallAgainCooldown(10);
         } catch (error) {
             handleCallerApiError(error, "Failed to call patient.");
@@ -255,12 +249,11 @@ export default function UserCallerDashboard({
     };
 
     const handleServe = async () => {
-        if (!activeVisit) return notify.error("No active patient to serve.");
+        if (!inProgressVisit) return notify.error("No active patient to serve.");
         setIsProcessing(true);
         try {
-            await servePatient(activeVisit.id);
+            await servePatient(inProgressVisit.id);
             notify.success("Patient consultation completed.");
-            setLocalClaimedVisit(null);
         } catch (error) {
             handleCallerApiError(error, "Failed to mark patient as served.");
         } finally {
@@ -269,12 +262,11 @@ export default function UserCallerDashboard({
     };
 
     const handleNoShow = async () => {
-        if (!activeVisit) return notify.error("No active patient to mark as No Show.");
+        if (!inProgressVisit) return notify.error("No active patient to mark as No Show.");
         setIsProcessing(true);
         try {
-            await noShowPatient(activeVisit.id);
-            notify.error(`Service ticket P-${activeVisit.serviceTicket?.toString() ?? 'N/A'} marked as NO SHOW`);
-            setLocalClaimedVisit(null);
+            await noShowPatient(inProgressVisit.id);
+            notify.error(`Service ticket P-${inProgressVisit.serviceTicket?.toString() ?? 'N/A'} marked as NO SHOW`);
         } catch (error) {
             handleCallerApiError(error, "Failed to process No Show.");
         } finally {
@@ -283,15 +275,14 @@ export default function UserCallerDashboard({
     };
 
     const handleReferral = async () => {
-        if (!activeVisit) return notify.error("No active patient selected for referral.");
+        if (!inProgressVisit) return notify.error("No active patient selected for referral.");
         if (!targetDeptId) return notify.error("Please select a target department.");
 
         setIsProcessing(true);
         try {
-            await transferPatient(activeVisit.id, targetDeptId);
+            await transferPatient(inProgressVisit.id, targetDeptId);
             notify.success("Patient referred successfully.");
             resetReferral();
-            setLocalClaimedVisit(null);
         } catch (error) {
             handleCallerApiError(error, "An error occurred during referral.");
         } finally {
@@ -313,10 +304,10 @@ export default function UserCallerDashboard({
 
 
     return (
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-65px)] w-full overflow-hidden bg-slate-50 p-4 lg:p-6 gap-6">
+        <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden bg-slate-50 p-6 lg:p-8 gap-6">
 
             {/* LEFT PANE: Waitlist (35%) */}
-            <div className="flex flex-col w-full lg:w-[35%] xl:w-[30%] bg-card rounded-xl border border-border overflow-hidden shrink-0 h-auto max-h-[45vh] lg:max-h-none lg:h-full">
+            <div className="flex flex-col w-full lg:w-[35%] xl:w-[30%] bg-card rounded-xl border border-border overflow-hidden shrink-0">
                 {/* Header */}
                 <div className="px-6 py-6 border-b border-border bg-muted/30 flex justify-between items-center shrink-0">
                     <div>
@@ -328,7 +319,7 @@ export default function UserCallerDashboard({
                             variant="outline"
                             size="sm"
                             onClick={() => setActiveTab(activeTab === "reports" ? "waitlist" : "reports")}
-                            className="text-slate-800 font-bold border-orange-200 bg-yellow-100 hover:bg-yellow-50 rounded-lg"
+                            className="text-slate-600 border-slate-200 hover:bg-slate-50 rounded-lg"
                         >
                             <BarChart2 className="w-4 h-4 mr-2" />
                             Reports
@@ -373,7 +364,7 @@ export default function UserCallerDashboard({
                             <div className="flex flex-col">
                                 {unifiedWaitingList.map((visit, index) => {
                                     const isPriorityVisit = visit.classification === "PRIORITY" || visit.isReferred;
-                                    const isNext = index === 0 && !activeVisit;
+                                    const isNext = index === 0 && !inProgressVisit;
                                     const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
                                     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
 
@@ -509,7 +500,7 @@ export default function UserCallerDashboard({
             </div>
 
             {/* RIGHT PANE: Active Consultation (65%) */}
-            <div className="flex flex-col min-h-0 flex-1 bg-slate-50 rounded-xl border border-border overflow-hidden relative shadow-sm">
+            <div className="flex flex-col h-full min-h-screen flex-1 bg-slate-50 rounded-xl border border-border overflow-hidden relative shadow-sm">
                 
                 {/* Main Action Header (Replicating Triage/Window style) */}
                 <header className="px-8 py-6 border-b border-border bg-muted/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 z-20 shadow-sm">
@@ -518,7 +509,7 @@ export default function UserCallerDashboard({
                     </div>
 
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                                {activeVisit ? (
+                        {inProgressVisit ? (
                            <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 italic font-medium text-xs">
                                 Patient is currently being served...
                            </div>
@@ -526,8 +517,8 @@ export default function UserCallerDashboard({
                     </div>
                 </header>
 
-                <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative w-full bg-background/50">
-                    {!activeVisit ? (
+                <div className="flex-1 overflow-hidden flex flex-col relative w-full bg-background/50">
+                    {!inProgressVisit ? (
                         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/5 animate-in fade-in duration-500">
                             <div className="w-24 h-24 bg-background rounded-full border border-border flex items-center justify-center mb-8 shadow-xl relative group">
                                 <div className="absolute inset-0 rounded-full bg-emerald-500/5 animate-ping opacity-20" />
@@ -577,28 +568,28 @@ export default function UserCallerDashboard({
                                                 <div className="relative z-10 flex flex-col items-center">
                                                     <span className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Service Ticket</span>
                                                     <span className="text-5xl font-black text-emerald-900 tracking-tighter">
-                                                        {activeVisit.serviceTicket ? `#${activeVisit.serviceTicket}` : '---'}
+                                                        {inProgressVisit.serviceTicket ? `#${inProgressVisit.serviceTicket}` : '---'}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             <div className="flex flex-col justify-center flex-1 min-w-0">
                                                 <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-3 truncate w-full">
-                                                    {activeVisit.patient.firstName} {activeVisit.patient.lastName}
+                                                    {inProgressVisit.patient.firstName} {inProgressVisit.patient.lastName}
                                                 </h1>
 
                                                 <div className="flex flex-wrap items-center gap-4 text-[14px] font-bold text-slate-500 mb-4">
                                                     <span className="flex items-center gap-2 text-slate-600">
-                                                        {activeVisit.patient.gender} • {calculateAge(activeVisit.patient.dateOfBirth) ?? '??'} years old
+                                                        {inProgressVisit.patient.gender} • {calculateAge(inProgressVisit.patient.dateOfBirth) ?? '??'} years old
                                                     </span>
                                                     <span className="bg-emerald-600 text-white text-[9px] uppercase font-black tracking-widest px-2.5 py-1 rounded-full shadow-sm shadow-emerald-200">
-                                                        {activeVisit.classification || "REGULAR"}
+                                                        {inProgressVisit.classification || "REGULAR"}
                                                     </span>
                                                 </div>
-                                                {activeVisit.patient.contactNo && (
+                                                {inProgressVisit.patient.contactNo && (
                                                     <div className="flex items-center gap-2 text-[14px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg w-fit border border-emerald-100">
                                                         <Phone size={16} weight="duotone" />
-                                                        {activeVisit.patient.contactNo}
+                                                        {inProgressVisit.patient.contactNo}
                                                     </div>
                                                 )}
                                             </div>
@@ -613,14 +604,14 @@ export default function UserCallerDashboard({
                                             <div className="bg-card border border-border p-6 rounded-xl shadow-sm border-t-2 border-t-primary/50">
                                                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-3 block">Chief Complaint</span>
                                                 <p className="text-sm font-medium text-foreground leading-relaxed italic">
-                                                    &quot;{activeVisit.chiefComplaint || "No complaint recorded."}&quot;
+                                                    &quot;{inProgressVisit.chiefComplaint || "No complaint recorded."}&quot;
                                                 </p>
                                             </div>
                                             <div className="bg-card border border-border p-6 rounded-xl shadow-sm border-t-2 border-t-destructive flex items-center justify-between">
                                                 <div className="flex flex-col">
                                                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Blood Pressure</span>
                                                     <span className="text-2xl font-bold text-destructive tracking-tighter">
-                                                        {activeVisit.bloodPressure || "--/--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">mmHg</span>
+                                                        {inProgressVisit.bloodPressure || "--/--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">mmHg</span>
                                                     </span>
                                                 </div>
                                                 <Heartbeat size={32} weight="duotone" className="text-destructive/20" />
@@ -629,7 +620,7 @@ export default function UserCallerDashboard({
                                                 <div className="flex flex-col">
                                                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Temperature</span>
                                                     <span className="text-2xl font-bold text-foreground tracking-tighter">
-                                                        {activeVisit.temperature || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">°C</span>
+                                                        {inProgressVisit.temperature || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">°C</span>
                                                     </span>
                                                 </div>
                                                 <Thermometer size={32} weight="duotone" className="text-primary/20" />
@@ -638,7 +629,7 @@ export default function UserCallerDashboard({
                                                 <div className="flex flex-col">
                                                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Heart Rate</span>
                                                     <span className="text-2xl font-bold text-foreground tracking-tighter">
-                                                        {activeVisit.heartRate || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">bpm</span>
+                                                        {inProgressVisit.heartRate || "--"} <span className="text-xs font-medium text-muted-foreground tracking-normal ml-1">bpm</span>
                                                     </span>
                                                 </div>
                                                 <Info size={32} weight="duotone" className="text-blue-500/10" />
@@ -688,7 +679,7 @@ export default function UserCallerDashboard({
                                             disabled={isProcessing}
                                             className="w-full md:w-auto h-12 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:-translate-y-0.5 active:scale-[0.98]"
                                         >
-                                            <CheckCircle size={18} weight="fill" className="mr-2" /> Finish Consultation
+                                            <CheckCircle size={18} weight="fill" className="mr-2" /> Mark Served
                                         </Button>
                                     </div>
                                 </div>

@@ -5,9 +5,11 @@ import { asyncHandler } from '../../middleware/error-handler.js';
 import { requireAuth } from '../../middleware/rbac.js';
 import type { AuthenticatedRequest } from '../../middleware/types.js';
 import { callerController } from '../caller/controller.js';
-import { getAnalytics } from './analytics.js';
+import { getQueueBusinessDay } from '../../lib/queue-business-day.js';
+import { getAnalytics, getTriageSnapshot } from './analytics.js';
 
 export const sharedRouter = Router();
+export const analyticsRouter = Router();
 
 // ─── Public Reference Data ─────────────────────────────────────
 // These endpoints serve read-only lookup data needed by public Kiosks
@@ -39,3 +41,22 @@ sharedRouter.get('/analytics', requireAuth, asyncHandler(async (req: Request, re
         res.status(500).json({ success: false, error: 'Failed to load analytics' });
     }
 }));
+
+const triageSnapshotHandler = asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    try {
+        const date = (authReq.query.date as string | undefined) || getQueueBusinessDay();
+        const data = await getTriageSnapshot(date);
+        res.status(200).json({ success: true, data });
+    } catch (error: unknown) {
+        logger.error('Failed to load triage snapshot', {
+            path: authReq.path,
+            userId: authReq.user?.id,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        res.status(500).json({ success: false, error: 'Failed to load triage snapshot' });
+    }
+});
+
+sharedRouter.get('/analytics/triage-snapshot', requireAuth, triageSnapshotHandler);
+analyticsRouter.get('/triage-snapshot', requireAuth, triageSnapshotHandler);

@@ -420,19 +420,9 @@ export function WorkstationList({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {workstations.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center">
-                                        <p className="text-sm font-medium text-muted-foreground">No workstations found. Create your first station from the left panel.</p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                <>
-                                    {typesToRender.includes("CALLER") ? renderSection("CALLER", "Caller Workstations") : null}
-                                    {typesToRender.includes("TRIAGE") ? renderSection("TRIAGE", "Triage Workstations") : null}
-                                    {typesToRender.includes("WINDOW") ? renderSection("WINDOW", "Window Workstations") : null}
-                                </>
-                            )}
+                            {typesToRender.includes("CALLER") ? renderSection("CALLER", "Caller Workstations") : null}
+                            {typesToRender.includes("TRIAGE") ? renderSection("TRIAGE", "Triage Workstations") : null}
+                            {typesToRender.includes("WINDOW") ? renderSection("WINDOW", "Window Workstations") : null}
                         </tbody>
                     </table>
                 </div>

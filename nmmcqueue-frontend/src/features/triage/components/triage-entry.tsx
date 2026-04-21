@@ -160,7 +160,7 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col pb-10">
                 {activeTab === "REPORTS" ? (
                     <div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
                             <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
                                 <CardContent className="p-0">
                                     <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
@@ -176,9 +176,19 @@ export function TriageEntry({ initialQueue, currentVisit, user, availableDepartm
                                     <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
                                         <Users size={20} />
                                     </div>
-                                    <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Priority vs Regular</p>
-                                    <p className="text-4xl font-black text-slate-900 mt-1">{snapshotData.totals.priorityCount} / {snapshotData.totals.regularCount}</p>
-                                    <p className="text-sm text-slate-400 mt-1">Ratio of patient types.</p>
+                                    <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Priority</p>
+                                    <p className="text-4xl font-black text-slate-900 mt-1">{snapshotData.totals.priorityCount}</p>
+                                    <p className="text-sm text-slate-400 mt-1">Priority patients processed.</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                                <CardContent className="p-0">
+                                    <div className="h-10 w-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-3">
+                                        <Users size={20} />
+                                    </div>
+                                    <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">Regular</p>
+                                    <p className="text-4xl font-black text-slate-900 mt-1">{snapshotData.totals.regularCount}</p>
+                                    <p className="text-sm text-slate-400 mt-1">Regular patients processed.</p>
                                 </CardContent>
                             </Card>
                             <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">

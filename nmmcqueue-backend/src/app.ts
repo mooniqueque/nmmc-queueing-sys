@@ -5,7 +5,7 @@ import { authRouter, userRouter } from './modules/auth/routes.js';
 import { callerRouter } from './modules/caller/routes.js';
 import { monitorRouter } from './modules/monitor/routes.js';
 import { releasingRouter } from './modules/releasing/routes.js';
-import { sharedRouter } from './modules/shared/routes.js';
+import { analyticsRouter, sharedRouter } from './modules/shared/routes.js';
 import { ticketRouter } from './modules/tickets/routes.js';
 import { triageRouter } from './modules/triage/routes.js';
 import { workstationRouter } from './modules/workstation/routes.js';
@@ -37,6 +37,7 @@ app.use('/api', apiLimiter);
 
 // Register API routes
 app.use('/api/monitor', monitorRouter); // Priority for monitor management
+app.use('/api/analytics', analyticsRouter);
 app.use('/api/shared', sharedRouter);
 app.use('/api/tickets', ticketRouter);
 app.use('/api/triage', triageRouter);

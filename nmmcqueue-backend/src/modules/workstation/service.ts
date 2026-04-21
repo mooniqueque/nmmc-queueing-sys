@@ -30,23 +30,6 @@ class WorkstationService {
             where,
             include: {
                 department: true,
-                parentWorkstation: {
-                    select: {
-                        id: true,
-                        name: true,
-                        stationNo: true,
-                        type: true,
-                    },
-                },
-                childWorkstations: {
-                    include: {
-                        department: true,
-                    },
-                    orderBy: [
-                        { stationNo: 'asc' },
-                        { name: 'asc' },
-                    ],
-                },
             },
             orderBy: [{ type: 'asc' }, { stationNo: 'asc' }]
         });

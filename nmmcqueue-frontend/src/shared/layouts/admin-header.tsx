@@ -62,8 +62,8 @@ export function AdminHeader({ user, title, subtitle }: AdminHeaderProps) {
                     </div>
 
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Avatar className="h-9 w-9 border cursor-pointer transition-all hover:ring-2 hover:ring-emerald-200 hover:shadow-sm">
+                        <DropdownMenuTrigger className="rounded-full transition-all hover:ring-2 hover:ring-emerald-200 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+                            <Avatar className="h-9 w-9 border cursor-pointer">
                                 <AvatarFallback className="font-semibold text-xs bg-muted text-muted-foreground">
                                     {user.name?.substring(0, 2).toUpperCase()}
                                 </AvatarFallback>

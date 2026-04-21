@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../../middleware/error-handler.js';
 import { workstationService } from './service.js';
 
-const WORKSTATION_TYPES = new Set(['WINDOW', 'TRIAGE', 'CALLER', 'KIOSK']);
+const WORKSTATION_TYPES = new Set(['WINDOW', 'TRIAGE', 'CALLER']);
 
 function parseBoolean(value: unknown): boolean | undefined {
     if (typeof value !== 'string') return undefined;
@@ -32,7 +32,7 @@ class WorkstationController {
     });
 
     create = asyncHandler(async (req: Request, res: Response) => {
-        const { type, queueMode, customName, departmentId, count } = req.body;
+        const { type, customName, departmentId, count } = req.body;
         
         if (!type) {
             res.status(400).json({ success: false, error: 'Type is required' });
@@ -41,7 +41,6 @@ class WorkstationController {
 
         const stations = await workstationService.createWithAutoIncrement({
             type,
-            queueMode,
             customName,
             departmentId,
             count: count ? Number(count) : 1
@@ -50,7 +49,8 @@ class WorkstationController {
     });
 
     update = asyncHandler(async (req: Request, res: Response) => {
-        const station = await workstationService.update(req.params.id, req.body);
+        const { queueMode, ...safeBody } = req.body;
+        const station = await workstationService.update(req.params.id, safeBody);
         res.status(200).json({ success: true, data: station });
     });
 

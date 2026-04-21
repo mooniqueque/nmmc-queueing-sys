@@ -44,12 +44,11 @@ class WorkstationService {
 
     async createWithAutoIncrement(data: {
         type: WorkstationType,
-        queueMode?: 'MIXED' | 'PRIORITY_ONLY' | 'REGULAR_ONLY',
         customName?: string,
         departmentId?: string,
         count?: number,
     }) {
-        const { type, queueMode = 'MIXED', customName, departmentId, count = 1 } = data;
+        const { type, customName, departmentId, count = 1 } = data;
         const maxRetries = 3;
         let lastError: any;
 
@@ -78,7 +77,6 @@ class WorkstationService {
                             data: {
                                 name: finalName,
                                 type,
-                                queueMode,
                                 stationNo: nextNumber,
                                 ...(departmentId ? { departmentId } : {})
                             }

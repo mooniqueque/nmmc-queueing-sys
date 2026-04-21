@@ -23,7 +23,7 @@ import { Department, DepartmentStatus, PriorityCategory, WorkStation } from "@/s
 import { Funnel, MagnifyingGlass, Plus, Trash } from "@phosphor-icons/react";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createQueueOption, deleteQueueOption } from "../../queue-option-actions";
 import DepartmentWorkstationList from "../workstation/DepartmentWorkstationList";
 import { WorkstationList } from "../workstation/WorkstationList";
@@ -105,18 +105,6 @@ export default function DepartmentSettings({
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [pendingDeleteDepartmentId, setPendingDeleteDepartmentId] = useState<string | null>(null);
     const [isDeletingDepartment, setIsDeletingDepartment] = useState(false);
-
-    useEffect(() => {
-        setDepartments(initialDepartments);
-        setQueueOptionsByDepartment(initialQueueOptionsByDepartment);
-        setWorkstations(initialWorkstations);
-        setSelectedDepartmentId((prev) => {
-            if (prev && initialDepartments.some((department) => department.id === prev)) {
-                return prev;
-            }
-            return initialDepartments[0]?.id ?? "";
-        });
-    }, [initialDepartments, initialQueueOptionsByDepartment, initialWorkstations]);
 
     const handleWorkstationsCreated = (created: WorkStation[]) => {
         setWorkstations((current) => {

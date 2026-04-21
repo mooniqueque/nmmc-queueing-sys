@@ -8,6 +8,7 @@ import { getDepartments } from "@/features/shared/api";
 import { ReportBreakdownCard, ReportDatePicker, ReportMetricCard, getTodayBusinessDay } from "@/features/shared/components/operational-report-panel";
 import { useClinicSnapshot } from "@/features/shared/hooks/use-operational-snapshot";
 import { VisitWithPatient } from "@/features/triage/types";
+import { ApiClientError } from "@/lib/api";
 import { notify } from "@/shared/lib/notify";
 import { calculateAge } from "@/shared/lib/utils";
 import {
@@ -25,8 +26,8 @@ import {
 } from "@phosphor-icons/react";
 import { BarChart2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CallerApiError, callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { callNextPatient, callPatient, noShowPatient, restorePatient, servePatient, transferPatient } from "../api";
 import { useCallerStore } from "../store/use-caller-store";
 
 
@@ -52,7 +53,7 @@ export default function UserCallerDashboard({
 
     useEffect(() => {
         getDepartments().then(res => {
-            if (res.success) setDepartments(res.data);
+            if (res.success) setDepartments(res.data ?? []);
         });
     }, [setDepartments]);
 
@@ -96,7 +97,7 @@ export default function UserCallerDashboard({
     const { data: snapshotData } = useClinicSnapshot(reportDate, currentDepartmentId, Boolean(currentDepartmentId));
 
     const handleCallerApiError = (error: unknown, fallbackMessage: string) => {
-        if (error instanceof CallerApiError) {
+        if (error instanceof ApiClientError) {
             if (error.code === "CLAIM_CONFLICT") {
                 notify.error("Patient already claimed by another caller.", {
                     description: "Queue refreshed to show latest ownership.",
@@ -119,7 +120,7 @@ export default function UserCallerDashboard({
         notify.error(fallbackMessage);
     };
 
-    const selectPreferredFemaleVoice = (voices: SpeechSynthesisVoice[]) => {
+    const selectPreferredFemaleVoice = useCallback((voices: SpeechSynthesisVoice[]) => {
         const femaleHints = ["zira", "samantha", "victoria", "aria", "jenny", "hazel", "susan", "female"];
         const englishVoices = voices.filter((voice) => voice.lang?.toLowerCase().startsWith("en"));
 
@@ -136,9 +137,9 @@ export default function UserCallerDashboard({
         if (hintedFemale) return hintedFemale;
 
         return englishVoices[0] || voices[0] || null;
-    };
+    }, []);
 
-    const speakCallerAnnouncement = (
+    const speakCallerAnnouncement = useCallback((
         ticketNo: number | null | undefined,
         classification?: "REGULAR" | "PRIORITY" | null,
         retries = 3
@@ -182,7 +183,7 @@ export default function UserCallerDashboard({
         } catch (error) {
             console.error("[Caller TTS] Unable to speak announcement", error);
         }
-    };
+    }, [department, selectPreferredFemaleVoice]);
 
     useEffect(() => {
         if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -195,6 +196,11 @@ export default function UserCallerDashboard({
             window.speechSynthesis.onvoiceschanged = null;
         };
     }, []);
+
+    useEffect(() => {
+        if (!inProgressVisit) return;
+        speakCallerAnnouncement(inProgressVisit.serviceTicket, inProgressVisit.classification);
+    }, [inProgressVisit, speakCallerAnnouncement]);
 
     useEffect(() => {
         if (callAgainCooldown > 0) {

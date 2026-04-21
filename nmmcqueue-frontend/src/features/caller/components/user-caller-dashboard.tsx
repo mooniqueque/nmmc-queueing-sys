@@ -87,7 +87,6 @@ export default function UserCallerDashboard({
     const [localClaimedVisit, setLocalClaimedVisit] = useState<VisitWithPatient | null>(null);
     const [optimisticVisits, setOptimisticVisits] = useState<Record<string, VisitWithPatient>>({});
     const [departmentQueueOptions, setDepartmentQueueOptions] = useState<PriorityCategory[]>([]);
-    const [nowMs, setNowMs] = useState<number | null>(null);
     const [reportDate, setReportDate] = useState(initialReportDate ?? getTodayBusinessDay());
     const {
         activeTab, setActiveTab,
@@ -119,14 +118,6 @@ export default function UserCallerDashboard({
                 setDepartmentQueueOptions([]);
             });
     }, [department]);
-
-    useEffect(() => {
-        const updateNow = () => setNowMs(Date.now());
-        updateNow();
-        const intervalId = window.setInterval(updateNow, 60_000);
-
-        return () => window.clearInterval(intervalId);
-    }, []);
 
     const { activeQueue } = useClinicQueue(department, initialQueue, callerUserId);
 
@@ -427,7 +418,7 @@ export default function UserCallerDashboard({
         }
     };
 
-    const handleRecallNoShow = async (visitId: string) => {
+    const handleRestore = async (visitId: string) => {
         setIsProcessing(true);
         try {
             const res = await callPatient(visitId);
@@ -441,7 +432,7 @@ export default function UserCallerDashboard({
             }
             setCallAgainCooldown(10);
         } catch (error) {
-            handleCallerApiError(error, "Failed to call patient again.");
+            handleCallerApiError(error, "Failed to restore patient.");
         } finally {
             setIsProcessing(false);
         }
@@ -495,10 +486,8 @@ export default function UserCallerDashboard({
                             <div className="flex flex-col">
                                 {unifiedWaitingList.map((visit, index) => {
                                     const isPriorityVisit = visit.classification === "PRIORITY" || visit.isReferred;
-                                    const queueTag = getVisitQueueTag(visit);
-                                    const isNext = index === 0 && !activeVisit;
-                                    const createdAtMs = new Date(visit.createdAt).getTime();
-                                    const waitMins = Math.max(0, Math.floor(((nowMs ?? createdAtMs) - createdAtMs) / 60000));
+                                    const isNext = index === 0 && !inProgressVisit;
+                                    const waitMins = Math.floor((new Date().getTime() - new Date(visit.createdAt).getTime()) / 60000);
                                     const waitStr = waitMins > 60 ? `${Math.floor(waitMins / 60)}h ${waitMins % 60}m` : `${waitMins}m`;
 
                                     return (
@@ -513,7 +502,7 @@ export default function UserCallerDashboard({
                                                         {visit.serviceTicket ? `#${visit.serviceTicket}` : "---"}
                                                     </span>
                                                     <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${isPriorityVisit ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-700 border-slate-200"}`}>
-                                                        {queueTag}
+                                                        {isPriorityVisit ? "Priority" : "Regular"}
                                                     </span>
                                                     {visit.isReferred ? (
                                                         <span className="bg-blue-100 text-blue-700 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
@@ -564,11 +553,11 @@ export default function UserCallerDashboard({
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                onClick={() => handleRecallNoShow(visit.id)}
+                                                onClick={() => handleRestore(visit.id)}
                                                 disabled={isProcessing}
                                                 className="h-8 px-3 border-border bg-background text-foreground hover:bg-muted rounded-lg text-[10px] font-bold uppercase tracking-widest"
                                             >
-                                                Call Patient Again
+                                                Restore
                                             </Button>
                                         </div>
                                         <span className="font-bold text-sm text-muted-foreground group-hover:text-foreground transition-colors">
@@ -633,7 +622,7 @@ export default function UserCallerDashboard({
                     ) : null}
                 </header>
 
-                <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative w-full bg-background/50">
+                <div className="flex-1 overflow-hidden flex flex-col relative w-full bg-background/50">
                     {!activeVisit ? (
                         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/5 animate-in fade-in duration-500">
                             <div className="w-24 h-24 bg-background rounded-full border border-border flex items-center justify-center mb-8 shadow-xl relative group">
@@ -723,7 +712,7 @@ export default function UserCallerDashboard({
                                                         {activeVisit.patient.gender} • {calculateAge(activeVisit.patient.dateOfBirth) ?? "??"} years old
                                                     </span>
                                                     <span className="bg-emerald-600 text-white text-[9px] uppercase font-black tracking-widest px-2.5 py-1 rounded-full shadow-sm shadow-emerald-200">
-                                                        {getVisitQueueTag(activeVisit)}
+                                                        {activeVisit.classification || "REGULAR"}
                                                     </span>
                                                 </div>
                                                 {activeVisit.patient.contactNo ? (
@@ -815,7 +804,7 @@ export default function UserCallerDashboard({
                                             disabled={isProcessing}
                                             className="w-full md:w-auto h-12 px-10 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/10 rounded-xl font-bold uppercase tracking-widest text-xs transition-all hover:-translate-y-0.5 active:scale-[0.98]"
                                         >
-                                            <CheckCircle size={18} weight="fill" className="mr-2" /> Finish Consultation
+                                            <CheckCircle size={18} weight="fill" className="mr-2" /> Mark Served
                                         </Button>
                                     </div>
                                 </div>

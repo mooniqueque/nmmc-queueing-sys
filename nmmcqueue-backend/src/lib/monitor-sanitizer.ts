@@ -10,6 +10,7 @@ type MonitorWindowLike = {
 type MonitorSnapshotLike = {
     active?: MonitorWindowLike[];
     upcoming?: string[];
+    recentCalls?: MonitorWindowLike[];
 };
 
 function toIsoString(value: string | Date | null | undefined) {
@@ -36,7 +37,7 @@ export function sanitizeMonitorWindow(window: MonitorWindowLike | null | undefin
 
 export function sanitizeMonitorSnapshot(snapshot?: MonitorSnapshotLike | null) {
     if (!snapshot) {
-        return { active: [], upcoming: [] as string[] };
+        return { active: [], upcoming: [] as string[], recentCalls: [] };
     }
 
     return {
@@ -44,6 +45,9 @@ export function sanitizeMonitorSnapshot(snapshot?: MonitorSnapshotLike | null) {
             .map((window) => sanitizeMonitorWindow(window))
             .filter((window): window is NonNullable<ReturnType<typeof sanitizeMonitorWindow>> => Boolean(window)),
         upcoming: (snapshot.upcoming ?? []).filter((ticket): ticket is string => typeof ticket === 'string'),
+        recentCalls: (snapshot.recentCalls ?? [])
+            .map((window) => sanitizeMonitorWindow(window))
+            .filter((window): window is NonNullable<ReturnType<typeof sanitizeMonitorWindow>> => Boolean(window)),
     };
 }
 

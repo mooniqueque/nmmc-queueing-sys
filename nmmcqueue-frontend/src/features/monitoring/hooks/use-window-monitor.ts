@@ -128,7 +128,13 @@ export function useWindowMonitor(slugOrId?: string): UseWindowMonitorResult {
                 } else if (json.data && json.data.active) {
                     const nextWindows = (json.data.active || []).map(toDisplayWindow);
                     setWindows(nextWindows);
-                    setPreviousNumbers((current) => (current.length > 0 ? current : buildRecentNumbers(nextWindows)));
+                    // Prefer recentCalls from backend; fall back to buildRecentNumbers(active) if not available
+                    const recentCallsFromApi = (json.data.recentCalls || []).map(toDisplayWindow);
+                    setPreviousNumbers((current) => {
+                        if (current.length > 0) return current; // Keep session memory during navigation
+                        if (recentCallsFromApi.length > 0) return recentCallsFromApi; // Hydrate from backend
+                        return buildRecentNumbers(nextWindows); // Fallback to derive from active
+                    });
                     if (Array.isArray(json.data.upcoming)) {
                         setUpcoming(json.data.upcoming);
                     }
@@ -153,13 +159,20 @@ export function useWindowMonitor(slugOrId?: string): UseWindowMonitorResult {
                 const data = JSON.parse(event.data) as SseMessage<{
                     active?: WindowStatus[];
                     upcoming?: string[];
+                    recentCalls?: WindowStatus[];
                     window?: WindowStatus;
                     stationNo?: number;
                 }>;
                 if (data.type === SseEventType.MONITOR_SNAPSHOT && data.payload) {
                     const nextWindows = (data.payload.active || []).map(toDisplayWindow);
                     setWindows(nextWindows);
-                    setPreviousNumbers((current) => (current.length > 0 ? current : buildRecentNumbers(nextWindows)));
+                    // Prefer recentCalls from SSE snapshot; fall back to buildRecentNumbers(active) if not available
+                    const recentCallsFromSse = (data.payload.recentCalls || []).map(toDisplayWindow);
+                    setPreviousNumbers((current) => {
+                        if (current.length > 0) return current; // Keep session memory during snapshot
+                        if (recentCallsFromSse.length > 0) return recentCallsFromSse; // Hydrate from SSE
+                        return buildRecentNumbers(nextWindows); // Fallback to derive from active
+                    });
                     if (Array.isArray(data.payload.upcoming)) {
                         setUpcoming(data.payload.upcoming);
                     }
